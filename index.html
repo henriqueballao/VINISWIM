@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d1724">
-<link rel="manifest" href="manifest.webmanifest?v=13">
+<link rel="manifest" href="manifest.webmanifest?v=14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
@@ -379,6 +379,17 @@ body.auth-locked{overflow:hidden}
   .topbar h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
 
+
+/* VINISWIM V14 — Dropbox e comandos somente em Ações */
+.sidebar-sync-status{
+  margin:4px 10px 7px;padding:8px 10px;border-radius:8px;
+  background:rgba(255,255,255,.07);color:#9fb1bf;font-size:10px;
+  line-height:1.35
+}
+.sidebar-sync-status.ok{color:#a9dec7;background:rgba(35,122,87,.15)}
+.sidebar-sync-status.err{color:#f0b0b0;background:rgba(161,61,61,.15)}
+.topbar-inner{justify-content:flex-start}
+
 @media print{.sidebar,.topbar,.mobile-nav,.no-print{display:none!important}.app{display:block}.content{padding:0}.page{display:block!important;break-after:page}.page:last-child{break-after:auto}.section,.card,.hero{box-shadow:none;break-inside:avoid}}
 </style>
 </head>
@@ -427,11 +438,14 @@ body.auth-locked{overflow:hidden}
         <span>Ações</span><span class="menu-caret">⌄</span>
       </button>
       <div class="sidebar-actions-menu" id="sidebarActionsMenu">
+        <div class="sidebar-sync-status" id="sidebarSyncStatus">Dropbox · verificando</div>
         <button type="button" id="actionSave">Salvar</button>
+        <button type="button" id="actionSync">Sincronizar Dropbox</button>
+        <button type="button" id="actionPrint">Imprimir / PDF</button>
         <button type="button" id="actionLogout" class="danger">Sair</button>
       </div>
     </div>
-    <div class="sidebar-foot">VINISWIM V13 · Dropbox + GitHub Pages</div>
+    <div class="sidebar-foot">VINISWIM V14 · Dropbox + GitHub Pages</div>
   </aside>
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
   <main>
@@ -443,13 +457,6 @@ body.auth-locked{overflow:hidden}
             <span></span><span></span><span></span>
           </button>
           <h1 id="pageTitle">Visão Geral</h1>
-        </div>
-        <div class="topbar-actions">
-          <div class="sync">
-            <span id="syncPill" class="pill">Dropbox · não conectado</span>
-            <button class="btn no-print" id="syncBtn">Conectar</button>
-          </div>
-        </div>
         </div>
       </div>
     </div>
@@ -1091,7 +1098,7 @@ function toggleAlert(key,val){
 }
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js?v=13')}catch(e){console.warn('SW',e);return null}
+  try{return await navigator.serviceWorker.register('./service-worker.js?v=14')}catch(e){console.warn('SW',e);return null}
 }
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
@@ -1342,6 +1349,8 @@ function initMobileSidebar(){
     b.addEventListener('click',()=>closeMobileSidebar());
   });
   $('#actionSave')?.addEventListener('click',()=>closeMobileSidebar());
+  $('#actionSync')?.addEventListener('click',()=>closeMobileSidebar());
+  $('#actionPrint')?.addEventListener('click',()=>closeMobileSidebar());
   $('#actionLogout')?.addEventListener('click',()=>closeMobileSidebar());
 
   document.addEventListener('keydown',e=>{
@@ -1377,6 +1386,8 @@ async function actionSyncNow(){
 function initActionsMenu(){
   $('#sidebarActionsBtn').onclick=openActionsMenu;
   $('#actionSave').onclick=actionSaveNow;
+  $('#actionSync').onclick=actionSyncNow;
+  $('#actionPrint').onclick=()=>{closeActionsMenu();window.print()};
   $('#actionLogout').onclick=logoutApp;
   document.addEventListener('click',e=>{
     if(!e.target.closest('.sidebar-actions'))closeActionsMenu();
@@ -1411,25 +1422,34 @@ async function dbxDownload(){
 }
 async function dbxUpload(){
   let t=await token();if(!t)return;
-  $('#syncPill').textContent='Dropbox · salvando';$('#syncPill').className='pill';
+  $('#syncPill').textContent='Dropbox · salvando';
   let arg={path:dataFile(),mode:dropboxRev?{'.tag':'update',update:dropboxRev}:'overwrite',autorename:false,mute:true},r=await fetch('https://content.dropboxapi.com/2/files/upload',{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/octet-stream','Dropbox-API-Arg':JSON.stringify(arg)},body:JSON.stringify(DATA)});
-  let d=await r.json();if(!r.ok)throw new Error(d.error_summary||'Falha ao salvar.');dropboxRev=d.rev||dropboxRev;$('#syncPill').textContent='Dropbox · sincronizado';$('#syncPill').className='pill ok';
+  let d=await r.json();if(!r.ok)throw new Error(d.error_summary||'Falha ao salvar.');dropboxRev=d.rev||dropboxRev;setDropboxStatus('Dropbox · sincronizado','ok');
 }
 function queueSave(now=false){clearTimeout(saveTimer);if(!dropboxReady)return;if(now)dbxUpload().catch(e=>alert(e.message));else saveTimer=setTimeout(()=>dbxUpload().catch(e=>alert(e.message)),600)}
+
+function setDropboxStatus(text,state=''){
+  const s=$('#sidebarSyncStatus');
+  if(s){
+    s.textContent=text;
+    s.className='sidebar-sync-status'+(state?' '+state:'');
+  }
+}
+
 async function bootstrapDropbox(){
   try{
     const q=new URLSearchParams(location.search);
     if(q.get('error'))throw new Error(q.get('error_description')||q.get('error'));
     if(q.get('code')){
-      $('#syncPill').textContent='Dropbox · autorizando';
+      setDropboxStatus('Dropbox · autorizando');
       await exchange(q.get('code'));
     }
     const t=await token();
     if(!t){
       dropboxReady=false;
-      $('#syncPill').textContent='Dropbox · não conectado';
-      $('#syncPill').className='pill';
-      $('#syncBtn').textContent='Conectar';
+      setDropboxStatus('Dropbox · não conectado','err');
+      
+      
       renderAthleteHero();
       document.body.classList.add('auth-locked');
       $('#authGate').hidden=false;
@@ -1440,7 +1460,7 @@ async function bootstrapDropbox(){
       setTimeout(()=>{const b=$('#authDropboxConnect');if(b)b.onclick=connectDropbox},0);
       return;
     }
-    $('#syncPill').textContent='Dropbox · carregando';
+    setDropboxStatus('Dropbox · carregando');
     const remote=await dbxDownload();
     if(remote&&remote.app==='VINISWIM'){
       DATA=remote;
@@ -1450,23 +1470,22 @@ async function bootstrapDropbox(){
       await dbxUpload();
     }
     dropboxReady=true;
-    $('#syncPill').textContent='Dropbox · sincronizado';
-    $('#syncPill').className='pill ok';
-    $('#syncBtn').textContent='Sincronizar';
+    setDropboxStatus('Dropbox · sincronizado','ok');
+    
+    
     render();
     $('#authForm').hidden=false;
     await initAuth();
   }catch(e){
     dropboxReady=false;
-    $('#syncPill').textContent='Dropbox · atenção';
-    $('#syncPill').className='pill';
-    $('#syncBtn').textContent='Conectar';
+    setDropboxStatus('Dropbox · atenção','err');
+    
+    
     console.error('VINISWIM Dropbox bootstrap',e);
     alert(e.message||'Falha ao conectar ao Dropbox.');
   }
 }
-function logoutDropbox(){sessionStorage.removeItem(DBX_ACCESS);localStorage.removeItem(DBX_REFRESH);dropboxReady=false;$('#syncPill').textContent='Dropbox · não conectado';$('#syncPill').className='pill';$('#syncBtn').textContent='Conectar'}
-$('#syncBtn').onclick=async()=>{if(dropboxReady){try{let d=await dbxDownload();if(d&&d.app==='VINISWIM'){DATA=d;render();$('#syncPill').textContent='Dropbox · sincronizado'}}catch(e){alert(e.message)}}else connectDropbox()}
+function logoutDropbox(){sessionStorage.removeItem(DBX_ACCESS);localStorage.removeItem(DBX_REFRESH);dropboxReady=false;setDropboxStatus('Dropbox · não conectado','err');$('#syncBtn').textContent='Conectar'}
 
 ensureAlertSettings();
 document.body.classList.add('auth-locked');
