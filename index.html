@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e2530">
-<link rel="manifest" href="manifest.webmanifest?v=18">
+<link rel="manifest" href="manifest.webmanifest?v=19">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
@@ -1032,6 +1032,7 @@ async function handlePhotoUpload(file){
   const dataUrl=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)});
   DATA.settings=DATA.settings||{};
   DATA.settings.photoDataUrl=dataUrl;
+  markDirty();
   $('#photoPreview').src=dataUrl;
   renderAthleteHero();
 }
@@ -1356,7 +1357,7 @@ function toggleAlert(key,val){
 }
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js?v=18')}catch(e){console.warn('SW',e);return null}
+  try{return await navigator.serviceWorker.register('./service-worker.js?v=19')}catch(e){console.warn('SW',e);return null}
 }
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
@@ -1501,6 +1502,25 @@ async function importFromSwimSystem(){
 
 
 /* ===== VINISWIM AUTH + ACTIONS ===== */
+
+let localDirty=false;
+let lastSavedSnapshot='';
+
+function markDirty(){
+  localDirty=true;
+}
+function refreshDirtyState(){
+  try{
+    localDirty = lastSavedSnapshot ? JSON.stringify(DATA)!==lastSavedSnapshot : localDirty;
+  }catch(e){}
+  return localDirty;
+}
+function confirmRemoteOverwrite(){
+  refreshDirtyState();
+  if(!localDirty)return true;
+  return confirm('Existem alterações ainda não salvas. Sincronizar com o Dropbox irá descartá-las. Deseja continuar?');
+}
+
 const AUTH_SESSION_KEY='viniswim_auth_session_v1';
 
 
@@ -1648,14 +1668,27 @@ function closeActionsMenu(){
 async function actionSaveNow(){
   closeActionsMenu();
   if(!dropboxReady){alert('Conecte o Dropbox primeiro.');return}
-  try{await dbxUpload();alert('Dados salvos no Dropbox.')}catch(e){alert(e.message)}
+  try{
+    await dbxUpload();
+    alert('Dados salvos no Dropbox.');
+  }catch(e){
+    alert(e.message||'Não foi possível salvar no Dropbox.');
+  }
 }
 async function actionSyncNow(){
   closeActionsMenu();
   if(!dropboxReady){alert('Conecte o Dropbox primeiro.');return}
+  if(!confirmRemoteOverwrite())return;
   try{
     const d=await dbxDownload();
-    if(d&&d.app==='VINISWIM'){DATA=d;render();alert('Base sincronizada com o Dropbox.')}
+    if(d&&d.app==='VINISWIM'){
+      DATA=d;
+      lastSavedSnapshot=JSON.stringify(DATA);
+      localDirty=false;
+      render();
+      setDropboxStatus('Dropbox · sincronizado','ok');
+      alert('Base sincronizada com o Dropbox.');
+    }
   }catch(e){alert(e.message)}
 }
 function initActionsMenu(){
@@ -1696,12 +1729,31 @@ async function dbxDownload(){
   let api=JSON.parse(r.headers.get('Dropbox-API-Result')||'{}');dropboxRev=api.rev||'';return await r.json();
 }
 async function dbxUpload(){
-  let t=await token();if(!t)return;
-  $('#syncPill').textContent='Dropbox · salvando';
-  let arg={path:dataFile(),mode:dropboxRev?{'.tag':'update',update:dropboxRev}:'overwrite',autorename:false,mute:true},r=await fetch('https://content.dropboxapi.com/2/files/upload',{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/octet-stream','Dropbox-API-Arg':JSON.stringify(arg)},body:JSON.stringify(DATA)});
-  let d=await r.json();if(!r.ok)throw new Error(d.error_summary||'Falha ao salvar.');dropboxRev=d.rev||dropboxRev;setDropboxStatus('Dropbox · sincronizado','ok');
+  const t=await token();
+  if(!t)throw new Error('Dropbox não conectado.');
+  setDropboxStatus('Dropbox · salvando');
+  const body=JSON.stringify(DATA,null,2);
+  const r=await fetch('https://content.dropboxapi.com/2/files/upload',{
+    method:'POST',
+    headers:{
+      'Authorization':'Bearer '+t,
+      'Dropbox-API-Arg':JSON.stringify({path:DBX_FILE,mode:'overwrite',autorename:false,mute:true}),
+      'Content-Type':'application/octet-stream'
+    },
+    body
+  });
+  if(!r.ok){
+    let detail='';
+    try{detail=await r.text()}catch(e){}
+    setDropboxStatus('Dropbox · erro ao salvar','err');
+    throw new Error('Falha ao salvar no Dropbox'+(detail?': '+detail:''));
+  }
+  setDropboxStatus('Dropbox · sincronizado','ok');
+  localDirty=false;
+  lastSavedSnapshot=JSON.stringify(DATA);
+  return true;
 }
-function queueSave(now=false){clearTimeout(saveTimer);if(!dropboxReady)return;if(now)dbxUpload().catch(e=>alert(e.message));else saveTimer=setTimeout(()=>dbxUpload().catch(e=>alert(e.message)),600)}
+function queueSave(now=false){markDirty();clearTimeout(saveTimer);if(!dropboxReady)return;if(now)dbxUpload().catch(e=>alert(e.message));else saveTimer=setTimeout(()=>dbxUpload().catch(e=>alert(e.message)),600)}
 
 function setDropboxStatus(text,state=''){
   const s=$('#sidebarSyncStatus');
@@ -1739,6 +1791,8 @@ async function bootstrapDropbox(){
     const remote=await dbxDownload();
     if(remote&&remote.app==='VINISWIM'){
       DATA=remote;
+      lastSavedSnapshot=JSON.stringify(DATA);
+      localDirty=false;
     }else{
       DATA=JSON.parse(document.getElementById('seedData').textContent);
       dropboxReady=true;
@@ -1760,7 +1814,7 @@ async function bootstrapDropbox(){
     alert(e.message||'Falha ao conectar ao Dropbox.');
   }
 }
-function logoutDropbox(){sessionStorage.removeItem(DBX_ACCESS);localStorage.removeItem(DBX_REFRESH);dropboxReady=false;setDropboxStatus('Dropbox · não conectado','err');$('#syncBtn').textContent='Conectar'}
+function logoutDropbox(){sessionStorage.removeItem(DBX_ACCESS);localStorage.removeItem(DBX_REFRESH);dropboxReady=false;setDropboxStatus('Dropbox · não conectado','err');}
 
 ensureAlertSettings();
 document.body.classList.add('auth-locked');
