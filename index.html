@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e2530">
-<link rel="manifest" href="manifest.webmanifest?v=19">
+<link rel="manifest" href="manifest.webmanifest?v=20">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
@@ -687,7 +687,6 @@ tbody tr:hover{background:#f8fbfc}
       <div class="sidebar-actions-menu" id="sidebarActionsMenu">
         <div class="sidebar-sync-status" id="sidebarSyncStatus">Dropbox · verificando</div>
         <button type="button" id="actionSave"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l2 2v16H5V3Z"/><path d="M8 3v6h8V3M8 21v-8h8v8"/></svg></span>Salvar</button>
-        <button type="button" id="actionSync"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-5V2M4 17h5v5"/><path d="M6.1 9A7 7 0 0 1 18.5 6L20 7M4 17l1.5 1A7 7 0 0 0 18 15"/></svg></span>Sincronizar Dropbox</button>
         <button type="button" id="actionPrint"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7"/></svg></span>Imprimir / PDF</button>
         <button type="button" id="actionLogout" class="danger"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg></span>Sair</button>
       </div>
@@ -1032,7 +1031,7 @@ async function handlePhotoUpload(file){
   const dataUrl=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)});
   DATA.settings=DATA.settings||{};
   DATA.settings.photoDataUrl=dataUrl;
-  markDirty();
+  
   $('#photoPreview').src=dataUrl;
   renderAthleteHero();
 }
@@ -1301,21 +1300,10 @@ function saveMeet(){
   meetModal.close();render();queueSave();
 }
 function saveSettings(){
-  DATA.settings=DATA.settings||{};
-  DATA.settings.athleteName=$('#setAthleteName').value.trim();
-  DATA.settings.team=$('#setTeam').value.trim();
-  DATA.settings.athleteRegistration=$('#setReg').value.trim();
-  DATA.settings.birthDate=$('#setBirthDate').value;
-  DATA.settings.category=$('#setCategory').value;
-  DATA.settings.swimSystemMeetUrl=$('#setMeetUrl').value.trim();
-  DATA.settings.pushServerUrl=$('#setPushUrl').value.trim();
-  DATA.athlete=DATA.athlete||{};
-  DATA.athlete.name=DATA.settings.athleteName||DATA.athlete.name;
-  DATA.athlete.team=DATA.settings.team||DATA.athlete.team||DATA.athlete.club;
-  DATA.athlete.registration=DATA.settings.athleteRegistration||DATA.athlete.registration;
-  DATA.athlete.birthDate=DATA.settings.birthDate||null;
-  DATA.athlete.category=DATA.settings.category||null;
-  renderAthleteHero();queueSave(true);renderAlerts();alert('Configurações salvas.');
+  collectSettingsFromForm();
+  renderAthleteHero();
+  renderAlerts();
+  queueSave(true);
 }
 function exportJson(){let b=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='viniswim-dados.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
 
@@ -1357,7 +1345,7 @@ function toggleAlert(key,val){
 }
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js?v=19')}catch(e){console.warn('SW',e);return null}
+  try{return await navigator.serviceWorker.register('./service-worker.js?v=20')}catch(e){console.warn('SW',e);return null}
 }
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
@@ -1503,23 +1491,7 @@ async function importFromSwimSystem(){
 
 /* ===== VINISWIM AUTH + ACTIONS ===== */
 
-let localDirty=false;
-let lastSavedSnapshot='';
 
-function markDirty(){
-  localDirty=true;
-}
-function refreshDirtyState(){
-  try{
-    localDirty = lastSavedSnapshot ? JSON.stringify(DATA)!==lastSavedSnapshot : localDirty;
-  }catch(e){}
-  return localDirty;
-}
-function confirmRemoteOverwrite(){
-  refreshDirtyState();
-  if(!localDirty)return true;
-  return confirm('Existem alterações ainda não salvas. Sincronizar com o Dropbox irá descartá-las. Deseja continuar?');
-}
 
 const AUTH_SESSION_KEY='viniswim_auth_session_v1';
 
@@ -1644,7 +1616,6 @@ function initMobileSidebar(){
     b.addEventListener('click',()=>closeMobileSidebar());
   });
   $('#actionSave')?.addEventListener('click',()=>closeMobileSidebar());
-  $('#actionSync')?.addEventListener('click',()=>closeMobileSidebar());
   $('#actionPrint')?.addEventListener('click',()=>closeMobileSidebar());
   $('#actionLogout')?.addEventListener('click',()=>closeMobileSidebar());
 
@@ -1665,36 +1636,51 @@ function closeActionsMenu(){
   $('#sidebarActionsBtn')?.classList.remove('open');
   $('#sidebarActionsBtn')?.setAttribute('aria-expanded','false');
 }
+
+function collectSettingsFromForm(){
+  DATA.settings=DATA.settings||{};
+  DATA.athlete=DATA.athlete||{};
+
+  const athleteName=$('#setAthleteName');
+  const team=$('#setTeam');
+  const reg=$('#setReg');
+  const birth=$('#setBirthDate');
+  const category=$('#setCategory');
+  const meetUrl=$('#setMeetUrl');
+  const pushUrl=$('#setPushUrl');
+
+  if(athleteName) DATA.settings.athleteName=athleteName.value.trim();
+  if(team) DATA.settings.team=team.value.trim();
+  if(reg) DATA.settings.athleteRegistration=reg.value.trim();
+  if(birth) DATA.settings.birthDate=birth.value;
+  if(category) DATA.settings.category=category.value;
+  if(meetUrl) DATA.settings.swimSystemMeetUrl=meetUrl.value.trim();
+  if(pushUrl) DATA.settings.pushServerUrl=pushUrl.value.trim();
+
+  DATA.athlete.name=DATA.settings.athleteName||DATA.athlete.name||'';
+  DATA.athlete.team=DATA.settings.team||DATA.athlete.team||DATA.athlete.club||'';
+  DATA.athlete.registration=DATA.settings.athleteRegistration||DATA.athlete.registration||'';
+  DATA.athlete.birthDate=DATA.settings.birthDate||null;
+  DATA.athlete.category=DATA.settings.category||null;
+}
+
 async function actionSaveNow(){
   closeActionsMenu();
   if(!dropboxReady){alert('Conecte o Dropbox primeiro.');return}
   try{
+    collectSettingsFromForm();
+    renderAthleteHero();
     await dbxUpload();
     alert('Dados salvos no Dropbox.');
   }catch(e){
+    setDropboxStatus('Dropbox · erro ao salvar','err');
     alert(e.message||'Não foi possível salvar no Dropbox.');
   }
 }
-async function actionSyncNow(){
-  closeActionsMenu();
-  if(!dropboxReady){alert('Conecte o Dropbox primeiro.');return}
-  if(!confirmRemoteOverwrite())return;
-  try{
-    const d=await dbxDownload();
-    if(d&&d.app==='VINISWIM'){
-      DATA=d;
-      lastSavedSnapshot=JSON.stringify(DATA);
-      localDirty=false;
-      render();
-      setDropboxStatus('Dropbox · sincronizado','ok');
-      alert('Base sincronizada com o Dropbox.');
-    }
-  }catch(e){alert(e.message)}
-}
+
 function initActionsMenu(){
   $('#sidebarActionsBtn').onclick=openActionsMenu;
   $('#actionSave').onclick=actionSaveNow;
-  $('#actionSync').onclick=actionSyncNow;
   $('#actionPrint').onclick=()=>{closeActionsMenu();window.print()};
   $('#actionLogout').onclick=logoutApp;
   document.addEventListener('click',e=>{
@@ -1737,7 +1723,7 @@ async function dbxUpload(){
     method:'POST',
     headers:{
       'Authorization':'Bearer '+t,
-      'Dropbox-API-Arg':JSON.stringify({path:DBX_FILE,mode:'overwrite',autorename:false,mute:true}),
+      'Dropbox-API-Arg':JSON.stringify({path:dataFile(),mode:'overwrite',autorename:false,mute:true}),
       'Content-Type':'application/octet-stream'
     },
     body
@@ -1749,11 +1735,14 @@ async function dbxUpload(){
     throw new Error('Falha ao salvar no Dropbox'+(detail?': '+detail:''));
   }
   setDropboxStatus('Dropbox · sincronizado','ok');
-  localDirty=false;
-  lastSavedSnapshot=JSON.stringify(DATA);
   return true;
 }
-function queueSave(now=false){markDirty();clearTimeout(saveTimer);if(!dropboxReady)return;if(now)dbxUpload().catch(e=>alert(e.message));else saveTimer=setTimeout(()=>dbxUpload().catch(e=>alert(e.message)),600)}
+function queueSave(now=false){
+  clearTimeout(saveTimer);
+  if(!dropboxReady)return;
+  if(now)dbxUpload().catch(e=>alert(e.message));
+  else saveTimer=setTimeout(()=>dbxUpload().catch(e=>alert(e.message)),600);
+}
 
 function setDropboxStatus(text,state=''){
   const s=$('#sidebarSyncStatus');
@@ -1791,8 +1780,6 @@ async function bootstrapDropbox(){
     const remote=await dbxDownload();
     if(remote&&remote.app==='VINISWIM'){
       DATA=remote;
-      lastSavedSnapshot=JSON.stringify(DATA);
-      localDirty=false;
     }else{
       DATA=JSON.parse(document.getElementById('seedData').textContent);
       dropboxReady=true;
