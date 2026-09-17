@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d1724">
-<link rel="manifest" href="manifest.webmanifest?v=11">
+<link rel="manifest" href="manifest.webmanifest?v=13">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
@@ -289,6 +289,96 @@ body.auth-locked{overflow:hidden}
   .actions-dropdown{position:fixed;right:10px;top:62px;width:min(260px,calc(100vw - 20px))}
 }
 
+
+/* VINISWIM V12 — ações na sidebar e integrações mais espaçosas */
+.sidebar-actions{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.10)}
+.sidebar-actions-trigger{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  border:0;background:transparent;color:#becbd5;text-align:left;
+  padding:12px 13px;border-radius:10px;cursor:pointer;font:inherit
+}
+.sidebar-actions-trigger:hover,.sidebar-actions-trigger.open{background:var(--nav2);color:#fff}
+.sidebar-actions-menu{display:none;padding:5px 0 0}
+.sidebar-actions-menu.open{display:grid;gap:4px}
+.sidebar-actions-menu button{
+  border:0;background:transparent;color:#becbd5;text-align:left;
+  padding:10px 13px 10px 26px;border-radius:8px;cursor:pointer;font-size:12px
+}
+.sidebar-actions-menu button:hover{background:var(--nav2);color:#fff}
+.sidebar-actions-menu button.danger{color:#f2a3a3}
+.sidebar-actions-menu button.danger:hover{color:#fff;background:#5b1d24}
+
+/* integrações */
+#settings .section:nth-of-type(2) .form{
+  display:grid;
+  grid-template-columns:minmax(220px,.7fr) minmax(0,1.3fr);
+  gap:14px 18px;
+  align-items:end
+}
+#settings .section:nth-of-type(2) .form label{
+  display:grid;
+  gap:6px;
+  min-width:0
+}
+#settings .section:nth-of-type(2) .form input{
+  width:100%;
+  min-width:0;
+  padding:10px 12px
+}
+#settings .section:nth-of-type(2) .form .full{grid-column:1/-1}
+@media(max-width:980px){
+  .sidebar-actions{display:none}
+}
+@media(max-width:700px){
+  #settings .section:nth-of-type(2) .form{grid-template-columns:1fr}
+  #settings .section:nth-of-type(2) .form .full{grid-column:1}
+}
+
+
+/* VINISWIM V13 — sidebar móvel por hamburger */
+.mobile-hamburger{
+  display:none;
+  width:38px;height:38px;border:1px solid var(--line);background:#fff;
+  border-radius:9px;padding:8px;cursor:pointer;flex:0 0 auto
+}
+.mobile-hamburger span{
+  display:block;height:2px;background:var(--ink);border-radius:2px;margin:4px 0;
+  transition:.2s ease
+}
+.sidebar-backdrop{display:none}
+
+@media(max-width:980px){
+  .mobile-hamburger{display:block}
+  .sidebar{
+    display:block;
+    position:fixed;left:0;top:0;bottom:0;
+    width:min(300px,84vw);height:100dvh;
+    z-index:120;
+    transform:translateX(-102%);
+    transition:transform .22s ease;
+    box-shadow:18px 0 45px rgba(6,14,20,.20);
+    overflow-y:auto;
+    padding-bottom:28px
+  }
+  body.sidebar-open .sidebar{transform:translateX(0)}
+  .sidebar-backdrop{
+    display:block;position:fixed;inset:0;background:rgba(6,14,20,.46);
+    z-index:110;opacity:0;pointer-events:none;transition:opacity .22s ease
+  }
+  body.sidebar-open .sidebar-backdrop{opacity:1;pointer-events:auto}
+  body.sidebar-open{overflow:hidden}
+
+  /* ações também aparecem dentro da sidebar no celular */
+  .sidebar-actions{display:block!important}
+
+  /* sem barra inferior duplicada */
+  .mobile-nav{display:none!important}
+
+  /* topbar continua alinhada */
+  .topbar-left{min-width:0}
+  .topbar h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+
 @media print{.sidebar,.topbar,.mobile-nav,.no-print{display:none!important}.app{display:block}.content{padding:0}.page{display:block!important;break-after:page}.page:last-child{break-after:auto}.section,.card,.hero{box-shadow:none;break-inside:avoid}}
 </style>
 </head>
@@ -332,28 +422,34 @@ body.auth-locked{overflow:hidden}
       <button data-page="audit">Auditoria</button>
       <button data-page="settings">Configurações</button>
     </div>
-    <div class="sidebar-foot">VINISWIM V11 · Dropbox + GitHub Pages</div>
+    <div class="sidebar-actions no-print">
+      <button class="sidebar-actions-trigger" id="sidebarActionsBtn" type="button" aria-expanded="false">
+        <span>Ações</span><span class="menu-caret">⌄</span>
+      </button>
+      <div class="sidebar-actions-menu" id="sidebarActionsMenu">
+        <button type="button" id="actionSave">Salvar</button>
+        <button type="button" id="actionLogout" class="danger">Sair</button>
+      </div>
+    </div>
+    <div class="sidebar-foot">VINISWIM V13 · Dropbox + GitHub Pages</div>
   </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
   <main>
     
     <div class="topbar">
       <div class="topbar-inner">
-        <div class="topbar-left"><h1 id="pageTitle">Visão Geral</h1></div>
+        <div class="topbar-left">
+          <button class="mobile-hamburger no-print" id="mobileSidebarBtn" type="button" aria-label="Abrir menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+          </button>
+          <h1 id="pageTitle">Visão Geral</h1>
+        </div>
         <div class="topbar-actions">
           <div class="sync">
             <span id="syncPill" class="pill">Dropbox · não conectado</span>
             <button class="btn no-print" id="syncBtn">Conectar</button>
           </div>
-          <div class="actions-menu no-print">
-            <button class="btn actions-trigger" id="actionsMenuBtn" type="button" aria-haspopup="true" aria-expanded="false">
-              <span class="actions-text">Ações</span><span class="actions-caret">⌄</span>
-            </button>
-            <div class="actions-dropdown" id="actionsMenu" role="menu">
-              <button type="button" id="actionSave">Salvar</button>
-              <div class="sep"></div>
-              <button type="button" id="actionLogout" class="danger">Sair</button>
-            </div>
-          </div>
+        </div>
         </div>
       </div>
     </div>
@@ -479,23 +575,13 @@ body.auth-locked{overflow:hidden}
             <label class="full">URL da competição<input id="setMeetUrl"></label>
             <label class="full">Servidor Push / conector SwimSystem<input id="setPushUrl" placeholder="https://seu-monitor.exemplo.com"></label>
           </div>
-          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap" class="no-print">
-            <button class="btn primary" onclick="saveSettings()">Salvar</button>
-            <button class="btn" onclick="exportJson()">Exportar JSON</button>
-            <button class="btn" onclick="window.print()">Gerar PDF</button>
-            <button class="btn danger" onclick="logoutDropbox()">Sair do Dropbox</button>
-          </div>
+          
         </div>
       </section>
 
     </div>
   </main>
 </div>
-<div class="mobile-nav">
-  <button data-page="dashboard" class="active">Início</button><button data-page="history">Resultados</button><button data-page="evolution">Evolução</button><button data-page="meets">Provas</button><button data-page="predictions">Previsão</button>
-</div>
-
-
 <dialog id="resultModal">
   <div class="modal-sheet">
     <div class="modal-head"><b>Novo resultado</b><button class="btn" onclick="resultModal.close()">Fechar</button></div>
@@ -624,6 +710,7 @@ function bestFor(event,pool){let a=confirmed().filter(r=>r.event===event&&(pool=
 function officialCount(){return DATA.results.filter(r=>r.status==='official').length}
 
 function nav(page){
+  closeMobileSidebar();
   $$('.page').forEach(x=>x.classList.toggle('active',x.id===page));
   $$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
   const names={dashboard:'Visão Geral',history:'Resultados',evolution:'Evolução',meets:'Campeonatos',predictions:'Expectativas',alerts:'Alertas',audit:'Auditoria',settings:'Configurações'};
@@ -1004,7 +1091,7 @@ function toggleAlert(key,val){
 }
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js?v=11')}catch(e){console.warn('SW',e);return null}
+  try{return await navigator.serviceWorker.register('./service-worker.js?v=13')}catch(e){console.warn('SW',e);return null}
 }
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
@@ -1234,15 +1321,45 @@ function logoutApp(){
   sessionStorage.removeItem(AUTH_SESSION_KEY);
   showAuthGate();
 }
+
+function openMobileSidebar(){
+  document.body.classList.add('sidebar-open');
+  $('#mobileSidebarBtn')?.setAttribute('aria-expanded','true');
+}
+function closeMobileSidebar(){
+  document.body.classList.remove('sidebar-open');
+  $('#mobileSidebarBtn')?.setAttribute('aria-expanded','false');
+}
+function toggleMobileSidebar(){
+  document.body.classList.contains('sidebar-open') ? closeMobileSidebar() : openMobileSidebar();
+}
+function initMobileSidebar(){
+  const btn=$('#mobileSidebarBtn'), backdrop=$('#sidebarBackdrop');
+  if(btn)btn.onclick=toggleMobileSidebar;
+  if(backdrop)backdrop.onclick=closeMobileSidebar;
+
+  $$('.sidebar [data-page]').forEach(b=>{
+    b.addEventListener('click',()=>closeMobileSidebar());
+  });
+  $('#actionSave')?.addEventListener('click',()=>closeMobileSidebar());
+  $('#actionLogout')?.addEventListener('click',()=>closeMobileSidebar());
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape')closeMobileSidebar();
+  });
+}
+
 function openActionsMenu(){
-  const m=$('#actionsMenu');if(!m)return;
+  const m=$('#sidebarActionsMenu');if(!m)return;
   const open=!m.classList.contains('open');
   m.classList.toggle('open',open);
-  $('#actionsMenuBtn')?.setAttribute('aria-expanded',open?'true':'false');
+  $('#sidebarActionsBtn')?.classList.toggle('open',open);
+  $('#sidebarActionsBtn')?.setAttribute('aria-expanded',open?'true':'false');
 }
 function closeActionsMenu(){
-  $('#actionsMenu')?.classList.remove('open');
-  $('#actionsMenuBtn')?.setAttribute('aria-expanded','false');
+  $('#sidebarActionsMenu')?.classList.remove('open');
+  $('#sidebarActionsBtn')?.classList.remove('open');
+  $('#sidebarActionsBtn')?.setAttribute('aria-expanded','false');
 }
 async function actionSaveNow(){
   closeActionsMenu();
@@ -1258,11 +1375,11 @@ async function actionSyncNow(){
   }catch(e){alert(e.message)}
 }
 function initActionsMenu(){
-  $('#actionsMenuBtn').onclick=openActionsMenu;
+  $('#sidebarActionsBtn').onclick=openActionsMenu;
   $('#actionSave').onclick=actionSaveNow;
   $('#actionLogout').onclick=logoutApp;
   document.addEventListener('click',e=>{
-    if(!e.target.closest('.actions-menu'))closeActionsMenu();
+    if(!e.target.closest('.sidebar-actions'))closeActionsMenu();
   });
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeActionsMenu()});
 }
@@ -1356,6 +1473,7 @@ document.body.classList.add('auth-locked');
 $('#authGate').hidden=false;
 renderAthleteHero();
 initActionsMenu();
+initMobileSidebar();
 registerSW().then(()=>updateNotificationStatus());
 bootstrapDropbox();
 checkForegroundReminders();
