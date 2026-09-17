@@ -150,6 +150,34 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
   .topbar .sync .btn{padding:8px 10px;font-size:12px}
 }
 
+
+/* VINISWIM V4 — hero global, foto, idade/categoria e evolução multi-provas */
+.athlete-hero{
+  background:linear-gradient(135deg,#0d1724,#17354c);
+  color:#fff;border-radius:18px;padding:18px 22px;margin-bottom:18px;
+  display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center
+}
+.athlete-photo{
+  width:78px;height:78px;border-radius:16px;object-fit:cover;background:#fff;
+  border:2px solid rgba(255,255,255,.18)
+}
+.athlete-photo.placeholder{display:grid;place-items:center;color:#0d1724;font-weight:900;font-size:24px}
+.athlete-main h2{margin:0 0 5px;font-size:25px}.athlete-main p{margin:0;color:#b7c5cf}
+.athlete-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.athlete-chip{font-size:11px;padding:6px 8px;border-radius:999px;background:rgba(255,255,255,.10);color:#dbe6ed}
+.photo-preview{width:120px;height:120px;object-fit:cover;border-radius:14px;border:1px solid var(--line);background:#f3f5f7}
+.settings-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.settings-grid label{display:block}.settings-grid input,.settings-grid select{width:100%;margin-top:5px}
+.chart-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:11px;color:var(--muted)}
+.chart-legend span{display:inline-flex;align-items:center;gap:6px}
+.chart-legend i{display:inline-block;width:18px;height:3px;border-radius:3px}
+@media(max-width:700px){
+  .athlete-hero{grid-template-columns:64px 1fr;padding:14px;gap:12px}
+  .athlete-photo{width:64px;height:64px;border-radius:13px}
+  .athlete-main h2{font-size:18px}
+  .settings-grid{grid-template-columns:1fr}
+}
+
 @media print{.sidebar,.topbar,.mobile-nav,.no-print{display:none!important}.app{display:block}.content{padding:0}.page{display:block!important;break-after:page}.page:last-child{break-after:auto}.section,.card,.hero{box-shadow:none;break-inside:avoid}}
 </style>
 </head>
@@ -167,7 +195,7 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
       <button data-page="audit">Auditoria</button>
       <button data-page="settings">Configurações</button>
     </div>
-    <div class="sidebar-foot">VINISWIM V3 · Dropbox + GitHub Pages</div>
+    <div class="sidebar-foot">VINISWIM V7 · Dropbox + GitHub Pages</div>
   </aside>
   <main>
     <div class="topbar">
@@ -175,8 +203,19 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
       <div class="sync"><span id="syncPill" class="pill">Dropbox · não conectado</span><button class="btn no-print" id="syncBtn">Conectar</button></div>
     </div>
     <div class="content">
+    <div class="athlete-hero" id="globalAthleteHero">
+      <div id="athletePhotoWrap"><div class="athlete-photo placeholder">VS</div></div>
+      <div class="athlete-main">
+        <h2 id="heroAthleteName">Vinicius Suzin Ballao</h2>
+        <p id="heroAthleteSub">Clube Curitibano · registro 422692</p>
+        <div class="athlete-meta">
+          <span class="athlete-chip" id="heroAge">Idade: —</span>
+          <span class="athlete-chip" id="heroCategory">Categoria: —</span>
+        </div>
+      </div>
+    </div>
+
       <section id="dashboard" class="page active">
-        <div class="hero"><div><h2>Vinicius Suzin Ballao</h2><p>Clube Curitibano · registro 422692 · base oficial SwimSystem</p></div><div class="hero-stat"><b id="officialCount">0</b><span>resultados oficiais carregados</span></div></div>
         <div class="grid cards" id="summaryCards"></div>
         <div class="section"><div class="section-head"><h3>Próximo campeonato</h3></div><div id="nextMeet"></div></div>
         <div class="section"><div class="section-head"><h3>Melhores marcas confirmadas</h3></div><div class="table-scroll"><table><thead><tr><th>Prova</th><th>Melhor</th><th>Piscina</th><th>Data</th><th>Local</th></tr></thead><tbody id="bestTable"></tbody></table></div><div id="bestMobile" class="best-mobile"></div></div>
@@ -193,7 +232,7 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
       <section id="evolution" class="page">
         <div class="section">
           <div class="section-head"><h3>Evolução</h3><div class="filters"><select id="chartEvent"></select><select id="chartPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Não confirmada</option></select></div></div>
-          <div class="chart-wrap"><canvas id="chart"></canvas></div><div id="evolutionStats" class="notice"></div>
+          <div class="chart-wrap"><canvas id="chart"></canvas></div><div id="chartLegend" class="chart-legend"></div><div id="evolutionStats" class="notice"></div>
         </div>
       </section>
 
@@ -249,17 +288,51 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
         <div class="section"><div class="section-head"><h3>Auditoria da base</h3></div><div id="auditSummary" class="notice"></div><div id="sourceList"></div></div>
       </section>
 
+      
       <section id="settings" class="page">
-        <div class="section"><div class="section-head"><h3>Configurações</h3></div>
-          <div class="form">
+        <div class="section">
+          <div class="section-head"><h3>Atleta</h3></div>
+          <div class="settings-grid">
+            <label>Nome do atleta<input id="setAthleteName" placeholder="Nome completo do atleta"><div class="field-help">Este nome aparece automaticamente no hero de todas as abas.</div></label>
+            <label>Equipe<input id="setTeam" placeholder="Ex.: Clube Curitibano"><div class="field-help">A equipe aparece automaticamente no hero de todas as abas.</div></label>
             <label>Registro SwimSystem<input id="setReg"></label>
+            <label>Data de nascimento<input id="setBirthDate" type="date"></label>
+            <label>Categoria
+              <select id="setCategory">
+                <option value="">Escolha</option>
+                <option>Pré-Mirim</option>
+                <option>Mirim I</option><option>Mirim II</option>
+                <option>Petiz I</option><option>Petiz II</option>
+                <option>Infantil I</option><option>Infantil II</option>
+                <option>Juvenil I</option><option>Juvenil II</option>
+                <option>Júnior I</option><option>Júnior II</option>
+                <option>Sênior</option>
+              </select>
+            </label>
+            <label>Foto do atleta
+              <input id="setPhoto" type="file" accept="image/*">
+              <div class="field-help">A foto fica salva na base do VINISWIM no Dropbox.</div>
+            </label>
+          </div>
+          <div style="margin-top:12px"><img id="photoPreview" class="photo-preview" alt="Prévia da foto"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><h3>Integrações</h3></div>
+          <div class="form">
             <label>Arquivo Dropbox<input id="setFile" value="/viniswim-dados.json"></label>
             <label class="full">URL da competição<input id="setMeetUrl"></label>
-            <label class="full">Servidor Push (opcional)<input id="setPushUrl" placeholder="https://seu-monitor.exemplo.com"></label>
+            <label class="full">Servidor Push / conector SwimSystem<input id="setPushUrl" placeholder="https://seu-monitor.exemplo.com"></label>
           </div>
-          <div style="display:flex;gap:8px;margin-top:14px" class="no-print"><button class="btn primary" onclick="saveSettings()">Salvar</button><button class="btn" onclick="exportJson()">Exportar JSON</button><button class="btn" onclick="window.print()">Gerar PDF</button><button class="btn danger" onclick="logoutDropbox()">Sair do Dropbox</button></div>
+          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap" class="no-print">
+            <button class="btn primary" onclick="saveSettings()">Salvar</button>
+            <button class="btn" onclick="exportJson()">Exportar JSON</button>
+            <button class="btn" onclick="window.print()">Gerar PDF</button>
+            <button class="btn danger" onclick="logoutDropbox()">Sair do Dropbox</button>
+          </div>
         </div>
       </section>
+
     </div>
   </main>
 </div>
@@ -915,12 +988,78 @@ function nav(page){
 }
 $$('[data-page]').forEach(b=>b.onclick=()=>nav(b.dataset.page));
 
+
+
+function liveAthleteSettingsPreview(){
+  DATA.settings=DATA.settings||{};
+  const name=$('#setAthleteName')?.value?.trim();
+  const team=$('#setTeam')?.value?.trim();
+  const reg=$('#setReg')?.value?.trim();
+  const birth=$('#setBirthDate')?.value||'';
+  const category=$('#setCategory')?.value||'';
+  if(name!==undefined)DATA.settings.athleteName=name;
+  if(team!==undefined)DATA.settings.team=team;
+  if(reg!==undefined)DATA.settings.athleteRegistration=reg;
+  DATA.settings.birthDate=birth;
+  DATA.settings.category=category;
+  renderAthleteHero();
+}
+document.addEventListener('input',e=>{
+  if(['setAthleteName','setTeam','setReg','setBirthDate'].includes(e.target.id))liveAthleteSettingsPreview();
+});
+document.addEventListener('change',e=>{
+  if(['setCategory','setBirthDate'].includes(e.target.id))liveAthleteSettingsPreview();
+});
+
+function calcAge(birthDate){
+  if(!birthDate)return null;
+  const b=new Date(birthDate+'T00:00:00'), n=new Date();
+  if(isNaN(b))return null;
+  let age=n.getFullYear()-b.getFullYear();
+  const m=n.getMonth()-b.getMonth();
+  if(m<0||(m===0&&n.getDate()<b.getDate()))age--;
+  return age;
+}
+function renderAthleteHero(){
+  const a=DATA.athlete||{}, s=DATA.settings||{};
+  const name=s.athleteName||a.name||'Vinicius Suzin Ballao';
+  const team=s.team||a.team||s.club||a.club||'Clube Curitibano';
+  const reg=s.athleteRegistration||a.registration||'';
+  const birth=s.birthDate||a.birthDate||'';
+  const category=s.category||a.category||'';
+  const age=calcAge(birth);
+  $('#heroAthleteName').textContent=name;
+  $('#heroAthleteSub').textContent=[team,reg?`registro ${reg}`:''].filter(Boolean).join(' · ');
+  $('#heroAge').textContent=`Idade: ${age==null?'—':age+' anos'}`;
+  $('#heroCategory').textContent=`Categoria: ${category||'—'}`;
+  const wrap=$('#athletePhotoWrap');
+  const photo=s.photoDataUrl||a.photoDataUrl||'';
+  wrap.innerHTML=photo?`<img class="athlete-photo" src="${photo}" alt="${name}">`:'<div class="athlete-photo placeholder">VS</div>';
+}
+async function handlePhotoUpload(file){
+  if(!file)return;
+  if(!file.type.startsWith('image/')){alert('Escolha um arquivo de imagem.');return}
+  if(file.size>3*1024*1024){alert('Use uma imagem de até 3 MB.');return}
+  const dataUrl=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)});
+  DATA.settings=DATA.settings||{};
+  DATA.settings.photoDataUrl=dataUrl;
+  $('#photoPreview').src=dataUrl;
+  renderAthleteHero();
+}
+document.addEventListener('change',e=>{if(e.target.id==='setPhoto')handlePhotoUpload(e.target.files?.[0])});
+
 function render(){
   $('#officialCount').textContent=officialCount();
-  renderCards(); renderBest(); renderHistory(); renderMeets(); renderPredictions(); renderAlerts(); renderAudit(); fillFilters(); populateResultSelectors(); drawChart();
-  $('#setReg').value=DATA.settings?.athleteRegistration||'';
+  renderCards(); renderBest(); renderHistory(); renderMeets(); renderPredictions(); renderAlerts(); renderAudit(); fillFilters(); populateResultSelectors(); renderAthleteHero(); drawChart();
+  $('#setAthleteName').value=DATA.settings?.athleteName||DATA.athlete?.name||'';
+  $('#setTeam').value=DATA.settings?.team||DATA.athlete?.team||DATA.settings?.club||DATA.athlete?.club||'';
+  $('#setReg').value=DATA.settings?.athleteRegistration||DATA.athlete?.registration||'';
+  $('#setBirthDate').value=DATA.settings?.birthDate||DATA.athlete?.birthDate||'';
+  $('#setCategory').value=DATA.settings?.category||DATA.athlete?.category||'';
   $('#setMeetUrl').value=DATA.settings?.swimSystemMeetUrl||'';
   $('#setPushUrl').value=DATA.settings?.pushServerUrl||'';
+  const pp=$('#photoPreview'); if(pp){const ph=DATA.settings?.photoDataUrl||DATA.athlete?.photoDataUrl||'';pp.src=ph||'';}
+  renderAthleteHero();
 }
 function renderCards(){
   let events=eventList(), latest=[...confirmed()].sort((a,b)=>b.date.localeCompare(a.date))[0];
@@ -959,8 +1098,8 @@ function fillFilters(){
   const f=$('#fEvent'), ce=$('#chartEvent');
   let fv=f.value, cv=ce.value;
   f.innerHTML='<option value="">Todas as provas</option>'+events.map(x=>`<option>${x}</option>`).join('');
-  ce.innerHTML=events.map(x=>`<option>${x}</option>`).join('');
-  if(events.includes(fv))f.value=fv;if(events.includes(cv))ce.value=cv;else ce.value=events[0]||'';
+  ce.innerHTML='<option value="__all">Todos os estilos</option>'+events.map(x=>`<option>${x}</option>`).join('');
+  if(events.includes(fv))f.value=fv;if(cv==='__all'||events.includes(cv))ce.value=cv;else ce.value='__all';
 }
 
 function canonicalText(v){
@@ -1082,19 +1221,48 @@ function renderAudit(){
 }
 function drawChart(){
   let c=$('#chart'); if(!c||!c.offsetWidth)return;
-  let ev=$('#chartEvent')?.value||eventList()[0], p=$('#chartPool')?.value||'';
-  let pts=confirmed().filter(r=>r.event===ev&&(!p||(p==='unknown'?r.poolMeters==null:String(r.poolMeters)===p))).sort((a,b)=>a.date.localeCompare(b.date));
-  const dpr=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;c.width=w*dpr;c.height=h*dpr;let ctx=c.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
-  if(!pts.length){ctx.fillStyle='#6c7783';ctx.fillText('Sem dados para este filtro.',20,30);return}
-  let pad={l:58,r:20,t:25,b:55}, min=Math.min(...pts.map(x=>x.timeSeconds)),max=Math.max(...pts.map(x=>x.timeSeconds)); if(min===max){min*=.97;max*=1.03}else{let m=(max-min)*.18;min-=m;max+=m}
-  let x=i=>pad.l+(w-pad.l-pad.r)*(pts.length===1?.5:i/(pts.length-1)), y=v=>pad.t+(h-pad.t-pad.b)*(v-min)/(max-min); // menor tempo mais alto
-  ctx.strokeStyle='#dfe5ea';ctx.lineWidth=1;ctx.font='11px system-ui';ctx.fillStyle='#6c7783';
+  let ev=$('#chartEvent')?.value||'__all', p=$('#chartPool')?.value||'';
+  const filterPool=r=>(!p||(p==='unknown'?r.poolMeters==null:String(r.poolMeters)===p));
+  let all=confirmed().filter(filterPool).sort((a,b)=>a.date.localeCompare(b.date));
+  const dpr=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;c.width=w*dpr;c.height=h*dpr;
+  let ctx=c.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
+  const legend=$('#chartLegend'); if(legend)legend.innerHTML='';
+  if(!all.length){ctx.fillStyle='#6c7783';ctx.fillText('Sem dados para este filtro.',20,30);return}
+
+  const pad={l:62,r:22,t:28,b:58};
+  const palette=['#2d78a5','#8a5aa8','#2f8f5b','#c47b24','#b84b4b','#4d6fb6','#8b6a3d','#5d7b83','#a35f7d','#6878a8'];
+  const groups=ev==='__all'
+    ? eventList().map(name=>({name,pts:all.filter(r=>r.event===name)})).filter(g=>g.pts.length)
+    : [{name:ev,pts:all.filter(r=>r.event===ev)}];
+  if(!groups.length){ctx.fillStyle='#6c7783';ctx.fillText('Sem dados para este filtro.',20,30);return}
+
+  let ptsAll=groups.flatMap(g=>g.pts);
+  let min=Math.min(...ptsAll.map(x=>x.timeSeconds)),max=Math.max(...ptsAll.map(x=>x.timeSeconds));
+  if(min===max){min*=.97;max*=1.03}else{let mm=(max-min)*.12;min-=mm;max+=mm}
+  const dates=[...new Set(ptsAll.map(p=>p.date))].sort();
+  const xDate=d=>pad.l+(w-pad.l-pad.r)*(dates.length===1?.5:dates.indexOf(d)/(dates.length-1));
+  // menor tempo mais alto
+  const y=v=>pad.t+(h-pad.t-pad.b)*(v-min)/(max-min);
+
+  ctx.strokeStyle='#dfe5ea';ctx.lineWidth=1;ctx.font='11px system-ui';ctx.fillStyle='#6c7783';ctx.textAlign='left';
   for(let i=0;i<5;i++){let yy=pad.t+(h-pad.t-pad.b)*i/4;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();let val=min+(max-min)*i/4;ctx.fillText(fmtTime(val),6,yy+4)}
-  ctx.strokeStyle='#2d78a5';ctx.lineWidth=2.5;ctx.beginPath();pts.forEach((p,i)=>{let xx=x(i),yy=y(p.timeSeconds);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();
-  pts.forEach((p,i)=>{let xx=x(i),yy=y(p.timeSeconds);ctx.fillStyle='#0d1724';ctx.beginPath();ctx.arc(xx,yy,4.5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#12202d';ctx.textAlign='center';ctx.fillText(p.time,xx,yy-10);ctx.fillStyle='#6c7783';ctx.fillText(p.date.slice(5,7)+'/'+p.date.slice(2,4),xx,h-25)});
+  dates.forEach((d,i)=>{if(dates.length>6 && i%Math.ceil(dates.length/6)!==0 && i!==dates.length-1)return;ctx.textAlign='center';ctx.fillStyle='#6c7783';ctx.fillText(d.slice(5,7)+'/'+d.slice(2,4),xDate(d),h-24)});
+
+  groups.forEach((g,gi)=>{
+    const color=palette[gi%palette.length];
+    ctx.strokeStyle=color;ctx.lineWidth=2.3;ctx.beginPath();
+    g.pts.forEach((pt,i)=>{let xx=xDate(pt.date),yy=y(pt.timeSeconds);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();
+    g.pts.forEach(pt=>{let xx=xDate(pt.date),yy=y(pt.timeSeconds);ctx.fillStyle=color;ctx.beginPath();ctx.arc(xx,yy,4,0,Math.PI*2);ctx.fill();if(ev!=='__all'){ctx.fillStyle='#12202d';ctx.textAlign='center';ctx.fillText(pt.time,xx,yy-9)}});
+    if(legend)legend.innerHTML+=`<span><i style="background:${color}"></i>${g.name}</span>`;
+  });
+
   ctx.textAlign='left';
-  let first=pts[0],last=pts[pts.length-1],delta=last.timeSeconds-first.timeSeconds,pct=first.timeSeconds?(-delta/first.timeSeconds*100):0,best=Math.min(...pts.map(p=>p.timeSeconds));
-  $('#evolutionStats').innerHTML=`<b>${ev}</b> · ${pts.length} resultado(s) · primeiro ${first.time} → último ${last.time} · ganho acumulado <b>${delta<0?(-delta).toFixed(2)+' s':'—'}</b>${delta<0?` · melhora <b>${pct.toFixed(1)}%</b>`:''} · melhor <b>${fmtTime(best)}</b>.`;
+  if(ev==='__all'){
+    $('#evolutionStats').innerHTML=`<b>Todos os estilos</b> · ${groups.length} prova(s) · ${ptsAll.length} resultado(s) confirmados${p?` · ${p==='unknown'?'piscina não confirmada':p+' m'}`:''}. Cada linha representa uma prova; os tempos não são comparados entre distâncias diferentes.`;
+  }else{
+    let pts=groups[0].pts,first=pts[0],last=pts[pts.length-1],delta=last.timeSeconds-first.timeSeconds,pct=first.timeSeconds?(-delta/first.timeSeconds*100):0,best=Math.min(...pts.map(p=>p.timeSeconds));
+    $('#evolutionStats').innerHTML=`<b>${ev}</b> · ${pts.length} resultado(s) · primeiro ${first.time} → último ${last.time} · ganho acumulado <b>${delta<0?(-delta).toFixed(2)+' s':'—'}</b>${delta<0?` · melhora <b>${pct.toFixed(1)}%</b>`:''} · melhor <b>${fmtTime(best)}</b>.`;
+  }
 }
 document.addEventListener('change',e=>{if(['chartEvent','chartPool'].includes(e.target.id))drawChart()});window.addEventListener('resize',()=>setTimeout(drawChart,50));
 
@@ -1132,7 +1300,23 @@ function saveMeet(){
   DATA.meets.push({id:'manual-meet-'+Date.now(),name:$('#mName').value.trim(),dateStart:$('#mStart').value,dateEnd:$('#mEnd').value||$('#mStart').value,city:$('#mCity').value.trim()||null,venue:$('#mVenue').value.trim()||null,poolMeters:$('#mPool').value?Number($('#mPool').value):null,sourceId:null,sourceUrl:$('#mUrl').value.trim()||null,entries:[]});
   meetModal.close();render();queueSave();
 }
-function saveSettings(){DATA.settings=DATA.settings||{};DATA.settings.athleteRegistration=$('#setReg').value.trim();DATA.settings.swimSystemMeetUrl=$('#setMeetUrl').value.trim();DATA.settings.pushServerUrl=$('#setPushUrl').value.trim();queueSave(true);renderAlerts();alert('Configurações salvas.')}
+function saveSettings(){
+  DATA.settings=DATA.settings||{};
+  DATA.settings.athleteName=$('#setAthleteName').value.trim();
+  DATA.settings.team=$('#setTeam').value.trim();
+  DATA.settings.athleteRegistration=$('#setReg').value.trim();
+  DATA.settings.birthDate=$('#setBirthDate').value;
+  DATA.settings.category=$('#setCategory').value;
+  DATA.settings.swimSystemMeetUrl=$('#setMeetUrl').value.trim();
+  DATA.settings.pushServerUrl=$('#setPushUrl').value.trim();
+  DATA.athlete=DATA.athlete||{};
+  DATA.athlete.name=DATA.settings.athleteName||DATA.athlete.name;
+  DATA.athlete.team=DATA.settings.team||DATA.athlete.team||DATA.athlete.club;
+  DATA.athlete.registration=DATA.settings.athleteRegistration||DATA.athlete.registration;
+  DATA.athlete.birthDate=DATA.settings.birthDate||null;
+  DATA.athlete.category=DATA.settings.category||null;
+  renderAthleteHero();queueSave(true);renderAlerts();alert('Configurações salvas.');
+};DATA.settings.athleteRegistration=$('#setReg').value.trim();DATA.settings.swimSystemMeetUrl=$('#setMeetUrl').value.trim();DATA.settings.pushServerUrl=$('#setPushUrl').value.trim();queueSave(true);renderAlerts();alert('Configurações salvas.')}
 function exportJson(){let b=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='viniswim-dados.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
 
 
