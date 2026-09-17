@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e2530">
-<link rel="manifest" href="manifest.webmanifest?v=22">
+<link rel="manifest" href="manifest.webmanifest?v=23">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
@@ -769,6 +769,102 @@ tbody tr:hover{background:#f8fbfc}
     min-height:42px!important;
   }
 }
+
+/* VINISWIM V23 — Auditoria responsiva */
+@media(max-width:700px){
+  #audit .section{padding:14px 12px}
+  #audit .notice{
+    font-size:12px;
+    line-height:1.45;
+    padding:12px;
+    margin-bottom:8px;
+  }
+  #audit #sourceList{
+    display:grid;
+    gap:10px;
+    margin-top:10px;
+  }
+  #audit .audit-row{
+    display:grid!important;
+    grid-template-columns:1fr auto!important;
+    grid-template-areas:
+      "tag link"
+      "content content"!important;
+    gap:8px 10px!important;
+    padding:12px!important;
+    border:1px solid var(--line)!important;
+    border-radius:12px!important;
+    background:#fff;
+    box-shadow:0 6px 18px rgba(18,50,70,.05);
+    font-size:12px!important;
+  }
+  #audit .audit-row > div:nth-child(1){
+    grid-area:tag;
+    align-self:start;
+  }
+  #audit .audit-row > div:nth-child(2){
+    grid-area:content;
+    min-width:0;
+  }
+  #audit .audit-row > div:nth-child(3){
+    grid-area:link;
+    align-self:start;
+    justify-self:end;
+  }
+  #audit .audit-row b{
+    display:block;
+    font-size:13px;
+    line-height:1.3;
+    margin-bottom:4px;
+  }
+  #audit .audit-row .source-link{
+    display:inline-flex;
+    align-items:center;
+    white-space:nowrap;
+    font-size:11px;
+    font-weight:700;
+  }
+  #audit .audit-row [style*="margin-top:3px"]{
+    line-height:1.45;
+    word-break:normal;
+    overflow-wrap:anywhere;
+  }
+}
+
+
+/* Tutorial */
+.tutorial-dialog{width:min(820px,calc(100% - 30px))}
+.tutorial-body{display:grid;gap:12px}
+.tutorial-step{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr);
+  gap:12px;
+  padding:13px 14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+}
+.tutorial-num{
+  width:30px;height:30px;border-radius:9px;
+  display:grid;place-items:center;
+  background:color-mix(in oklch,var(--accent) 14%,white);
+  color:var(--accent2);font-weight:800;
+}
+.tutorial-step h4{margin:1px 0 6px;font-size:14px}
+.tutorial-step p{margin:0 0 6px;color:var(--muted);font-size:12px;line-height:1.5}
+.tutorial-step p:last-child{margin-bottom:0}
+.tutorial-tip{
+  padding:13px 14px;border-radius:10px;
+  background:#eef6fa;border-left:3px solid var(--accent);
+  font-size:12px;line-height:1.5;color:#345266;
+}
+@media(max-width:700px){
+  .tutorial-dialog{width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;border-radius:0}
+  .tutorial-dialog .modal-sheet{height:100%;max-height:none;display:flex;flex-direction:column}
+  .tutorial-dialog .modal-body{flex:1;overflow:auto;padding:14px 12px}
+  .tutorial-step{grid-template-columns:30px minmax(0,1fr);gap:9px;padding:11px}
+}
+
 @media print{
   .mobile-hamburger,.sidebar-backdrop{display:none!important}
   body.sidebar-open{overflow:visible!important}
@@ -835,6 +931,7 @@ tbody tr:hover{background:#f8fbfc}
       <div class="sidebar-actions-menu" id="sidebarActionsMenu">
         <div class="sidebar-sync-status" id="sidebarSyncStatus">Dropbox · verificando</div>
         <button type="button" id="actionSave"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l2 2v16H5V3Z"/><path d="M8 3v6h8V3M8 21v-8h8v8"/></svg></span>Salvar</button>
+        <button type="button" id="actionTutorial"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.4 2.4 0 0 1 4.5 1.2c0 1.8-2.3 2-2.3 3.8M12 17h.01"/></svg></span>Como usar o VINISWIM</button>
         <button type="button" id="actionPrint"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7"/></svg></span>Imprimir / PDF</button>
         <button type="button" id="actionLogout" class="danger"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg></span>Sair</button>
       </div>
@@ -983,6 +1080,81 @@ tbody tr:hover{background:#f8fbfc}
     </div>
   </main>
 </div>
+
+<dialog id="tutorialModal" class="tutorial-dialog">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <div>
+        <b>Como usar o VINISWIM</b>
+        <div class="field-help">Guia rápido para campeonatos, balizamentos, resultados e histórico.</div>
+      </div>
+      <button class="btn" type="button" onclick="tutorialModal.close()">Fechar</button>
+    </div>
+    <div class="modal-body tutorial-body">
+      <div class="tutorial-step">
+        <div class="tutorial-num">1</div>
+        <div>
+          <h4>Antes de uma competição</h4>
+          <p>Entre em <b>Campeonatos</b> e cadastre o campeonato. Informe nome, datas, local, cidade, piscina e a URL oficial do SwimSystem quando houver.</p>
+          <p>Depois inclua as provas do Vini com <b>data, horário previsto, balizamento, série e raia</b>. Esses dados alimentam a Visão Geral, Expectativas e os alertas de proximidade.</p>
+        </div>
+      </div>
+
+      <div class="tutorial-step">
+        <div class="tutorial-num">2</div>
+        <div>
+          <h4>Quando sair o balizamento</h4>
+          <p>Atualize o campeonato existente. Não crie um resultado. O <b>balizamento é uma referência pré-prova</b>, não um tempo realizado.</p>
+          <p>Se o SwimSystem estiver conectado futuramente pelo monitor, o VINISWIM poderá trazer série, raia, horário e balizamento automaticamente para sua confirmação.</p>
+        </div>
+      </div>
+
+      <div class="tutorial-step">
+        <div class="tutorial-num">3</div>
+        <div>
+          <h4>Depois que o Vini nadar</h4>
+          <p>Vá em <b>Resultados → + Novo resultado</b>. Informe data, distância, estilo, piscina, tempo, local e competição.</p>
+          <p>O VINISWIM normaliza o tempo. Você pode digitar, por exemplo, <b>1:45,58</b>, <b>1'45"58</b> ou <b>105,58</b>; a exibição fica padronizada.</p>
+          <p>Depois use <b>Ações → Salvar</b> para gravar a base no Dropbox.</p>
+        </div>
+      </div>
+
+      <div class="tutorial-step">
+        <div class="tutorial-num">4</div>
+        <div>
+          <h4>Resultados oficiais publicados</h4>
+          <p>Quando ativarmos o monitor automático, ele verificará o SwimSystem. Ao encontrar um novo resultado, o iPhone receberá uma notificação.</p>
+          <p>O resultado ficará em <b>Alertas → Resultado oficial</b> aguardando sua confirmação. Só depois de confirmar ele entra no histórico.</p>
+        </div>
+      </div>
+
+      <div class="tutorial-step">
+        <div class="tutorial-num">5</div>
+        <div>
+          <h4>Provas antigas que ainda não estão na base</h4>
+          <p>Se você tiver o resultado correto, use <b>Resultados → + Novo resultado</b> e cadastre manualmente. Se a competição antiga ainda não existir, cadastre primeiro em <b>Campeonatos</b>.</p>
+          <p>Quando piscina, local ou outra informação não estiver confirmada, deixe como <b>Não confirmada</b>. Não complete por suposição.</p>
+        </div>
+      </div>
+
+      <div class="tutorial-step">
+        <div class="tutorial-num">6</div>
+        <div>
+          <h4>Como interpretar as abas</h4>
+          <p><b>Visão Geral:</b> próximo campeonato e melhores marcas. <b>Evolução:</b> gráficos por prova e piscina. <b>Expectativas:</b> projeção baseada no histórico confirmado. <b>Auditoria:</b> mostra a origem dos dados e o que ainda precisa ser conferido.</p>
+        </div>
+      </div>
+
+      <div class="tutorial-tip">
+        <b>Regra principal:</b> balizamento fica no campeonato; tempo realizado fica em Resultados. Se uma informação não estiver confirmada, não invente — deixe pendente para conferência.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn primary" type="button" onclick="tutorialModal.close()">Entendi</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="resultModal">
   <div class="modal-sheet">
     <div class="modal-head"><b>Novo resultado</b><button class="btn" onclick="resultModal.close()">Fechar</button></div>
@@ -1496,14 +1668,14 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v22').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v23').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
 
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js?v=22',{updateViaCache:'none'})}catch(e){console.warn('SW',e);return null}
+  try{return await navigator.serviceWorker.register('./service-worker.js?v=23',{updateViaCache:'none'})}catch(e){console.warn('SW',e);return null}
 }
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
@@ -1579,7 +1751,7 @@ async function syncPushSubscription(){
 async function testNotification(){
   if(Notification.permission!=='granted'){alert('Ative as notificações primeiro.');return}
   const reg=await navigator.serviceWorker.ready;
-  await reg.showNotification('VINISWIM — teste de alerta',{body:'Notificações ativas neste aparelho.',icon:'./icon-192.svg',badge:'./icon-192.svg',tag:'viniswim-test',data:{url:'./#alerts'}});
+  await reg.showNotification('VINISWIM — teste de alerta',{body:'Notificações ativas neste aparelho.',icon:'./icon-192.png',badge:'./icon-192.png',tag:'viniswim-test',data:{url:'./#alerts'}});
 }
 function renderPendingOfficialResults(){
   if(!$('#pendingOfficialResults'))return;
@@ -1603,7 +1775,7 @@ function checkForegroundReminders(){
       if(!sent[key] && now>=target && now<target+75000){
         navigator.serviceWorker.ready.then(reg=>reg.showNotification(`VINISWIM — ${x.entry.event} em ${a.label.replace(' antes','')}`,{
           body:`${x.entry.event} · Série ${x.entry.series??'—'} · Raia ${x.entry.lane??'—'} · ${x.entry.scheduled}`,
-          icon:'./icon-192.svg',badge:'./icon-192.svg',tag:key,data:{url:'./#meets'}
+          icon:'./icon-192.png',badge:'./icon-192.png',tag:key,data:{url:'./#meets'}
         }));
         sent[key]=now;
       }
@@ -1785,6 +1957,7 @@ function initMobileSidebar(){
     b.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
   });
   $('#actionSave')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
+  $('#actionTutorial')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
   $('#actionPrint')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
   $('#actionLogout')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
 
@@ -1853,6 +2026,7 @@ async function actionSaveNow(){
 function initActionsMenu(){
   $('#sidebarActionsBtn').onclick=openActionsMenu;
   $('#actionSave').onclick=actionSaveNow;
+  $('#actionTutorial').onclick=()=>{closeActionsMenu();tutorialModal.showModal()};
   $('#actionPrint').onclick=()=>{closeActionsMenu();window.print()};
   $('#actionLogout').onclick=logoutApp;
   document.addEventListener('click',e=>{
