@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e2530">
-<link rel="manifest" href="manifest.webmanifest?v=15">
+<link rel="manifest" href="manifest.webmanifest?v=16">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
@@ -12,9 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="icon" type="image/svg+xml" href="viniswim-logo.svg?v=15">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=15">
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=15">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2312384a'/%3E%3Cpath d='M16 16 L32 38 L48 16' stroke='%2361d4c4' stroke-width='7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M12 48 Q22 42 32 48 T52 48' stroke='%2361d4c4' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
 :root{
   --bg:oklch(97.5% 0.006 240);--panel:oklch(99% 0.002 240);--ink:oklch(23% 0.025 245);--muted:oklch(52% 0.02 245);--line:oklch(90% 0.012 240);
@@ -398,6 +396,138 @@ body.auth-locked{overflow:hidden}
 .sidebar-sync-status.err{color:#f0b0b0;background:rgba(161,61,61,.15)}
 .topbar-inner{justify-content:flex-start}
 
+
+/* VINISWIM V16 — refinamento visual */
+.sidebar-copyright{
+  position:absolute;left:16px;right:16px;bottom:18px;
+  padding-top:10px;border-top:1px solid rgba(255,255,255,.08);
+  color:#7895a3;font-size:8.5px;line-height:1.5;font-weight:500
+}
+.sidebar-foot{position:static}
+.nav button{
+  display:flex;align-items:center;gap:10px;
+  min-height:44px;transition:background .18s ease,color .18s ease,transform .18s ease
+}
+.nav button:hover{transform:translateX(2px)}
+.nav-icon,.menu-icon,.section-title-icon{
+  width:18px;height:18px;display:inline-grid;place-items:center;flex:0 0 18px
+}
+.nav-icon svg,.menu-icon svg,.section-title-icon svg,.kpi-card-icon svg{
+  width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round
+}
+.actions-label{display:inline-flex;align-items:center;gap:10px}
+.sidebar-actions-menu button{
+  display:flex;align-items:center;gap:10px
+}
+.menu-icon{width:16px;height:16px;flex-basis:16px}
+.section-title{display:flex;align-items:center;gap:9px}
+.section-title-icon{
+  width:30px;height:30px;flex-basis:30px;border-radius:9px;
+  background:color-mix(in oklch,var(--accent) 13%,white);
+  color:var(--accent2);padding:7px
+}
+
+/* fields */
+.form input,.form select,.settings-grid input,.settings-grid select,.filters input,.filters select{
+  min-height:42px;border:1px solid color-mix(in oklch,var(--line) 82%,var(--accent) 18%);
+  border-radius:11px;padding:10px 12px;background:#fff;
+  transition:border-color .18s ease,box-shadow .18s ease,background .18s ease
+}
+.form input:hover,.form select:hover,.settings-grid input:hover,.settings-grid select:hover,.filters input:hover,.filters select:hover{
+  border-color:color-mix(in oklch,var(--accent) 45%,var(--line))
+}
+.form input:focus,.form select:focus,.settings-grid input:focus,.settings-grid select:focus,.filters input:focus,.filters select:focus{
+  outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in oklch,var(--accent) 14%,transparent)
+}
+.settings-grid label,.form label{
+  color:var(--ink);font-size:12px;font-weight:650
+}
+.field-help{font-weight:400;line-height:1.45}
+input[type="file"]{
+  padding:7px;background:#f8fbfc
+}
+input[type="file"]::file-selector-button{
+  border:0;border-radius:8px;background:var(--nav);color:#fff;
+  padding:7px 10px;margin-right:10px;cursor:pointer
+}
+
+/* buttons */
+.btn,.auth-submit{
+  min-height:40px;border-radius:10px;font-weight:650;
+  transition:transform .16s ease,box-shadow .16s ease,background .16s ease,border-color .16s ease
+}
+.btn:hover,.auth-submit:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(20,48,62,.10)}
+.btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent}
+.btn.primary:hover{filter:brightness(.98)}
+
+/* cards */
+.card,.section,.entry,.result-card,.statusbox{
+  border-color:color-mix(in oklch,var(--line) 88%,var(--accent) 12%);
+}
+.card,.section{
+  box-shadow:0 8px 28px oklch(30% 0.05 240 / 7%);
+}
+.kpi-card{
+  position:relative;overflow:hidden;padding-right:72px;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease
+}
+.kpi-card:hover{
+  transform:translateY(-2px);
+  border-color:color-mix(in oklch,var(--accent) 28%,var(--line));
+  box-shadow:0 14px 34px oklch(30% 0.05 240 / 11%)
+}
+.kpi-card:after{
+  content:"";position:absolute;left:0;right:0;top:0;height:3px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2))
+}
+.kpi-card-icon{
+  position:absolute;right:18px;top:50%;transform:translateY(-50%);
+  width:42px;height:42px;border-radius:12px;padding:10px;
+  display:grid;place-items:center;color:var(--accent2);
+  background:color-mix(in oklch,var(--accent) 12%,white)
+}
+.kpi-card-icon svg{width:22px;height:22px}
+.card .k{font-weight:800}
+.card .v{letter-spacing:-.035em}
+
+/* tables */
+table thead th{background:#fbfcfd}
+.table-scroll{border-radius:12px}
+tbody tr{transition:background .14s ease}
+tbody tr:hover{background:#f8fbfc}
+
+/* athlete hero */
+.athlete-hero{
+  box-shadow:0 18px 44px oklch(23% 0.06 240 / 16%);
+  border:1px solid rgba(255,255,255,.09)
+}
+.athlete-photo{
+  box-shadow:0 6px 18px rgba(0,0,0,.18)
+}
+.athlete-chip{
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(4px)
+}
+
+/* notices/tags */
+.notice{border-left-width:3px}
+.tag{letter-spacing:.035em}
+
+/* login */
+.auth-card{border-top:3px solid var(--accent)}
+.auth-mark{box-shadow:0 10px 25px oklch(50% 0.1 220 / 26%)}
+
+@media(max-width:980px){
+  .sidebar-copyright{position:static;margin:18px 10px 0}
+}
+@media(max-width:700px){
+  .kpi-card{padding-right:58px}
+  .kpi-card-icon{right:12px;width:38px;height:38px;padding:9px}
+  .section-title-icon{width:28px;height:28px;flex-basis:28px}
+}
+
 @media print{.sidebar,.topbar,.mobile-nav,.no-print{display:none!important}.app{display:block}.content{padding:0}.page{display:block!important;break-after:page}.page:last-child{break-after:auto}.section,.card,.hero{box-shadow:none;break-inside:avoid}}
 </style>
 </head>
@@ -433,28 +563,28 @@ body.auth-locked{overflow:hidden}
   <aside class="sidebar">
     <div class="brand"><div class="mark"><svg width="24" height="24" viewBox="0 0 64 64"><use href="#viniswimLogo"/></svg></div><div><strong>VINISWIM</strong><small>performance tracker</small></div></div>
     <div class="nav">
-      <button data-page="dashboard" class="active">Visão Geral</button>
-      <button data-page="history">Resultados</button>
-      <button data-page="evolution">Evolução</button>
-      <button data-page="meets">Campeonatos</button>
-      <button data-page="predictions">Expectativas</button>
-      <button data-page="alerts">Alertas</button>
-      <button data-page="audit">Auditoria</button>
-      <button data-page="settings">Configurações</button>
+      <button data-page="dashboard" class="active"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h8V3H3v10Zm10 8h8V11h-8v10ZM3 21h8v-6H3v6Zm10-12h8V3h-8v6Z"/></svg></span><span>Visão Geral</span></button>
+      <button data-page="history"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultados</span></button>
+      <button data-page="evolution"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m4 13 5-5 4 3 6-7"/></svg></span><span>Evolução</span></button>
+      <button data-page="meets"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v3M18 3v3M4 8h16"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 12h4M13 12h4M7 16h4"/></svg></span><span>Campeonatos</span></button>
+      <button data-page="predictions"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/><path d="m18 6 3-3"/></svg></span><span>Expectativas</span></button>
+      <button data-page="alerts"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></span><span>Alertas</span></button>
+      <button data-page="audit"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h3v16H5V5h3l1-2Z"/><path d="m8 13 2 2 5-5M8 9h3"/></svg></span><span>Auditoria</span></button>
+      <button data-page="settings"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1-2.8-2.8.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1L7.1 4l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.8 2.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.1v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg></span><span>Configurações</span></button>
     </div>
     <div class="sidebar-actions no-print">
       <button class="sidebar-actions-trigger" id="sidebarActionsBtn" type="button" aria-expanded="false">
-        <span>Ações</span><span class="menu-caret">⌄</span>
+        <span class="actions-label"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M8 14v6"/></svg></span><span>Ações</span></span><span class="menu-caret">⌄</span>
       </button>
       <div class="sidebar-actions-menu" id="sidebarActionsMenu">
         <div class="sidebar-sync-status" id="sidebarSyncStatus">Dropbox · verificando</div>
-        <button type="button" id="actionSave">Salvar</button>
-        <button type="button" id="actionSync">Sincronizar Dropbox</button>
-        <button type="button" id="actionPrint">Imprimir / PDF</button>
-        <button type="button" id="actionLogout" class="danger">Sair</button>
+        <button type="button" id="actionSave"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l2 2v16H5V3Z"/><path d="M8 3v6h8V3M8 21v-8h8v8"/></svg></span>Salvar</button>
+        <button type="button" id="actionSync"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-5V2M4 17h5v5"/><path d="M6.1 9A7 7 0 0 1 18.5 6L20 7M4 17l1.5 1A7 7 0 0 0 18 15"/></svg></span>Sincronizar Dropbox</button>
+        <button type="button" id="actionPrint"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7"/></svg></span>Imprimir / PDF</button>
+        <button type="button" id="actionLogout" class="danger"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg></span>Sair</button>
       </div>
     </div>
-    <div class="sidebar-foot">VINISWIM V15 · Dropbox + GitHub Pages</div>
+    <div class="sidebar-foot sidebar-copyright">© 2026 VINISWIM<br>Todos os direitos reservados.</div>
   </aside>
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
   <main>
@@ -484,13 +614,13 @@ body.auth-locked{overflow:hidden}
 
       <section id="dashboard" class="page active">
         <div class="grid cards" id="summaryCards"></div>
-        <div class="section"><div class="section-head"><h3>Próximo campeonato</h3></div><div id="nextMeet"></div></div>
-        <div class="section"><div class="section-head"><h3>Melhores marcas confirmadas</h3></div><div class="table-scroll"><table><thead><tr><th>Prova</th><th>Melhor</th><th>Piscina</th><th>Data</th><th>Local</th></tr></thead><tbody id="bestTable"></tbody></table></div><div id="bestMobile" class="best-mobile"></div></div>
+        <div class="section"><div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v3M18 3v3M4 8h16"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 12h4M13 12h4M7 16h4"/></svg></span><span>Próximo campeonato</span></h3></div><div id="nextMeet"></div></div>
+        <div class="section"><div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m4 13 5-5 4 3 6-7"/></svg></span><span>Melhores marcas confirmadas</span></h3></div><div class="table-scroll"><table><thead><tr><th>Prova</th><th>Melhor</th><th>Piscina</th><th>Data</th><th>Local</th></tr></thead><tbody id="bestTable"></tbody></table></div><div id="bestMobile" class="best-mobile"></div></div>
       </section>
 
       <section id="history" class="page">
         <div class="section">
-          <div class="section-head"><h3>Resultados</h3><button class="btn primary no-print" onclick="openResultModal()">+ Novo resultado</button></div>
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultados</span></h3><button class="btn primary no-print" onclick="openResultModal()">+ Novo resultado</button></div>
           <div class="filters"><select id="fEvent"><option value="">Todas as provas</option></select><select id="fPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Piscina não confirmada</option></select><select id="fSource"><option value="">Todas as origens</option><option value="official">Oficial SwimSystem</option><option value="manual">Manual confirmado</option></select></div>
           <div class="table-scroll"><table><thead><tr><th>Data</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody id="historyTable"></tbody></table></div><div id="mobileHistory" class="mobile-results"></div>
         </div>
@@ -498,14 +628,14 @@ body.auth-locked{overflow:hidden}
 
       <section id="evolution" class="page">
         <div class="section">
-          <div class="section-head"><h3>Evolução</h3><div class="filters"><select id="chartEvent"></select><select id="chartPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Não confirmada</option></select></div></div>
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m4 13 5-5 4 3 6-7"/></svg></span><span>Evolução</span></h3><div class="filters"><select id="chartEvent"></select><select id="chartPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Não confirmada</option></select></div></div>
           <div class="chart-wrap"><canvas id="chart"></canvas></div><div id="chartLegend" class="chart-legend"></div><div id="evolutionStats" class="notice"></div>
         </div>
       </section>
 
       <section id="meets" class="page">
         <div class="section">
-  <div class="section-head"><h3>Campeonatos</h3><button class="btn primary no-print" onclick="openMeetModal()">+ Novo campeonato</button></div>
+  <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v3M18 3v3M4 8h16"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 12h4M13 12h4M7 16h4"/></svg></span><span>Campeonatos</span></h3><button class="btn primary no-print" onclick="openMeetModal()">+ Novo campeonato</button></div>
   <div class="notice" style="margin-bottom:14px">
     <b>SwimSystem:</b> a importação automática usa um conector externo para evitar bloqueios CORS do navegador. Cole a URL oficial e o VINISWIM consulta o atleta pelo registro 422692 quando o conector estiver configurado.
   </div>
@@ -519,13 +649,13 @@ body.auth-locked{overflow:hidden}
       </section>
 
       <section id="predictions" class="page">
-        <div class="section"><div class="section-head"><h3>Expectativas de tempo</h3></div><div class="notice">Estimativas calculadas somente com resultados confirmados. Quando não houver dados suficientes, o sistema mostra baixa confiança em vez de inventar precisão.</div><div id="predictionList" style="margin-top:12px"></div></div>
+        <div class="section"><div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/><path d="m18 6 3-3"/></svg></span><span>Expectativas de tempo</span></h3></div><div class="notice">Estimativas calculadas somente com resultados confirmados. Quando não houver dados suficientes, o sistema mostra baixa confiança em vez de inventar precisão.</div><div id="predictionList" style="margin-top:12px"></div></div>
       </section>
 
 
       <section id="alerts" class="page">
         <div class="section">
-          <div class="section-head"><h3>Alertas do VINISWIM</h3><button class="btn primary no-print" id="enableNotificationsBtn" onclick="enableNotifications()">Ativar notificações neste aparelho</button></div>
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></span><span>Alertas do VINISWIM</span></h3><button class="btn primary no-print" id="enableNotificationsBtn" onclick="enableNotifications()">Ativar notificações neste aparelho</button></div>
           <div class="notice">Alertas padrão: <b>2h, 1h, 30min, 20min, 10min e 5min antes da prova</b>, além de aviso quando o resultado oficial for publicado. Os avisos de resultado só são gravados no histórico após sua confirmação.</div>
           <div class="alert-status">
             <div class="statusbox"><small>Permissão do aparelho</small><b id="notifPermission">—</b></div>
@@ -536,12 +666,12 @@ body.auth-locked{overflow:hidden}
         </div>
 
         <div class="section">
-          <div class="section-head"><h3>Próximos avisos</h3><button class="btn no-print" onclick="testNotification()">Testar notificação</button></div>
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></span><span>Próximos avisos</span></h3><button class="btn no-print" onclick="testNotification()">Testar notificação</button></div>
           <div id="nextAlerts" class="timeline"></div>
         </div>
 
         <div class="section">
-          <div class="section-head"><h3>Resultado oficial</h3></div>
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultado oficial</span></h3></div>
           <div class="notice">
             Quando o monitor externo detectar um resultado novo no SwimSystem, o iPhone recebe a notificação.
             O VINISWIM mostra o resultado encontrado, a diferença para o balizamento e para a melhor marca,
@@ -552,13 +682,13 @@ body.auth-locked{overflow:hidden}
       </section>
 
       <section id="audit" class="page">
-        <div class="section"><div class="section-head"><h3>Auditoria da base</h3></div><div id="auditSummary" class="notice"></div><div id="sourceList"></div></div>
+        <div class="section"><div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h3v16H5V5h3l1-2Z"/><path d="m8 13 2 2 5-5M8 9h3"/></svg></span><span>Auditoria da base</span></h3></div><div id="auditSummary" class="notice"></div><div id="sourceList"></div></div>
       </section>
 
       
       <section id="settings" class="page">
         <div class="section">
-          <div class="section-head"><h3>Atleta</h3></div>
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h8V3H3v10Zm10 8h8V11h-8v10ZM3 21h8v-6H3v6Zm10-12h8V3h-8v6Z"/></svg></span><span>Atleta</span></h3></div>
           <div class="settings-grid">
             <label>Nome do atleta<input id="setAthleteName" placeholder="Nome completo do atleta"><div class="field-help">Este nome aparece automaticamente no hero de todas as abas.</div></label>
             <label>Equipe<input id="setTeam" placeholder="Ex.: Clube Curitibano"><div class="field-help">A equipe aparece automaticamente no hero de todas as abas.</div></label>
@@ -585,7 +715,7 @@ body.auth-locked{overflow:hidden}
         </div>
 
         <div class="section">
-          <div class="section-head"><h3>Integrações</h3></div>
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1-2.8-2.8.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1L7.1 4l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.8 2.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.1v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg></span><span>Integrações</span></h3></div>
           <div class="form">
             <label>Arquivo Dropbox<input id="setFile" value="/viniswim-dados.json"></label>
             <label class="full">URL da competição<input id="setMeetUrl"></label>
@@ -811,19 +941,30 @@ function render(){
   const pp=$('#photoPreview'); if(pp){const ph=DATA.settings?.photoDataUrl||DATA.athlete?.photoDataUrl||'';pp.src=ph||'';}
   renderAthleteHero();
 }
+
+function metricIcon(name){
+  const icons={
+    history:'<svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
+    official:'<svg viewBox="0 0 24 24"><path d="m12 3 2.4 2.1 3.2-.2.8 3.1 2.7 1.8-1.3 3 1.3 3-2.7 1.8-.8 3.1-3.2-.2L12 21l-2.4-2.1-3.2.2-.8-3.1-2.7-1.8 1.3-3-1.3-3L5.6 8l.8-3.1 3.2.2L12 3Z"/><path d="m8.5 12 2.2 2.2 4.8-4.8"/></svg>',
+    pool:'<svg viewBox="0 0 24 24"><path d="M2 17c2-2 4 2 6 0s4 2 6 0 4 2 8 0M2 21c2-2 4 2 6 0s4 2 6 0 4 2 8 0"/><path d="M6 14V7a3 3 0 0 1 6 0M12 14V7a3 3 0 0 1 6 0"/></svg>',
+    calendar:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M6 3v4M18 3v4M3 10h18M8 14h3M13 14h3"/></svg>'
+  };
+  return icons[name]||icons.history;
+}
+
 function renderCards(){
   let events=eventList(), latest=[...confirmed()].sort((a,b)=>b.date.localeCompare(a.date))[0];
   let poolsKnown=confirmed().filter(r=>r.poolMeters!=null).length;
   let next=DATA.meets.filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)).sort((a,b)=>a.dateStart.localeCompare(b.dateStart))[0];
   let cards=[
-    ['PROVAS COM HISTÓRICO',events.length,'resultados confirmados'],
-    ['RESULTADOS OFICIAIS',officialCount(),'SwimSystem'],
-    ['PISCINA CONFIRMADA',poolsKnown,`${confirmed().length-poolsKnown} aguardam conferência`],
-    ['PRÓXIMO CAMPEONATO',next?fmtDate(next.dateStart):'—',next?next.name:'Nenhum cadastrado']
+    ['PROVAS COM HISTÓRICO',events.length,'resultados confirmados','history'],
+    ['RESULTADOS OFICIAIS',officialCount(),'SwimSystem','official'],
+    ['PISCINA CONFIRMADA',poolsKnown,`${confirmed().length-poolsKnown} aguardam conferência`,'pool'],
+    ['PRÓXIMO CAMPEONATO',next?fmtDate(next.dateStart):'—',next?next.name:'Nenhum cadastrado','calendar']
   ];
-  $('#summaryCards').innerHTML=cards.map(c=>`<div class="card"><div class="k">${c[0]}</div><div class="v">${c[1]}</div><div class="s">${c[2]}</div></div>`).join('');
+  $('#summaryCards').innerHTML=cards.map(c=>`<div class="card kpi-card"><div class="kpi-card-icon">${metricIcon(c[3])}</div><div class="k">${c[0]}</div><div class="v">${c[1]}</div><div class="s">${c[2]}</div></div>`).join('');
   if(next){
-    $('#nextMeet').innerHTML=`<div class="meet"><div><h4>${next.name}</h4><p>${fmtDate(next.dateStart)} a ${fmtDate(next.dateEnd)} · ${next.venue||next.city||'local não informado'} · ${poolLabel(next.poolMeters)}</p><div class="entry-grid">${(next.entries||[]).map(e=>`<div class="entry"><b>${e.event}</b><small>${fmtDate(e.date)} · ${e.scheduled||'—'}</small><div class="mono" style="font-size:20px;margin-top:7px">${e.seed||'NT'}</div><small>Série ${e.series??'—'} · Raia ${e.lane??'—'}</small></div>`).join('')}</div></div></div>`
+    $('#nextMeet').innerHTML=`<div class="meet modern-meet"><div><h4>${next.name}</h4><p>${fmtDate(next.dateStart)} a ${fmtDate(next.dateEnd)} · ${next.venue||next.city||'local não informado'} · ${poolLabel(next.poolMeters)}</p><div class="entry-grid">${(next.entries||[]).map(e=>`<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)} · ${e.scheduled||'—'}</small><div class="mono" style="font-size:20px;margin-top:7px">${e.seed||'NT'}</div><small>Série ${e.series??'—'} · Raia ${e.lane??'—'}</small></div>`).join('')}</div></div></div>`
   } else $('#nextMeet').innerHTML='<span class="muted">Nenhum campeonato futuro cadastrado.</span>';
 }
 function renderBest(){
@@ -936,7 +1077,7 @@ function renderHistory(){
 ['fEvent','fPool','fSource'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)renderHistory()}));
 
 function renderMeets(){
-  $('#meetList').innerHTML=[...DATA.meets].sort((a,b)=>b.dateStart.localeCompare(a.dateStart)).map(m=>`<div class="meet"><div><h4>${m.name}</h4><p>${fmtDate(m.dateStart)} a ${fmtDate(m.dateEnd)} · ${m.venue||m.city||'—'} · ${poolLabel(m.poolMeters)}</p>${m.entries?.length?`<div class="entry-grid">${m.entries.map(e=>`<div class="entry"><b>${e.event}</b><small>${fmtDate(e.date)}</small><div class="mono" style="font-size:19px;margin-top:5px">${e.seed||'NT'}</div><small>S${e.series??'—'} / R${e.lane??'—'} · ${e.scheduled||'—'}</small></div>`).join('')}</div>`:''}</div><div>${m.sourceId?'<span class="tag official">OFICIAL</span>':'<span class="tag manual">MANUAL</span>'}</div></div>`).join('');
+  $('#meetList').innerHTML=[...DATA.meets].sort((a,b)=>b.dateStart.localeCompare(a.dateStart)).map(m=>`<div class="meet"><div><h4>${m.name}</h4><p>${fmtDate(m.dateStart)} a ${fmtDate(m.dateEnd)} · ${m.venue||m.city||'—'} · ${poolLabel(m.poolMeters)}</p>${m.entries?.length?`<div class="entry-grid">${m.entries.map(e=>`<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)}</small><div class="mono" style="font-size:19px;margin-top:5px">${e.seed||'NT'}</div><small>S${e.series??'—'} / R${e.lane??'—'} · ${e.scheduled||'—'}</small></div>`).join('')}</div>`:''}</div><div>${m.sourceId?'<span class="tag official">OFICIAL</span>':'<span class="tag manual">MANUAL</span>'}</div></div>`).join('');
 }
 function regress(points){
   if(points.length<2)return null;
@@ -1107,7 +1248,7 @@ function toggleAlert(key,val){
 }
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js?v=15')}catch(e){console.warn('SW',e);return null}
+  try{return await navigator.serviceWorker.register('./service-worker.js?v=16')}catch(e){console.warn('SW',e);return null}
 }
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
