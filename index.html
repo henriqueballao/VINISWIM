@@ -96,6 +96,60 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
   .mobile-nav button{padding:7px 4px}
 }
 
+
+/* VINISWIM V3 — ajustes observados em desktop e iPhone */
+#resultModal{width:min(980px,calc(100vw - 40px));max-width:980px}
+#resultModal .modal-sheet{overflow:hidden}
+#resultModal .modal-body{overflow-x:hidden}
+#resultModal .form{
+  display:grid;
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:12px;
+  align-items:start
+}
+#resultModal .form > label{min-width:0}
+#resultModal .form > label:nth-of-type(1){grid-column:span 3}
+#resultModal .form > label:nth-of-type(2){grid-column:span 2}
+#resultModal .form > label:nth-of-type(3){grid-column:span 3}
+#resultModal .form > label:nth-of-type(4){grid-column:span 2}
+#resultModal .form > label:nth-of-type(5){grid-column:span 4}
+#resultModal .form > label:nth-of-type(6){grid-column:span 4}
+#resultModal .form > label:nth-of-type(7){grid-column:span 4}
+#resultModal .form > label:nth-of-type(8){grid-column:span 6}
+#resultModal .form > label:nth-of-type(9){grid-column:span 3}
+#resultModal .form > label:nth-of-type(10),
+#resultModal .form > label:nth-of-type(11){grid-column:span 6}
+#resultModal .form .full{grid-column:1/-1}
+#resultModal input,#resultModal select{width:100%;min-width:0}
+#resultModal .modal-foot{overflow:hidden}
+
+#history .section-head{align-items:center}
+#history .filters{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(170px,1fr));
+  gap:10px;
+  max-width:720px;
+}
+.best-mobile{display:none}
+
+@media(max-width:700px){
+  #resultModal{width:100vw;max-width:none;height:100dvh}
+  #resultModal .form{grid-template-columns:1fr}
+  #resultModal .form > label,
+  #resultModal .form > label:nth-of-type(n){grid-column:1}
+  #resultModal .form .full{grid-column:1}
+  #history .section-head{gap:12px}
+  #history .section-head .btn{width:100%}
+  #history .filters{grid-template-columns:1fr;max-width:none;width:100%}
+  #history .filters select{width:100%;min-width:0}
+  #dashboard .table-scroll{display:none}
+  .best-mobile{display:grid;gap:8px}
+  .best-mobile .result-card .top{align-items:center}
+  .best-mobile .result-card .meta{line-height:1.35}
+  .topbar .sync{gap:4px}
+  .topbar .sync .btn{padding:8px 10px;font-size:12px}
+}
+
 @media print{.sidebar,.topbar,.mobile-nav,.no-print{display:none!important}.app{display:block}.content{padding:0}.page{display:block!important;break-after:page}.page:last-child{break-after:auto}.section,.card,.hero{box-shadow:none;break-inside:avoid}}
 </style>
 </head>
@@ -113,7 +167,7 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
       <button data-page="audit">Auditoria</button>
       <button data-page="settings">Configurações</button>
     </div>
-    <div class="sidebar-foot">VINISWIM V2 · Dropbox + GitHub Pages</div>
+    <div class="sidebar-foot">VINISWIM V3 · Dropbox + GitHub Pages</div>
   </aside>
   <main>
     <div class="topbar">
@@ -125,7 +179,7 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
         <div class="hero"><div><h2>Vinicius Suzin Ballao</h2><p>Clube Curitibano · registro 422692 · base oficial SwimSystem</p></div><div class="hero-stat"><b id="officialCount">0</b><span>resultados oficiais carregados</span></div></div>
         <div class="grid cards" id="summaryCards"></div>
         <div class="section"><div class="section-head"><h3>Próximo campeonato</h3></div><div id="nextMeet"></div></div>
-        <div class="section"><div class="section-head"><h3>Melhores marcas confirmadas</h3></div><div class="table-scroll"><table><thead><tr><th>Prova</th><th>Melhor</th><th>Piscina</th><th>Data</th><th>Local</th></tr></thead><tbody id="bestTable"></tbody></table></div></div>
+        <div class="section"><div class="section-head"><h3>Melhores marcas confirmadas</h3></div><div class="table-scroll"><table><thead><tr><th>Prova</th><th>Melhor</th><th>Piscina</th><th>Data</th><th>Local</th></tr></thead><tbody id="bestTable"></tbody></table></div><div id="bestMobile" class="best-mobile"></div></div>
       </section>
 
       <section id="history" class="page">
@@ -896,6 +950,9 @@ function renderBest(){
   let seen=new Set();
   rows=rows.filter(r=>{let k=r.event+'|'+String(r.poolMeters);if(seen.has(k))return false;seen.add(k);return true});
   $('#bestTable').innerHTML=rows.map(r=>`<tr><td>${r.event}</td><td class="mono best">${r.time}</td><td>${poolLabel(r.poolMeters)}</td><td>${fmtDate(r.date)}</td><td>${r.venue||r.city||'—'}</td></tr>`).join('');
+  const bm=$('#bestMobile');
+  if(bm)bm.innerHTML=rows.map(r=>`<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${poolLabel(r.poolMeters)} · ${fmtDate(r.date)}</div></div><div class="time mono best">${r.time}</div></div><div class="meta">${r.venue||r.city||'Local não informado'}</div></div>`).join('');
+
 }
 function fillFilters(){
   const events=eventList();
