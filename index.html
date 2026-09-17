@@ -40,6 +40,62 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
 .alert-status{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}.statusbox{border:1px solid var(--line);border-radius:10px;padding:12px}.statusbox small{color:var(--muted);display:block}.statusbox b{display:block;margin-top:5px}
 .timeline{display:grid;gap:8px;margin-top:12px}.timeline-row{display:grid;grid-template-columns:100px 1fr 150px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.timeline-row:last-child{border-bottom:0}
 @media(max-width:700px){.alert-grid{grid-template-columns:1fr}.alert-status{grid-template-columns:1fr}.timeline-row{grid-template-columns:80px 1fr}.timeline-row .right{grid-column:2}}
+
+/* VINISWIM V2 — responsividade e entrada padronizada */
+.field-help{font-size:11px;color:var(--muted);margin-top:4px}
+.req:after{content:" *";color:var(--bad)}
+.inline-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mobile-results{display:none}
+.result-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px}
+.result-card .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.result-card .time{font-size:22px;font-weight:800}
+.result-card .meta{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5}
+.result-card .actions{margin-top:10px;display:flex;justify-content:flex-end}
+.modal-sheet{max-height:min(88vh,820px);overflow:auto}
+.norm-preview{padding:10px 12px;border:1px dashed var(--line);border-radius:9px;background:#f7f9fb;font-size:13px}
+.norm-preview b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.import-box{display:grid;grid-template-columns:1fr auto;gap:8px}
+@media(max-width:980px){
+  dialog{width:min(96vw,760px);margin:auto}
+  .modal-body{padding:14px}
+  .modal-head,.modal-foot{position:sticky;background:#fff;z-index:2}
+  .modal-head{top:0}.modal-foot{bottom:0}
+}
+@media(max-width:700px){
+  .content{padding:10px 10px 82px}
+  .topbar{height:58px}
+  .topbar h1{font-size:16px}
+  .sync .pill{display:none}
+  .hero{padding:16px;border-radius:14px}
+  .hero h2{font-size:20px}
+  .grid.cards{grid-template-columns:1fr 1fr;gap:9px}
+  .card{padding:13px}
+  .card .v{font-size:21px}
+  .section{padding:13px;border-radius:12px}
+  .section-head{align-items:flex-start;flex-direction:column}
+  .filters{width:100%}
+  .filters select,.filters input{flex:1;min-width:0;width:100%}
+  #history .table-scroll{display:none}
+  .mobile-results{display:grid;gap:9px}
+  .entry-grid{grid-template-columns:1fr}
+  .pred{grid-template-columns:1fr 1fr}
+  .pred .title{grid-column:1/-1}
+  .pred .confidence{grid-column:1/-1}
+  .chart-wrap{height:300px}
+  .form{grid-template-columns:1fr}
+  .inline-2{grid-template-columns:1fr}
+  .import-box{grid-template-columns:1fr}
+  dialog{width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;border-radius:0}
+  dialog .modal-sheet{height:100%;max-height:none;display:flex;flex-direction:column}
+  dialog .modal-body{flex:1;overflow:auto}
+  .modal-foot{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+}
+@media(orientation:landscape) and (max-height:550px){
+  dialog{height:100vh}
+  .chart-wrap{height:230px}
+  .mobile-nav button{padding:7px 4px}
+}
+
 @media print{.sidebar,.topbar,.mobile-nav,.no-print{display:none!important}.app{display:block}.content{padding:0}.page{display:block!important;break-after:page}.page:last-child{break-after:auto}.section,.card,.hero{box-shadow:none;break-inside:avoid}}
 </style>
 </head>
@@ -57,7 +113,7 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
       <button data-page="audit">Auditoria</button>
       <button data-page="settings">Configurações</button>
     </div>
-    <div class="sidebar-foot">VINISWIM · Dropbox + GitHub Pages</div>
+    <div class="sidebar-foot">VINISWIM V2 · Dropbox + GitHub Pages</div>
   </aside>
   <main>
     <div class="topbar">
@@ -76,7 +132,7 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
         <div class="section">
           <div class="section-head"><h3>Resultados</h3><button class="btn primary no-print" onclick="openResultModal()">+ Novo resultado</button></div>
           <div class="filters"><select id="fEvent"><option value="">Todas as provas</option></select><select id="fPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Piscina não confirmada</option></select><select id="fSource"><option value="">Todas as origens</option><option value="official">Oficial SwimSystem</option><option value="manual">Manual confirmado</option></select></div>
-          <div class="table-scroll"><table><thead><tr><th>Data</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody id="historyTable"></tbody></table></div>
+          <div class="table-scroll"><table><thead><tr><th>Data</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody id="historyTable"></tbody></table></div><div id="mobileHistory" class="mobile-results"></div>
         </div>
       </section>
 
@@ -88,7 +144,18 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
       </section>
 
       <section id="meets" class="page">
-        <div class="section"><div class="section-head"><h3>Campeonatos</h3><button class="btn primary no-print" onclick="openMeetModal()">+ Novo campeonato</button></div><div id="meetList"></div></div>
+        <div class="section">
+  <div class="section-head"><h3>Campeonatos</h3><button class="btn primary no-print" onclick="openMeetModal()">+ Novo campeonato</button></div>
+  <div class="notice" style="margin-bottom:14px">
+    <b>SwimSystem:</b> a importação automática usa um conector externo para evitar bloqueios CORS do navegador. Cole a URL oficial e o VINISWIM consulta o atleta pelo registro 422692 quando o conector estiver configurado.
+  </div>
+  <div class="import-box no-print" style="margin-bottom:16px">
+    <input id="swimSystemImportUrl" placeholder="https://www.swimsystem.app/meets/sw/...">
+    <button class="btn" onclick="importFromSwimSystem()">Importar do SwimSystem</button>
+  </div>
+  <div id="swimImportStatus" style="margin-bottom:12px"></div>
+  <div id="meetList"></div>
+</div>
       </section>
 
       <section id="predictions" class="page">
@@ -146,13 +213,75 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
   <button data-page="dashboard" class="active">Início</button><button data-page="history">Resultados</button><button data-page="evolution">Evolução</button><button data-page="meets">Provas</button><button data-page="predictions">Previsão</button>
 </div>
 
+
 <dialog id="resultModal">
-  <div class="modal-head"><b>Novo resultado</b><button class="btn" onclick="resultModal.close()">Fechar</button></div>
-  <div class="modal-body"><div class="form">
-    <label>Data<input id="rDate" type="date"></label><label>Prova<input id="rEvent" placeholder="100 Livre"></label><label>Tempo<input id="rTime" placeholder="1:40.92"></label><label>Piscina<select id="rPool"><option value="">Não informada</option><option value="25">25 m</option><option value="50">50 m</option></select></label>
-    <label>Local<input id="rVenue" placeholder="Clube / piscina"></label><label>Cidade<input id="rCity" placeholder="Curitiba"></label><label>Competição<input id="rMeet" placeholder="Nome do campeonato"></label><label>Origem<select id="rStatus"><option value="manual">Manual confirmado</option><option value="official">Oficial SwimSystem</option></select></label>
-  </div></div>
-  <div class="modal-foot"><button class="btn" onclick="resultModal.close()">Cancelar</button><button class="btn primary" onclick="saveResult()">Salvar</button></div>
+  <div class="modal-sheet">
+    <div class="modal-head"><b>Novo resultado</b><button class="btn" onclick="resultModal.close()">Fechar</button></div>
+    <div class="modal-body">
+      <div class="form">
+        <label class="req">Data<input id="rDate" type="date"></label>
+
+        <label class="req">Distância
+          <select id="rDistance">
+            <option value="">Escolha</option>
+            <option>25</option><option>50</option><option>100</option><option>200</option>
+            <option>400</option><option>800</option><option>1500</option>
+          </select>
+        </label>
+
+        <label class="req">Estilo
+          <select id="rStroke">
+            <option value="">Escolha</option>
+            <option>Livre</option><option>Costas</option><option>Peito</option>
+            <option>Borboleta</option><option>Medley</option>
+          </select>
+        </label>
+
+        <label class="req">Piscina
+          <select id="rPool">
+            <option value="">Não confirmada</option>
+            <option value="25">25 m</option>
+            <option value="50">50 m</option>
+          </select>
+        </label>
+
+        <label class="req">Tempo
+          <input id="rTime" inputmode="decimal" autocomplete="off" placeholder="Ex.: 1:45,58 ou 42,63">
+          <div class="field-help">Aceita 1:45,58 · 1'45&quot;58 · 105,58 · 42.63</div>
+        </label>
+
+        <label>Local
+          <select id="rVenueSelect"><option value="">Escolha ou cadastre</option></select>
+        </label>
+
+        <label>Cidade
+          <select id="rCitySelect">
+            <option value="">Escolha</option>
+            <option>Curitiba</option>
+            <option>Colombo</option>
+            <option value="__other">Outra...</option>
+          </select>
+        </label>
+
+        <label>Competição
+          <select id="rMeetSelect"><option value="">Escolha uma competição</option></select>
+        </label>
+
+        <label>Origem
+          <select id="rStatus">
+            <option value="manual">Manual confirmado</option>
+            <option value="official">Oficial SwimSystem</option>
+          </select>
+        </label>
+
+        <label id="rVenueOtherWrap" style="display:none">Novo local<input id="rVenueOther" placeholder="Nome oficial do local"></label>
+        <label id="rCityOtherWrap" style="display:none">Outra cidade<input id="rCityOther" placeholder="Cidade"></label>
+
+        <div class="full norm-preview" id="resultPreview">Preencha distância, estilo e tempo para visualizar o padrão.</div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn" onclick="resultModal.close()">Cancelar</button><button class="btn primary" onclick="saveResult()">Salvar</button></div>
+  </div>
 </dialog>
 
 <dialog id="meetModal">
@@ -734,7 +863,7 @@ $$('[data-page]').forEach(b=>b.onclick=()=>nav(b.dataset.page));
 
 function render(){
   $('#officialCount').textContent=officialCount();
-  renderCards(); renderBest(); renderHistory(); renderMeets(); renderPredictions(); renderAlerts(); renderAudit(); fillFilters(); drawChart();
+  renderCards(); renderBest(); renderHistory(); renderMeets(); renderPredictions(); renderAlerts(); renderAudit(); fillFilters(); populateResultSelectors(); drawChart();
   $('#setReg').value=DATA.settings?.athleteRegistration||'';
   $('#setMeetUrl').value=DATA.settings?.swimSystemMeetUrl||'';
   $('#setPushUrl').value=DATA.settings?.pushServerUrl||'';
@@ -776,10 +905,87 @@ function fillFilters(){
   ce.innerHTML=events.map(x=>`<option>${x}</option>`).join('');
   if(events.includes(fv))f.value=fv;if(events.includes(cv))ce.value=cv;else ce.value=events[0]||'';
 }
+
+function canonicalText(v){
+  return String(v||'').trim().replace(/\s+/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
+}
+function normalizeTimeInput(v){
+  let raw=String(v||'').trim();
+  if(!raw)return {ok:false};
+  raw=raw.replace(/\s+/g,'').replace(/[”″]/g,'"').replace(/[’′]/g,"'").replace(/,/g,'.');
+  let sec=NaN;
+  if(/^\d+:\d{1,2}(\.\d+)?$/.test(raw)){
+    let [m,s]=raw.split(':'); sec=Number(m)*60+Number(s);
+  }else if(/^\d+'\d{1,2}("?\d{0,2})?$/.test(raw) || raw.includes("'")){
+    let a=raw.replace(/"/g,'').split("'"); sec=Number(a[0])*60+Number(a[1]);
+  }else if(/^\d+(\.\d+)?$/.test(raw)){
+    sec=Number(raw);
+  }else{
+    let nums=raw.match(/\d+/g)||[];
+    if(nums.length===3) sec=Number(nums[0])*60+Number(nums[1])+Number(nums[2])/100;
+    else if(nums.length===2) sec=Number(nums[0])+Number(nums[1])/100;
+  }
+  if(!Number.isFinite(sec)||sec<=0)return {ok:false};
+  return {ok:true,seconds:Math.round(sec*100)/100,display:fmtTime(Math.round(sec*100)/100)};
+}
+function populateResultSelectors(){
+  const venues=[...new Set([
+    ...(DATA.results||[]).map(r=>r.venue).filter(Boolean),
+    ...(DATA.meets||[]).map(m=>m.venue).filter(Boolean)
+  ])].sort();
+  const rv=$('#rVenueSelect'); if(rv){
+    rv.innerHTML='<option value="">Escolha ou cadastre</option>'+venues.map(v=>`<option>${v}</option>`).join('')+'<option value="__other">Outro...</option>';
+  }
+  const meets=[...DATA.meets].sort((a,b)=>b.dateStart.localeCompare(a.dateStart));
+  const rm=$('#rMeetSelect'); if(rm){
+    rm.innerHTML='<option value="">Escolha uma competição</option>'+meets.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  }
+}
+function selectedVenue(){
+  let v=$('#rVenueSelect')?.value||'';
+  if(v==='__other')v=canonicalText($('#rVenueOther')?.value||'');
+  return v||null;
+}
+function selectedCity(){
+  let v=$('#rCitySelect')?.value||'';
+  if(v==='__other')v=canonicalText($('#rCityOther')?.value||'');
+  return v||null;
+}
+function syncResultPreview(){
+  let d=$('#rDistance')?.value||'', st=$('#rStroke')?.value||'', t=normalizeTimeInput($('#rTime')?.value||'');
+  let ev=d&&st?`${d} ${st}`:'—';
+  $('#resultPreview').innerHTML=t.ok?`Será salvo como <b>${ev}</b> · tempo <b>${t.display}</b> · piscina <b>${poolLabel($('#rPool')?.value?Number($('#rPool').value):null)}</b>.`:'Preencha distância, estilo e um tempo válido para visualizar o padrão.';
+}
+document.addEventListener('change',e=>{
+  if(e.target.id==='rVenueSelect')$('#rVenueOtherWrap').style.display=e.target.value==='__other'?'block':'none';
+  if(e.target.id==='rCitySelect')$('#rCityOtherWrap').style.display=e.target.value==='__other'?'block':'none';
+  if(e.target.id==='rMeetSelect' && e.target.value){
+    const m=DATA.meets.find(x=>x.id===e.target.value);
+    if(m){
+      if(m.poolMeters)$('#rPool').value=String(m.poolMeters);
+      if(m.city){
+        let opt=[...$('#rCitySelect').options].find(o=>o.value===m.city||o.text===m.city);
+        if(opt)$('#rCitySelect').value=opt.value;
+        else{$('#rCitySelect').value='__other';$('#rCityOther').value=m.city;$('#rCityOtherWrap').style.display='block'}
+      }
+      if(m.venue){
+        let opt=[...$('#rVenueSelect').options].find(o=>o.value===m.venue||o.text===m.venue);
+        if(opt)$('#rVenueSelect').value=opt.value;
+        else{$('#rVenueSelect').value='__other';$('#rVenueOther').value=m.venue;$('#rVenueOtherWrap').style.display='block'}
+      }
+    }
+  }
+  if(['rDistance','rStroke','rPool','rTime','rMeetSelect'].includes(e.target.id))syncResultPreview();
+});
+document.addEventListener('input',e=>{if(e.target.id==='rTime')syncResultPreview()});
+
 function renderHistory(){
   let ev=$('#fEvent')?.value||'', pool=$('#fPool')?.value||'', src=$('#fSource')?.value||'';
   let a=[...confirmed()].filter(r=>(!ev||r.event===ev)&&(!src||r.status===src)&&(!pool||(pool==='unknown'?r.poolMeters==null:String(r.poolMeters)===pool))).sort((a,b)=>b.date.localeCompare(a.date)||a.event.localeCompare(b.event));
   $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<tr><td>${fmtDate(r.date)}</td><td>${r.event}</td><td class="mono"><b>${r.time}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${r.venue||r.city||'—'}</td><td>${s.title||r.meet||'—'}</td><td><span class="tag ${r.status}">${r.status==='official'?'OFICIAL SWIMSYSTEM':'MANUAL'}</span></td><td>${r.status==='manual'?`<button class="btn" onclick="deleteResult('${r.id}')">Excluir</button>`:''}</td></tr>`}).join('');
+  const mh=$('#mobileHistory');
+  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${fmtDate(r.date)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${r.time}</div></div><div class="meta">${r.venue||r.city||'Local não informado'}<br>${s.title||r.meet||'Competição não informada'}</div><div class="actions"><span class="tag ${r.status}">${r.status==='official'?'OFICIAL SWIMSYSTEM':'MANUAL'}</span>${r.status==='manual'?`<button class="btn" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button>`:''}</div></div>`}).join('');
+
 }
 ['fEvent','fPool','fSource'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)renderHistory()}));
 
@@ -835,12 +1041,32 @@ function drawChart(){
 }
 document.addEventListener('change',e=>{if(['chartEvent','chartPool'].includes(e.target.id))drawChart()});window.addEventListener('resize',()=>setTimeout(drawChart,50));
 
-function openResultModal(){resultModal.showModal()}
+function openResultModal(){
+  populateResultSelectors();
+  ['rDate','rDistance','rStroke','rTime','rPool','rVenueSelect','rCitySelect','rMeetSelect'].forEach(id=>{let el=$('#'+id);if(el && id!=='rPool')el.value=''});
+  $('#rPool').value='';
+  $('#rStatus').value='manual';
+  $('#rVenueOtherWrap').style.display='none';$('#rCityOtherWrap').style.display='none';
+  $('#rVenueOther').value='';$('#rCityOther').value='';
+  syncResultPreview();
+  resultModal.showModal();
+}
 function openMeetModal(){meetModal.showModal()}
 function saveResult(){
-  let sec=parseTime($('#rTime').value); if(!$('#rDate').value||!$('#rEvent').value||!isFinite(sec)){alert('Informe data, prova e tempo válidos.');return}
+  const date=$('#rDate').value, distance=$('#rDistance').value, stroke=$('#rStroke').value;
+  const nt=normalizeTimeInput($('#rTime').value);
+  if(!date||!distance||!stroke||!nt.ok){alert('Informe data, distância, estilo e tempo válidos.');return}
+  const event=`${distance} ${stroke}`;
+  const meetId=$('#rMeetSelect').value||null;
+  const meetObj=meetId?DATA.meets.find(m=>m.id===meetId):null;
   let id='manual-'+Date.now(), status=$('#rStatus').value;
-  DATA.results.push({id,date:$('#rDate').value,event:$('#rEvent').value.trim(),distance:parseInt($('#rEvent').value)||null,stroke:$('#rEvent').value.replace(/^\d+\s*/,'').trim(),timeSeconds:sec,time:fmtTime(sec),place:null,aqua:null,city:$('#rCity').value.trim()||null,venue:$('#rVenue').value.trim()||null,poolMeters:$('#rPool').value?Number($('#rPool').value):null,sourceId:null,meet:$('#rMeet').value.trim()||null,status});
+  DATA.results.push({
+    id,date,event,distance:Number(distance),stroke,
+    timeSeconds:nt.seconds,time:nt.display,place:null,aqua:null,
+    city:selectedCity(),venue:selectedVenue(),
+    poolMeters:$('#rPool').value?Number($('#rPool').value):null,
+    sourceId:null,meet:meetObj?.name||null,meetId:meetId,status
+  });
   resultModal.close();render();queueSave();
 }
 function deleteResult(id){if(confirm('Excluir este resultado manual?')){DATA.results=DATA.results.filter(r=>r.id!==id);render();queueSave()}}
@@ -1000,6 +1226,38 @@ function checkForegroundReminders(){
 }
 setInterval(checkForegroundReminders,30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkForegroundReminders()});
+
+
+async function importFromSwimSystem(){
+  const url=($('#swimSystemImportUrl')?.value||'').trim();
+  const status=$('#swimImportStatus');
+  if(!url){status.innerHTML='<span class="tag manual">INFORME A URL</span>';return}
+  if(!/^https:\/\/(www\.)?swimsystem\.app\/meets\/sw\//i.test(url)){
+    status.innerHTML='<span class="tag manual">URL SWIMSYSTEM INVÁLIDA</span>';return;
+  }
+  const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
+  if(!base){
+    status.innerHTML='<div class="notice"><b>Conector ainda não configurado.</b> O navegador não consulta o SwimSystem diretamente com confiabilidade por causa de CORS. Configure o servidor/conector na aba Configurações; a interface de importação já está pronta.</div>';
+    return;
+  }
+  status.innerHTML='<span class="pill">Consultando SwimSystem...</span>';
+  try{
+    const r=await fetch(base+'/swimsystem/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,registration:DATA.settings?.athleteRegistration||DATA.athlete?.registration})});
+    if(!r.ok)throw new Error('O conector não conseguiu consultar o SwimSystem.');
+    const d=await r.json();
+    if(!d.meet)throw new Error('Competição não reconhecida pelo conector.');
+    const exists=DATA.meets.find(m=>m.sourceUrl===url||m.id===d.meet.id);
+    if(exists){
+      Object.assign(exists,d.meet);
+    }else DATA.meets.push(d.meet);
+    if(d.source && !DATA.sources.find(s=>s.id===d.source.id))DATA.sources.push(d.source);
+    DATA.settings.swimSystemMeetUrl=url;
+    render();queueSave(true);
+    status.innerHTML=`<div class="notice"><b>Importação concluída.</b> ${d.meet.entries?.length||0} prova(s) do Vini encontrada(s). Revise antes de usar.</div>`;
+  }catch(e){
+    status.innerHTML=`<div class="notice" style="border-left-color:var(--bad)"><b>Falha na importação:</b> ${e.message}</div>`;
+  }
+}
 
 function dbxB64(bytes){return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 async function dbxSha(s){return new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))}
