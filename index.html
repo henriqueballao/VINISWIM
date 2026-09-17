@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e2530">
-<link rel="manifest" href="manifest.webmanifest?v=21">
+<link rel="manifest" href="manifest.webmanifest?v=22">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
@@ -626,6 +626,154 @@ tbody tr:hover{background:#f8fbfc}
   color:var(--accent2);
 }
 
+
+/* VINISWIM V22 — mobile drawer/hamburger no padrão NEXO */
+.mobile-hamburger{
+  appearance:none;
+  display:none;
+  width:42px;
+  height:42px;
+  min-width:42px;
+  min-height:42px;
+  border:1px solid var(--line);
+  background:#fff;
+  color:var(--ink);
+  border-radius:11px;
+  padding:0;
+  place-items:center;
+  cursor:pointer;
+  flex:0 0 42px;
+  box-shadow:0 1px 2px rgba(20,24,20,.04);
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.mobile-hamburger span{
+  width:18px;
+  height:2px;
+  margin:0;
+  background:currentColor;
+  border-radius:3px;
+  display:block;
+  transition:transform .18s ease,opacity .18s ease;
+}
+.mobile-hamburger{
+  grid-template-rows:repeat(3,2px);
+  gap:4px;
+  align-content:center;
+  justify-content:center;
+}
+.mobile-hamburger[aria-expanded="true"] span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.mobile-hamburger[aria-expanded="true"] span:nth-child(2){opacity:0}
+.mobile-hamburger[aria-expanded="true"] span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+
+@media(max-width:900px){
+  html{overflow-y:auto;scrollbar-gutter:auto}
+  .app{display:block!important;height:auto!important;min-height:100dvh!important;overflow:visible!important}
+
+  .topbar{
+    position:sticky!important;
+    top:0!important;
+    z-index:75!important;
+    min-height:calc(64px + env(safe-area-inset-top))!important;
+    padding:
+      calc(11px + env(safe-area-inset-top))
+      max(14px,env(safe-area-inset-right))
+      11px
+      max(14px,env(safe-area-inset-left))!important;
+    display:flex!important;
+    align-items:center!important;
+    background:rgba(255,255,255,.97)!important;
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    box-shadow:0 1px 0 var(--line);
+  }
+  .topbar-inner{
+    width:100%!important;
+    min-height:42px;
+    display:flex!important;
+    align-items:center!important;
+  }
+  .topbar-left{
+    width:100%;
+    min-width:0;
+    display:flex!important;
+    align-items:center!important;
+    gap:11px!important;
+  }
+  .topbar h1{
+    margin:0!important;
+    font-size:17px!important;
+    line-height:1.2!important;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .mobile-hamburger{display:grid!important}
+
+  .sidebar{
+    display:flex!important;
+    position:fixed!important;
+    z-index:110!important;
+    left:0!important;
+    top:0!important;
+    bottom:0!important;
+    width:min(84vw,320px)!important;
+    max-width:320px!important;
+    height:100dvh!important;
+    transform:translateX(-102%)!important;
+    transition:transform .22s cubic-bezier(.2,.8,.2,1)!important;
+    flex-direction:column!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    padding:
+      calc(18px + env(safe-area-inset-top))
+      12px
+      calc(16px + env(safe-area-inset-bottom))!important;
+    margin:0!important;
+    border-radius:0!important;
+    box-shadow:18px 0 44px rgba(8,18,13,.22);
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  body.sidebar-open .sidebar{transform:translateX(0)!important}
+  .sidebar-backdrop{
+    display:block!important;
+    position:fixed!important;
+    inset:0!important;
+    z-index:108!important;
+    background:rgba(12,20,17,.42)!important;
+    backdrop-filter:blur(2px);
+    -webkit-backdrop-filter:blur(2px);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease;
+  }
+  body.sidebar-open .sidebar-backdrop{
+    opacity:1!important;
+    pointer-events:auto!important;
+  }
+  body.sidebar-open{
+    overflow:hidden!important;
+    touch-action:none;
+  }
+}
+@media(max-width:480px){
+  .topbar{
+    padding-left:max(10px,env(safe-area-inset-left))!important;
+    padding-right:max(10px,env(safe-area-inset-right))!important;
+  }
+  .mobile-hamburger{
+    width:42px!important;
+    height:42px!important;
+    min-width:42px!important;
+    min-height:42px!important;
+  }
+}
+@media print{
+  .mobile-hamburger,.sidebar-backdrop{display:none!important}
+  body.sidebar-open{overflow:visible!important}
+}
+
 @media print{.sidebar,.topbar,.mobile-nav,.no-print{display:none!important}.app{display:block}.content{padding:0}.page{display:block!important;break-after:page}.page:last-child{break-after:auto}.section,.card,.hero{box-shadow:none;break-inside:avoid}}
 </style>
 </head>
@@ -668,7 +816,7 @@ tbody tr:hover{background:#f8fbfc}
 </div>
 
 <div class="app">
-  <aside class="sidebar">
+  <aside class="sidebar" id="mainSidebar">
     <div class="brand"><div class="mark"><svg width="24" height="24" viewBox="0 0 64 64"><use href="#viniswimLogo"/></svg></div><div><strong>VINISWIM</strong><small>performance tracker</small></div></div>
     <div class="nav">
       <button data-page="dashboard" class="active"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h8V3H3v10Zm10 8h8V11h-8v10ZM3 21h8v-6H3v6Zm10-12h8V3h-8v6Z"/></svg></span><span>Visão Geral</span></button>
@@ -699,7 +847,7 @@ tbody tr:hover{background:#f8fbfc}
     <div class="topbar">
       <div class="topbar-inner">
         <div class="topbar-left">
-          <button class="mobile-hamburger no-print" id="mobileSidebarBtn" type="button" aria-label="Abrir menu" aria-expanded="false">
+          <button class="mobile-hamburger no-print" id="mobileSidebarBtn" type="button" aria-label="Abrir menu" aria-controls="mainSidebar" aria-expanded="false">
             <span></span><span></span><span></span>
           </button>
           <h1 id="pageTitle">Visão Geral</h1>
@@ -1348,14 +1496,14 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v21').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v22').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
 
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js?v=21',{updateViaCache:'none'})}catch(e){console.warn('SW',e);return null}
+  try{return await navigator.serviceWorker.register('./service-worker.js?v=22',{updateViaCache:'none'})}catch(e){console.warn('SW',e);return null}
 }
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
@@ -1607,31 +1755,45 @@ function logoutApp(){
 }
 
 function openMobileSidebar(){
+  const mq=window.matchMedia('(max-width: 900px)');
+  if(!mq.matches)return;
   document.body.classList.add('sidebar-open');
   $('#mobileSidebarBtn')?.setAttribute('aria-expanded','true');
+  $('#mobileSidebarBtn')?.setAttribute('aria-label','Fechar menu');
 }
 function closeMobileSidebar(){
   document.body.classList.remove('sidebar-open');
   $('#mobileSidebarBtn')?.setAttribute('aria-expanded','false');
+  $('#mobileSidebarBtn')?.setAttribute('aria-label','Abrir menu');
 }
 function toggleMobileSidebar(){
   document.body.classList.contains('sidebar-open') ? closeMobileSidebar() : openMobileSidebar();
 }
 function initMobileSidebar(){
   const btn=$('#mobileSidebarBtn'), backdrop=$('#sidebarBackdrop');
-  if(btn)btn.onclick=toggleMobileSidebar;
-  if(backdrop)backdrop.onclick=closeMobileSidebar;
+  const mq=window.matchMedia('(max-width: 900px)');
+  if(btn){
+    btn.addEventListener('click',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      toggleMobileSidebar();
+    });
+  }
+  if(backdrop)backdrop.addEventListener('click',closeMobileSidebar);
 
   $$('.sidebar [data-page]').forEach(b=>{
-    b.addEventListener('click',()=>closeMobileSidebar());
+    b.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
   });
-  $('#actionSave')?.addEventListener('click',()=>closeMobileSidebar());
-  $('#actionPrint')?.addEventListener('click',()=>closeMobileSidebar());
-  $('#actionLogout')?.addEventListener('click',()=>closeMobileSidebar());
+  $('#actionSave')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
+  $('#actionPrint')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
+  $('#actionLogout')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
 
   document.addEventListener('keydown',e=>{
-    if(e.key==='Escape')closeMobileSidebar();
+    if(e.key==='Escape'&&document.body.classList.contains('sidebar-open'))closeMobileSidebar();
   });
+  const handleMq=()=>{if(!mq.matches)closeMobileSidebar()};
+  if(mq.addEventListener)mq.addEventListener('change',handleMq);else mq.addListener(handleMq);
+  window.addEventListener('pageshow',closeMobileSidebar);
 }
 
 function openActionsMenu(){
