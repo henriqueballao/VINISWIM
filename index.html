@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d1724">
-<link rel="manifest" href="manifest.webmanifest?v=8">
+<link rel="manifest" href="manifest.webmanifest?v=9">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
@@ -195,7 +195,7 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
       <button data-page="audit">Auditoria</button>
       <button data-page="settings">Configurações</button>
     </div>
-    <div class="sidebar-foot">VINISWIM V8 · Dropbox + GitHub Pages</div>
+    <div class="sidebar-foot">VINISWIM V9 · Dropbox + GitHub Pages</div>
   </aside>
   <main>
     <div class="topbar">
@@ -206,8 +206,8 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
     <div class="athlete-hero" id="globalAthleteHero">
       <div id="athletePhotoWrap"><div class="athlete-photo placeholder">VS</div></div>
       <div class="athlete-main">
-        <h2 id="heroAthleteName">Vinicius Suzin Ballao</h2>
-        <p id="heroAthleteSub">Clube Curitibano · registro 422692</p>
+        <h2 id="heroAthleteName">Atleta</h2>
+        <p id="heroAthleteSub">Conecte ao Dropbox para carregar os dados</p>
         <div class="athlete-meta">
           <span class="athlete-chip" id="heroAge">Idade: —</span>
           <span class="athlete-chip" id="heroCategory">Categoria: —</span>
@@ -421,527 +421,18 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
 </dialog>
 
 <script id="seedData" type="application/json">{
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "app": "VINISWIM",
-  "athlete": {
-    "name": "Vinicius Suzin Ballao",
-    "registration": "422692",
-    "birthYear": 2015,
-    "club": "Clube Curitibano"
-  },
-  "sources": [
-    {
-      "id": "sw-39519",
-      "type": "official_swimsystem",
-      "title": "Torneio Regional da 1ª Região (Pré-Mirim/Petiz)",
-      "url": "https://swimsystem.swimtimebrasil.com/39519/ProgressionDetails.pdf",
-      "dateStart": "2025-04-05",
-      "dateEnd": "2025-04-06",
-      "city": "Curitiba",
-      "poolMeters": null,
-      "note": "Resultados oficiais SwimSystem. O documento consultado não explicita o tamanho da piscina no cabeçalho recuperado."
-    },
-    {
-      "id": "sw-39523",
-      "type": "official_swimsystem",
-      "title": "Troféu Ossami Fukuda (Pré-Mirim/Petiz) 2025",
-      "url": "https://swimsystem.swimtimebrasil.com/39523/ProgressionDetails.pdf",
-      "dateStart": "2025-07-04",
-      "dateEnd": "2025-07-06",
-      "city": "Colombo",
-      "poolMeters": null,
-      "note": "Resultados oficiais SwimSystem. O documento consultado não explicita o tamanho da piscina no cabeçalho recuperado."
-    },
-    {
-      "id": "sw-39532",
-      "type": "official_swimsystem",
-      "title": "Torneio Regional da 1ª Região (Pré-Mirim/Petiz)",
-      "url": "https://swimsystem.swimtimebrasil.com/39532/ProgressionDetails.pdf",
-      "dateStart": "2025-09-13",
-      "dateEnd": "2025-09-14",
-      "city": "Curitiba",
-      "poolMeters": null,
-      "note": "Resultados oficiais SwimSystem. O documento consultado não explicita o tamanho da piscina no cabeçalho recuperado."
-    },
-    {
-      "id": "sw-40366",
-      "type": "official_swimsystem",
-      "title": "Campeonato Sul-brasileiro Mirim & Petiz (2º Semestre)",
-      "url": "https://swimsystem.swimtimebrasil.com/40366/ProgressionDetails.pdf",
-      "dateStart": "2025-11-07",
-      "dateEnd": "2025-11-09",
-      "city": "Curitiba",
-      "poolMeters": 50,
-      "note": "Resultados oficiais SwimSystem; cabeçalho informa 50m (LCM)."
-    },
-    {
-      "id": "sw-40595",
-      "type": "official_swimsystem",
-      "title": "Torneio Regional da 1ª Região (Pré-Mirim/Sênior)",
-      "url": "https://swimsystem.swimtimebrasil.com/40595/ProgressionDetails.pdf",
-      "dateStart": "2026-03-06",
-      "dateEnd": "2026-03-08",
-      "city": "Curitiba",
-      "poolMeters": 25,
-      "note": "Resultados oficiais SwimSystem; cabeçalho informa SCM (25m)."
-    },
-    {
-      "id": "sw-40602",
-      "type": "official_swimsystem",
-      "title": "Campeonato Paranaense de Inverno (Mirim/Petiz)",
-      "url": "https://swimsystem.swimtimebrasil.com/40602/ProgressionDetails.pdf",
-      "dateStart": "2026-04-17",
-      "dateEnd": "2026-04-19",
-      "city": "Colombo",
-      "poolMeters": 25,
-      "note": "Resultados oficiais SwimSystem; cabeçalho informa SCM (25m)."
-    },
-    {
-      "id": "sw-2026-09",
-      "type": "official_swimsystem",
-      "title": "Campeonato Paranaense de Verão (Mirim/Petiz)",
-      "url": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
-      "dateStart": "2026-09-18",
-      "dateEnd": "2026-09-20",
-      "city": "Colombo",
-      "venue": "Santa Mônica Clube de Campo",
-      "poolMeters": 50,
-      "note": "Balizamento oficial publicado no SwimSystemApp."
-    }
-  ],
-  "results": [
-    {
-      "id": "r-202504-50fr",
-      "date": "2025-04-05",
-      "event": "50 Livre",
-      "distance": 50,
-      "stroke": "Livre",
-      "timeSeconds": 53.09,
-      "time": "53\"09",
-      "place": 20,
-      "aqua": 54,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": null,
-      "sourceId": "sw-39519",
-      "status": "official"
-    },
-    {
-      "id": "r-202504-50bk",
-      "date": "2025-04-05",
-      "event": "50 Costas",
-      "distance": 50,
-      "stroke": "Costas",
-      "timeSeconds": 58.78,
-      "time": "58\"78",
-      "place": 14,
-      "aqua": 53,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": null,
-      "sourceId": "sw-39519",
-      "status": "official"
-    },
-    {
-      "id": "r-202504-50br",
-      "date": "2025-04-06",
-      "event": "50 Peito",
-      "distance": 50,
-      "stroke": "Peito",
-      "timeSeconds": 75.22,
-      "time": "1'15\"22",
-      "place": 23,
-      "aqua": 36,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": null,
-      "sourceId": "sw-39519",
-      "status": "official"
-    },
-    {
-      "id": "r-202504-100im",
-      "date": "2025-04-06",
-      "event": "100 Medley",
-      "distance": 100,
-      "stroke": "Medley",
-      "timeSeconds": 135.79,
-      "time": "2'15\"79",
-      "place": 11,
-      "aqua": 47,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": null,
-      "sourceId": "sw-39519",
-      "status": "official"
-    },
-    {
-      "id": "r-202507-100fr",
-      "date": "2025-07-04",
-      "event": "100 Livre",
-      "distance": 100,
-      "stroke": "Livre",
-      "timeSeconds": 112.82,
-      "time": "1'52\"82",
-      "place": 29,
-      "aqua": 62,
-      "city": "Colombo",
-      "venue": null,
-      "poolMeters": null,
-      "sourceId": "sw-39523",
-      "status": "official"
-    },
-    {
-      "id": "r-202507-200fr",
-      "date": "2025-07-04",
-      "event": "200 Livre",
-      "distance": 200,
-      "stroke": "Livre",
-      "timeSeconds": 251.29,
-      "time": "4'11\"29",
-      "place": 19,
-      "aqua": 61,
-      "city": "Colombo",
-      "venue": null,
-      "poolMeters": null,
-      "sourceId": "sw-39523",
-      "status": "official"
-    },
-    {
-      "id": "r-202507-50bk",
-      "date": "2025-07-05",
-      "event": "50 Costas",
-      "distance": 50,
-      "stroke": "Costas",
-      "timeSeconds": 56.73,
-      "time": "56\"73",
-      "place": 28,
-      "aqua": 59,
-      "city": "Colombo",
-      "venue": null,
-      "poolMeters": null,
-      "sourceId": "sw-39523",
-      "status": "official"
-    },
-    {
-      "id": "r-202507-50fly",
-      "date": "2025-07-05",
-      "event": "50 Borboleta",
-      "distance": 50,
-      "stroke": "Borboleta",
-      "timeSeconds": 59.68,
-      "time": "59\"68",
-      "place": 20,
-      "aqua": 48,
-      "city": "Colombo",
-      "venue": null,
-      "poolMeters": null,
-      "sourceId": "sw-39523",
-      "status": "official"
-    },
-    {
-      "id": "r-202507-100im",
-      "date": "2025-07-06",
-      "event": "100 Medley",
-      "distance": 100,
-      "stroke": "Medley",
-      "timeSeconds": 128.44,
-      "time": "2'08\"44",
-      "place": 29,
-      "aqua": 56,
-      "city": "Colombo",
-      "venue": null,
-      "poolMeters": null,
-      "sourceId": "sw-39523",
-      "status": "official"
-    },
-    {
-      "id": "r-202509-50fr",
-      "date": "2025-09-13",
-      "event": "50 Livre",
-      "distance": 50,
-      "stroke": "Livre",
-      "timeSeconds": 48.9,
-      "time": "48\"90",
-      "place": 17,
-      "aqua": 78,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": null,
-      "sourceId": "sw-39532",
-      "status": "official"
-    },
-    {
-      "id": "r-202509-200fr",
-      "date": "2025-09-13",
-      "event": "200 Livre",
-      "distance": 200,
-      "stroke": "Livre",
-      "timeSeconds": 241.8,
-      "time": "4'01\"80",
-      "place": 12,
-      "aqua": 75,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": null,
-      "sourceId": "sw-39532",
-      "status": "official"
-    },
-    {
-      "id": "r-202509-50bk",
-      "date": "2025-09-14",
-      "event": "50 Costas",
-      "distance": 50,
-      "stroke": "Costas",
-      "timeSeconds": 58.43,
-      "time": "58\"43",
-      "place": 18,
-      "aqua": 65,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": null,
-      "sourceId": "sw-39532",
-      "status": "official"
-    },
-    {
-      "id": "r-202509-50fly",
-      "date": "2025-09-14",
-      "event": "50 Borboleta",
-      "distance": 50,
-      "stroke": "Borboleta",
-      "timeSeconds": 65.71,
-      "time": "1'05\"71",
-      "place": 16,
-      "aqua": 38,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": null,
-      "sourceId": "sw-39532",
-      "status": "official"
-    },
-    {
-      "id": "r-202511-100fr",
-      "date": "2025-11-07",
-      "event": "100 Livre",
-      "distance": 100,
-      "stroke": "Livre",
-      "timeSeconds": 112.98,
-      "time": "1'52\"98",
-      "place": 51,
-      "aqua": 69,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": 50,
-      "sourceId": "sw-40366",
-      "status": "official"
-    },
-    {
-      "id": "r-202511-200fr",
-      "date": "2025-11-08",
-      "event": "200 Livre",
-      "distance": 200,
-      "stroke": "Livre",
-      "timeSeconds": 227.56,
-      "time": "3'47\"56",
-      "place": 32,
-      "aqua": 90,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": 50,
-      "sourceId": "sw-40366",
-      "status": "official"
-    },
-    {
-      "id": "r-202511-50bk",
-      "date": "2025-11-09",
-      "event": "50 Costas",
-      "distance": 50,
-      "stroke": "Costas",
-      "timeSeconds": 56.98,
-      "time": "56\"98",
-      "place": 42,
-      "aqua": 70,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": 50,
-      "sourceId": "sw-40366",
-      "status": "official"
-    },
-    {
-      "id": "r-202603-100fr",
-      "date": "2026-03-06",
-      "event": "100 Livre",
-      "distance": 100,
-      "stroke": "Livre",
-      "timeSeconds": 105.58,
-      "time": "1'45\"58",
-      "place": 19,
-      "aqua": 76,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": 25,
-      "sourceId": "sw-40595",
-      "status": "official"
-    },
-    {
-      "id": "r-202603-50bk",
-      "date": "2026-03-07",
-      "event": "50 Costas",
-      "distance": 50,
-      "stroke": "Costas",
-      "timeSeconds": 54.68,
-      "time": "54\"68",
-      "place": 9,
-      "aqua": 66,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": 25,
-      "sourceId": "sw-40595",
-      "status": "official"
-    },
-    {
-      "id": "r-202603-100bk",
-      "date": "2026-03-08",
-      "event": "100 Costas",
-      "distance": 100,
-      "stroke": "Costas",
-      "timeSeconds": 115.91,
-      "time": "1'55\"91",
-      "place": 10,
-      "aqua": 72,
-      "city": "Curitiba",
-      "venue": null,
-      "poolMeters": 25,
-      "sourceId": "sw-40595",
-      "status": "official"
-    },
-    {
-      "id": "r-202604-50fr",
-      "date": "2026-04-17",
-      "event": "50 Livre",
-      "distance": 50,
-      "stroke": "Livre",
-      "timeSeconds": 44.68,
-      "time": "44\"68",
-      "place": 30,
-      "aqua": 88,
-      "city": "Colombo",
-      "venue": null,
-      "poolMeters": 25,
-      "sourceId": "sw-40602",
-      "status": "official"
-    },
-    {
-      "id": "r-202604-100fr",
-      "date": "2026-04-17",
-      "event": "100 Livre",
-      "distance": 100,
-      "stroke": "Livre",
-      "timeSeconds": 105.58,
-      "time": "1'45\"58",
-      "place": 35,
-      "aqua": 76,
-      "city": "Colombo",
-      "venue": null,
-      "poolMeters": 25,
-      "sourceId": "sw-40602",
-      "status": "official"
-    },
-    {
-      "id": "r-202604-50bk",
-      "date": "2026-04-18",
-      "event": "50 Costas",
-      "distance": 50,
-      "stroke": "Costas",
-      "timeSeconds": 51.92,
-      "time": "51\"92",
-      "place": 21,
-      "aqua": 77,
-      "city": "Colombo",
-      "venue": null,
-      "poolMeters": 25,
-      "sourceId": "sw-40602",
-      "status": "official"
-    },
-    {
-      "id": "r-202604-100bk",
-      "date": "2026-04-19",
-      "event": "100 Costas",
-      "distance": 100,
-      "stroke": "Costas",
-      "timeSeconds": 115.75,
-      "time": "1'55\"75",
-      "place": 19,
-      "aqua": 72,
-      "city": "Colombo",
-      "venue": null,
-      "poolMeters": 25,
-      "sourceId": "sw-40602",
-      "status": "official"
-    }
-  ],
-  "meets": [
-    {
-      "id": "m-202609",
-      "name": "Campeonato Paranaense de Verão (Mirim/Petiz)",
-      "dateStart": "2026-09-18",
-      "dateEnd": "2026-09-20",
-      "city": "Colombo",
-      "venue": "Santa Mônica Clube de Campo",
-      "poolMeters": 50,
-      "sourceId": "sw-2026-09",
-      "entries": [
-        {
-          "date": "2026-09-18",
-          "event": "100 Livre",
-          "seedSeconds": 112.98,
-          "seed": "1'52\"98",
-          "series": 4,
-          "lane": 8,
-          "scheduled": "10:05"
-        },
-        {
-          "date": "2026-09-18",
-          "event": "50 Costas",
-          "seedSeconds": 55.9,
-          "seed": "55\"90",
-          "series": 4,
-          "lane": 1,
-          "scheduled": "17:42"
-        },
-        {
-          "date": "2026-09-19",
-          "event": "200 Livre",
-          "seedSeconds": 227.56,
-          "seed": "3'47\"56",
-          "series": 3,
-          "lane": 3,
-          "scheduled": "09:37"
-        },
-        {
-          "date": "2026-09-19",
-          "event": "50 Livre",
-          "seedSeconds": 48.9,
-          "seed": "48\"90",
-          "series": 3,
-          "lane": 6,
-          "scheduled": "16:53"
-        },
-        {
-          "date": "2026-09-20",
-          "event": "100 Costas",
-          "seedSeconds": null,
-          "seed": "NT",
-          "series": 1,
-          "lane": 5,
-          "scheduled": "11:18"
-        }
-      ]
-    }
-  ],
+  "athlete": {},
+  "sources": [],
+  "results": [],
+  "meets": [],
   "manualPending": [],
+  "pendingOfficialResults": [],
   "settings": {
-    "athleteRegistration": "422692",
-    "swimSystemMeetUrl": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
+    "athleteRegistration": "",
+    "swimSystemMeetUrl": "",
+    "pushServerUrl": "",
     "onlyConfirmedForAnalytics": true,
     "alerts": {
       "m120": true,
@@ -952,14 +443,12 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
       "m5": true,
       "resultPublished": true,
       "personalBest": true
-    },
-    "pushServerUrl": ""
+    }
   },
   "audit": {
     "createdAt": "2026-09-17",
-    "basis": "Somente dados oficiais encontrados no SwimSystem/SwimSystemApp nesta consolidação. Dados do histórico do chat que não foram confirmados no SwimSystem ficaram fora."
-  },
-  "pendingOfficialResults": []
+    "basis": "Base mestre carregada do Dropbox. O HTML público não contém dados pessoais do atleta."
+  }
 }</script>
 <script>
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
@@ -1022,19 +511,22 @@ function calcAge(birthDate){
 }
 function renderAthleteHero(){
   const a=DATA.athlete||{}, s=DATA.settings||{};
-  const name=s.athleteName||a.name||'Vinicius Suzin Ballao';
-  const team=s.team||a.team||s.club||a.club||'Clube Curitibano';
-  const reg=s.athleteRegistration||a.registration||'';
+  const name=String(s.athleteName||a.name||'').trim();
+  const team=String(s.team||a.team||s.club||a.club||'').trim();
+  const reg=String(s.athleteRegistration||a.registration||'').trim();
   const birth=s.birthDate||a.birthDate||'';
-  const category=s.category||a.category||'';
+  const category=String(s.category||a.category||'').trim();
   const age=calcAge(birth);
-  $('#heroAthleteName').textContent=name;
-  $('#heroAthleteSub').textContent=[team,reg?`registro ${reg}`:''].filter(Boolean).join(' · ');
+  $('#heroAthleteName').textContent=name||'Atleta';
+  $('#heroAthleteSub').textContent=(team||reg)
+    ? [team,reg?`registro ${reg}`:''].filter(Boolean).join(' · ')
+    : (dropboxReady?'Dados do atleta ainda não preenchidos':'Conecte ao Dropbox para carregar os dados');
   $('#heroAge').textContent=`Idade: ${age==null?'—':age+' anos'}`;
   $('#heroCategory').textContent=`Categoria: ${category||'—'}`;
   const wrap=$('#athletePhotoWrap');
   const photo=s.photoDataUrl||a.photoDataUrl||'';
-  wrap.innerHTML=photo?`<img class="athlete-photo" src="${photo}" alt="${name}">`:'<div class="athlete-photo placeholder">VS</div>';
+  const initials=name ? name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase() : 'VS';
+  wrap.innerHTML=photo?`<img class="athlete-photo" src="${photo}" alt="${name||'Atleta'}">`:`<div class="athlete-photo placeholder">${initials}</div>`;
 }
 async function handlePhotoUpload(file){
   if(!file)return;
@@ -1049,7 +541,6 @@ async function handlePhotoUpload(file){
 document.addEventListener('change',e=>{if(e.target.id==='setPhoto')handlePhotoUpload(e.target.files?.[0])});
 
 function render(){
-  $('#officialCount').textContent=officialCount();
   renderCards(); renderBest(); renderHistory(); renderMeets(); renderPredictions(); renderAlerts(); renderAudit(); fillFilters(); populateResultSelectors(); renderAthleteHero(); drawChart();
   $('#setAthleteName').value=DATA.settings?.athleteName||DATA.athlete?.name||'';
   $('#setTeam').value=DATA.settings?.team||DATA.athlete?.team||DATA.settings?.club||DATA.athlete?.club||'';
@@ -1357,7 +848,7 @@ function toggleAlert(key,val){
 }
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js?v=8')}catch(e){console.warn('SW',e);return null}
+  try{return await navigator.serviceWorker.register('./service-worker.js?v=9')}catch(e){console.warn('SW',e);return null}
 }
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
@@ -1533,16 +1024,52 @@ async function dbxUpload(){
 function queueSave(now=false){clearTimeout(saveTimer);if(!dropboxReady)return;if(now)dbxUpload().catch(e=>alert(e.message));else saveTimer=setTimeout(()=>dbxUpload().catch(e=>alert(e.message)),600)}
 async function bootstrapDropbox(){
   try{
-    let q=new URLSearchParams(location.search);if(q.get('code'))await exchange(q.get('code'));
-    let t=await token();if(!t)return;
-    let remote=await dbxDownload();if(remote&&remote.app==='VINISWIM')DATA=remote;else{dropboxReady=true;await dbxUpload()}
-    dropboxReady=true;$('#syncPill').textContent='Dropbox · sincronizado';$('#syncPill').className='pill ok';$('#syncBtn').textContent='Sincronizar';render();
-  }catch(e){$('#syncPill').textContent='Dropbox · atenção';alert(e.message)}
+    const q=new URLSearchParams(location.search);
+    if(q.get('error'))throw new Error(q.get('error_description')||q.get('error'));
+    if(q.get('code')){
+      $('#syncPill').textContent='Dropbox · autorizando';
+      await exchange(q.get('code'));
+    }
+    const t=await token();
+    if(!t){
+      dropboxReady=false;
+      $('#syncPill').textContent='Dropbox · não conectado';
+      $('#syncPill').className='pill';
+      $('#syncBtn').textContent='Conectar';
+      render();
+      return;
+    }
+    $('#syncPill').textContent='Dropbox · carregando';
+    const remote=await dbxDownload();
+    if(remote&&remote.app==='VINISWIM'){
+      DATA=remote;
+    }else{
+      DATA=JSON.parse(document.getElementById('seedData').textContent);
+      dropboxReady=true;
+      await dbxUpload();
+    }
+    dropboxReady=true;
+    $('#syncPill').textContent='Dropbox · sincronizado';
+    $('#syncPill').className='pill ok';
+    $('#syncBtn').textContent='Sincronizar';
+    render();
+  }catch(e){
+    dropboxReady=false;
+    $('#syncPill').textContent='Dropbox · atenção';
+    $('#syncPill').className='pill';
+    $('#syncBtn').textContent='Conectar';
+    console.error('VINISWIM Dropbox bootstrap',e);
+    alert(e.message||'Falha ao conectar ao Dropbox.');
+  }
 }
 function logoutDropbox(){sessionStorage.removeItem(DBX_ACCESS);localStorage.removeItem(DBX_REFRESH);dropboxReady=false;$('#syncPill').textContent='Dropbox · não conectado';$('#syncPill').className='pill';$('#syncBtn').textContent='Conectar'}
 $('#syncBtn').onclick=async()=>{if(dropboxReady){try{let d=await dbxDownload();if(d&&d.app==='VINISWIM'){DATA=d;render();$('#syncPill').textContent='Dropbox · sincronizado'}}catch(e){alert(e.message)}}else connectDropbox()}
 
-ensureAlertSettings();render();registerSW().then(()=>updateNotificationStatus());bootstrapDropbox();checkForegroundReminders();
+ensureAlertSettings();
+renderAthleteHero();
+registerSW().then(()=>updateNotificationStatus());
+bootstrapDropbox();
+checkForegroundReminders();
 </script>
 </body>
 </html>
