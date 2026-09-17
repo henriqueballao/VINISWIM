@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d1724">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="manifest.webmanifest?v=8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
@@ -195,7 +195,7 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
       <button data-page="audit">Auditoria</button>
       <button data-page="settings">Configurações</button>
     </div>
-    <div class="sidebar-foot">VINISWIM V7 · Dropbox + GitHub Pages</div>
+    <div class="sidebar-foot">VINISWIM V8 · Dropbox + GitHub Pages</div>
   </aside>
   <main>
     <div class="topbar">
@@ -1316,7 +1316,7 @@ function saveSettings(){
   DATA.athlete.birthDate=DATA.settings.birthDate||null;
   DATA.athlete.category=DATA.settings.category||null;
   renderAthleteHero();queueSave(true);renderAlerts();alert('Configurações salvas.');
-};DATA.settings.athleteRegistration=$('#setReg').value.trim();DATA.settings.swimSystemMeetUrl=$('#setMeetUrl').value.trim();DATA.settings.pushServerUrl=$('#setPushUrl').value.trim();queueSave(true);renderAlerts();alert('Configurações salvas.')}
+}
 function exportJson(){let b=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='viniswim-dados.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
 
 
@@ -1357,7 +1357,7 @@ function toggleAlert(key,val){
 }
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js')}catch(e){console.warn('SW',e);return null}
+  try{return await navigator.serviceWorker.register('./service-worker.js?v=8')}catch(e){console.warn('SW',e);return null}
 }
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
