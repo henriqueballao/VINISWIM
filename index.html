@@ -1,0 +1,1049 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1724">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VINISWIM">
+<title>VINISWIM</title>
+<style>
+:root{
+  --bg:#f4f6f8;--panel:#fff;--ink:#12202d;--muted:#6c7783;--line:#dfe5ea;
+  --nav:#0d1724;--nav2:#132638;--accent:#2d78a5;--good:#237a57;--warn:#9c6715;--bad:#a13d3d;
+  --radius:14px;--shadow:0 8px 30px rgba(20,36,52,.08);
+}
+*{box-sizing:border-box} html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg)}
+button,input,select{font:inherit}.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+.sidebar{background:linear-gradient(180deg,var(--nav),#0a1420);color:#fff;padding:20px 16px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:12px;padding:5px 8px 24px}.mark{width:42px;height:42px;border-radius:12px;background:#fff;color:var(--nav);display:grid;place-items:center;font-weight:900;letter-spacing:-1px}.brand strong{font-size:20px;letter-spacing:.08em}.brand small{display:block;color:#9fb0bd;margin-top:2px}
+.nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#becbd5;text-align:left;padding:12px 13px;border-radius:10px;cursor:pointer}.nav button.active,.nav button:hover{background:var(--nav2);color:#fff}.sidebar-foot{position:absolute;bottom:18px;left:16px;right:16px;font-size:12px;color:#80919f}
+main{min-width:0}.topbar{height:70px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:10}.topbar h1{font-size:18px;margin:0}.sync{display:flex;gap:8px;align-items:center}.pill{padding:7px 10px;border-radius:999px;background:#eef3f6;color:#4b5a67;font-size:12px}.pill.ok{background:#e8f5ef;color:var(--good)}.btn{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:9px;cursor:pointer}.btn.primary{background:var(--nav);color:#fff;border-color:var(--nav)}.btn.danger{color:var(--bad)}.content{padding:24px;max-width:1500px;margin:auto}
+.page{display:none}.page.active{display:block}.hero{background:linear-gradient(135deg,#0d1724,#17354c);color:white;padding:24px;border-radius:18px;display:grid;grid-template-columns:1.5fr .7fr;gap:24px;margin-bottom:20px}.hero h2{font-size:27px;margin:0 0 7px}.hero p{margin:0;color:#b7c5cf}.hero-stat{align-self:center;text-align:right}.hero-stat b{font-size:38px}.hero-stat span{display:block;color:#9fb1bf;font-size:12px}
+.grid{display:grid;gap:16px}.grid.cards{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow)}.card .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}.card .v{font-size:28px;font-weight:750;margin-top:7px}.card .s{font-size:12px;color:var(--muted);margin-top:5px}.section{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.section h3{margin:0;font-size:16px}.filters{display:flex;flex-wrap:wrap;gap:8px}.filters select,.filters input,.form input,.form select{border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff}
+table{border-collapse:collapse;width:100%}th,td{padding:10px 9px;border-bottom:1px solid #edf0f2;text-align:left;font-size:13px}th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#65727d}.mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.tag{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:700}.tag.official{background:#e8f5ef;color:var(--good)}.tag.manual{background:#fff3dd;color:var(--warn)}.tag.unknown{background:#f1f3f5;color:#66717b}.best{font-weight:800;color:var(--good)}
+.chart-wrap{height:360px;position:relative}.chart-wrap canvas{width:100%;height:100%}.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:12px}.legend span:before{content:"";display:inline-block;width:18px;height:3px;background:currentColor;margin-right:6px;vertical-align:middle}
+.meet{display:grid;grid-template-columns:1fr auto;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}.meet:last-child{border-bottom:0}.meet h4{margin:0 0 4px}.meet p{margin:0;color:var(--muted);font-size:12px}.entry-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}.entry{padding:12px;border:1px solid var(--line);border-radius:10px}.entry b{display:block}.entry small{color:var(--muted)}
+.pred{display:grid;grid-template-columns:1fr repeat(3,130px) 120px;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid var(--line)}.pred:last-child{border-bottom:0}.pred .range{text-align:center;padding:10px;border-radius:9px;background:#f6f8fa}.pred .range b{display:block}.confidence{font-size:11px;padding:6px 8px;border-radius:999px;text-align:center}.confidence.high{background:#e8f5ef;color:var(--good)}.confidence.medium{background:#fff3dd;color:var(--warn)}.confidence.low{background:#f1f3f5;color:#66717b}
+.form{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.form .full{grid-column:1/-1}.notice{padding:12px 14px;border-left:4px solid var(--accent);background:#eef6fa;border-radius:8px;font-size:13px;color:#3e5565}.audit-row{display:grid;grid-template-columns:100px 1fr 180px;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:12px}.source-link{color:#2c6f98;text-decoration:none}.source-link:hover{text-decoration:underline}
+dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:min(760px,calc(100% - 30px));padding:0}dialog::backdrop{background:rgba(6,14,20,.55)}.modal-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.modal-body{padding:18px}.modal-foot{padding:14px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+.mobile-nav{display:none}
+@media(max-width:980px){
+  .app{grid-template-columns:1fr}.sidebar{display:none}.topbar{padding:0 14px}.content{padding:14px 14px 86px}.grid.cards{grid-template-columns:repeat(2,1fr)}.hero{grid-template-columns:1fr}.hero-stat{text-align:left}.entry-grid{grid-template-columns:repeat(2,1fr)}.form{grid-template-columns:1fr 1fr}.pred{grid-template-columns:1fr 1fr}.pred .title{grid-column:1/-1}.mobile-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);z-index:20;padding-bottom:env(safe-area-inset-bottom)}.mobile-nav button{border:0;background:#fff;padding:10px 4px;font-size:10px;color:#66717b}.mobile-nav button.active{color:var(--nav);font-weight:800}table{min-width:780px}.table-scroll{overflow:auto}}
+@media(max-width:600px){.grid.cards{grid-template-columns:1fr 1fr}.entry-grid{grid-template-columns:1fr}.form{grid-template-columns:1fr}.form .full{grid-column:auto}.card .v{font-size:23px}.hero h2{font-size:22px}}
+.alert-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.alert-option{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:12px;padding:13px 14px;background:#fff}
+.alert-option b{display:block;font-size:13px}.alert-option small{display:block;color:var(--muted);margin-top:3px}
+.switch{position:relative;width:46px;height:26px;flex:0 0 auto}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;inset:0;border-radius:999px;background:#c7d0d7;cursor:pointer;transition:.2s}.slider:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}.switch input:checked + .slider{background:var(--good)}.switch input:checked + .slider:before{transform:translateX(20px)}
+.alert-status{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}.statusbox{border:1px solid var(--line);border-radius:10px;padding:12px}.statusbox small{color:var(--muted);display:block}.statusbox b{display:block;margin-top:5px}
+.timeline{display:grid;gap:8px;margin-top:12px}.timeline-row{display:grid;grid-template-columns:100px 1fr 150px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.timeline-row:last-child{border-bottom:0}
+@media(max-width:700px){.alert-grid{grid-template-columns:1fr}.alert-status{grid-template-columns:1fr}.timeline-row{grid-template-columns:80px 1fr}.timeline-row .right{grid-column:2}}
+@media print{.sidebar,.topbar,.mobile-nav,.no-print{display:none!important}.app{display:block}.content{padding:0}.page{display:block!important;break-after:page}.page:last-child{break-after:auto}.section,.card,.hero{box-shadow:none;break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="mark">VS</div><div><strong>VINISWIM</strong><small>performance tracker</small></div></div>
+    <div class="nav">
+      <button data-page="dashboard" class="active">Visão Geral</button>
+      <button data-page="history">Resultados</button>
+      <button data-page="evolution">Evolução</button>
+      <button data-page="meets">Campeonatos</button>
+      <button data-page="predictions">Expectativas</button>
+      <button data-page="alerts">Alertas</button>
+      <button data-page="audit">Auditoria</button>
+      <button data-page="settings">Configurações</button>
+    </div>
+    <div class="sidebar-foot">VINISWIM · Dropbox + GitHub Pages</div>
+  </aside>
+  <main>
+    <div class="topbar">
+      <h1 id="pageTitle">Visão Geral</h1>
+      <div class="sync"><span id="syncPill" class="pill">Dropbox · não conectado</span><button class="btn no-print" id="syncBtn">Conectar</button></div>
+    </div>
+    <div class="content">
+      <section id="dashboard" class="page active">
+        <div class="hero"><div><h2>Vinicius Suzin Ballao</h2><p>Clube Curitibano · registro 422692 · base oficial SwimSystem</p></div><div class="hero-stat"><b id="officialCount">0</b><span>resultados oficiais carregados</span></div></div>
+        <div class="grid cards" id="summaryCards"></div>
+        <div class="section"><div class="section-head"><h3>Próximo campeonato</h3></div><div id="nextMeet"></div></div>
+        <div class="section"><div class="section-head"><h3>Melhores marcas confirmadas</h3></div><div class="table-scroll"><table><thead><tr><th>Prova</th><th>Melhor</th><th>Piscina</th><th>Data</th><th>Local</th></tr></thead><tbody id="bestTable"></tbody></table></div></div>
+      </section>
+
+      <section id="history" class="page">
+        <div class="section">
+          <div class="section-head"><h3>Resultados</h3><button class="btn primary no-print" onclick="openResultModal()">+ Novo resultado</button></div>
+          <div class="filters"><select id="fEvent"><option value="">Todas as provas</option></select><select id="fPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Piscina não confirmada</option></select><select id="fSource"><option value="">Todas as origens</option><option value="official">Oficial SwimSystem</option><option value="manual">Manual confirmado</option></select></div>
+          <div class="table-scroll"><table><thead><tr><th>Data</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody id="historyTable"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="evolution" class="page">
+        <div class="section">
+          <div class="section-head"><h3>Evolução</h3><div class="filters"><select id="chartEvent"></select><select id="chartPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Não confirmada</option></select></div></div>
+          <div class="chart-wrap"><canvas id="chart"></canvas></div><div id="evolutionStats" class="notice"></div>
+        </div>
+      </section>
+
+      <section id="meets" class="page">
+        <div class="section"><div class="section-head"><h3>Campeonatos</h3><button class="btn primary no-print" onclick="openMeetModal()">+ Novo campeonato</button></div><div id="meetList"></div></div>
+      </section>
+
+      <section id="predictions" class="page">
+        <div class="section"><div class="section-head"><h3>Expectativas de tempo</h3></div><div class="notice">Estimativas calculadas somente com resultados confirmados. Quando não houver dados suficientes, o sistema mostra baixa confiança em vez de inventar precisão.</div><div id="predictionList" style="margin-top:12px"></div></div>
+      </section>
+
+
+      <section id="alerts" class="page">
+        <div class="section">
+          <div class="section-head"><h3>Alertas do VINISWIM</h3><button class="btn primary no-print" id="enableNotificationsBtn" onclick="enableNotifications()">Ativar notificações neste aparelho</button></div>
+          <div class="notice">Alertas padrão: <b>2h, 1h, 30min, 20min, 10min e 5min antes da prova</b>, além de aviso quando o resultado oficial for publicado. Os avisos de resultado só são gravados no histórico após sua confirmação.</div>
+          <div class="alert-status">
+            <div class="statusbox"><small>Permissão do aparelho</small><b id="notifPermission">—</b></div>
+            <div class="statusbox"><small>Service Worker</small><b id="swStatus">—</b></div>
+            <div class="statusbox"><small>Push em segundo plano</small><b id="pushStatus">—</b></div>
+          </div>
+          <div class="alert-grid" id="alertOptions"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><h3>Próximos avisos</h3><button class="btn no-print" onclick="testNotification()">Testar notificação</button></div>
+          <div id="nextAlerts" class="timeline"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><h3>Resultado oficial</h3></div>
+          <div class="notice">
+            Quando o monitor externo detectar um resultado novo no SwimSystem, o iPhone recebe a notificação.
+            O VINISWIM mostra o resultado encontrado, a diferença para o balizamento e para a melhor marca,
+            mas <b>não grava automaticamente</b>. Você confirma antes da inclusão na base.
+          </div>
+          <div id="pendingOfficialResults" style="margin-top:12px"></div>
+        </div>
+      </section>
+
+      <section id="audit" class="page">
+        <div class="section"><div class="section-head"><h3>Auditoria da base</h3></div><div id="auditSummary" class="notice"></div><div id="sourceList"></div></div>
+      </section>
+
+      <section id="settings" class="page">
+        <div class="section"><div class="section-head"><h3>Configurações</h3></div>
+          <div class="form">
+            <label>Registro SwimSystem<input id="setReg"></label>
+            <label>Arquivo Dropbox<input id="setFile" value="/viniswim-dados.json"></label>
+            <label class="full">URL da competição<input id="setMeetUrl"></label>
+            <label class="full">Servidor Push (opcional)<input id="setPushUrl" placeholder="https://seu-monitor.exemplo.com"></label>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:14px" class="no-print"><button class="btn primary" onclick="saveSettings()">Salvar</button><button class="btn" onclick="exportJson()">Exportar JSON</button><button class="btn" onclick="window.print()">Gerar PDF</button><button class="btn danger" onclick="logoutDropbox()">Sair do Dropbox</button></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<div class="mobile-nav">
+  <button data-page="dashboard" class="active">Início</button><button data-page="history">Resultados</button><button data-page="evolution">Evolução</button><button data-page="meets">Provas</button><button data-page="predictions">Previsão</button>
+</div>
+
+<dialog id="resultModal">
+  <div class="modal-head"><b>Novo resultado</b><button class="btn" onclick="resultModal.close()">Fechar</button></div>
+  <div class="modal-body"><div class="form">
+    <label>Data<input id="rDate" type="date"></label><label>Prova<input id="rEvent" placeholder="100 Livre"></label><label>Tempo<input id="rTime" placeholder="1:40.92"></label><label>Piscina<select id="rPool"><option value="">Não informada</option><option value="25">25 m</option><option value="50">50 m</option></select></label>
+    <label>Local<input id="rVenue" placeholder="Clube / piscina"></label><label>Cidade<input id="rCity" placeholder="Curitiba"></label><label>Competição<input id="rMeet" placeholder="Nome do campeonato"></label><label>Origem<select id="rStatus"><option value="manual">Manual confirmado</option><option value="official">Oficial SwimSystem</option></select></label>
+  </div></div>
+  <div class="modal-foot"><button class="btn" onclick="resultModal.close()">Cancelar</button><button class="btn primary" onclick="saveResult()">Salvar</button></div>
+</dialog>
+
+<dialog id="meetModal">
+  <div class="modal-head"><b>Novo campeonato</b><button class="btn" onclick="meetModal.close()">Fechar</button></div>
+  <div class="modal-body"><div class="form">
+    <label>Nome<input id="mName"></label><label>Início<input id="mStart" type="date"></label><label>Fim<input id="mEnd" type="date"></label><label>Piscina<select id="mPool"><option value="">Não informada</option><option value="25">25 m</option><option value="50">50 m</option></select></label>
+    <label>Local<input id="mVenue"></label><label>Cidade<input id="mCity"></label><label class="full">URL SwimSystem<input id="mUrl"></label>
+  </div></div>
+  <div class="modal-foot"><button class="btn" onclick="meetModal.close()">Cancelar</button><button class="btn primary" onclick="saveMeet()">Salvar</button></div>
+</dialog>
+
+<script id="seedData" type="application/json">{
+  "schemaVersion": 1,
+  "app": "VINISWIM",
+  "athlete": {
+    "name": "Vinicius Suzin Ballao",
+    "registration": "422692",
+    "birthYear": 2015,
+    "club": "Clube Curitibano"
+  },
+  "sources": [
+    {
+      "id": "sw-39519",
+      "type": "official_swimsystem",
+      "title": "Torneio Regional da 1ª Região (Pré-Mirim/Petiz)",
+      "url": "https://swimsystem.swimtimebrasil.com/39519/ProgressionDetails.pdf",
+      "dateStart": "2025-04-05",
+      "dateEnd": "2025-04-06",
+      "city": "Curitiba",
+      "poolMeters": null,
+      "note": "Resultados oficiais SwimSystem. O documento consultado não explicita o tamanho da piscina no cabeçalho recuperado."
+    },
+    {
+      "id": "sw-39523",
+      "type": "official_swimsystem",
+      "title": "Troféu Ossami Fukuda (Pré-Mirim/Petiz) 2025",
+      "url": "https://swimsystem.swimtimebrasil.com/39523/ProgressionDetails.pdf",
+      "dateStart": "2025-07-04",
+      "dateEnd": "2025-07-06",
+      "city": "Colombo",
+      "poolMeters": null,
+      "note": "Resultados oficiais SwimSystem. O documento consultado não explicita o tamanho da piscina no cabeçalho recuperado."
+    },
+    {
+      "id": "sw-39532",
+      "type": "official_swimsystem",
+      "title": "Torneio Regional da 1ª Região (Pré-Mirim/Petiz)",
+      "url": "https://swimsystem.swimtimebrasil.com/39532/ProgressionDetails.pdf",
+      "dateStart": "2025-09-13",
+      "dateEnd": "2025-09-14",
+      "city": "Curitiba",
+      "poolMeters": null,
+      "note": "Resultados oficiais SwimSystem. O documento consultado não explicita o tamanho da piscina no cabeçalho recuperado."
+    },
+    {
+      "id": "sw-40366",
+      "type": "official_swimsystem",
+      "title": "Campeonato Sul-brasileiro Mirim & Petiz (2º Semestre)",
+      "url": "https://swimsystem.swimtimebrasil.com/40366/ProgressionDetails.pdf",
+      "dateStart": "2025-11-07",
+      "dateEnd": "2025-11-09",
+      "city": "Curitiba",
+      "poolMeters": 50,
+      "note": "Resultados oficiais SwimSystem; cabeçalho informa 50m (LCM)."
+    },
+    {
+      "id": "sw-40595",
+      "type": "official_swimsystem",
+      "title": "Torneio Regional da 1ª Região (Pré-Mirim/Sênior)",
+      "url": "https://swimsystem.swimtimebrasil.com/40595/ProgressionDetails.pdf",
+      "dateStart": "2026-03-06",
+      "dateEnd": "2026-03-08",
+      "city": "Curitiba",
+      "poolMeters": 25,
+      "note": "Resultados oficiais SwimSystem; cabeçalho informa SCM (25m)."
+    },
+    {
+      "id": "sw-40602",
+      "type": "official_swimsystem",
+      "title": "Campeonato Paranaense de Inverno (Mirim/Petiz)",
+      "url": "https://swimsystem.swimtimebrasil.com/40602/ProgressionDetails.pdf",
+      "dateStart": "2026-04-17",
+      "dateEnd": "2026-04-19",
+      "city": "Colombo",
+      "poolMeters": 25,
+      "note": "Resultados oficiais SwimSystem; cabeçalho informa SCM (25m)."
+    },
+    {
+      "id": "sw-2026-09",
+      "type": "official_swimsystem",
+      "title": "Campeonato Paranaense de Verão (Mirim/Petiz)",
+      "url": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
+      "dateStart": "2026-09-18",
+      "dateEnd": "2026-09-20",
+      "city": "Colombo",
+      "venue": "Santa Mônica Clube de Campo",
+      "poolMeters": 50,
+      "note": "Balizamento oficial publicado no SwimSystemApp."
+    }
+  ],
+  "results": [
+    {
+      "id": "r-202504-50fr",
+      "date": "2025-04-05",
+      "event": "50 Livre",
+      "distance": 50,
+      "stroke": "Livre",
+      "timeSeconds": 53.09,
+      "time": "53\"09",
+      "place": 20,
+      "aqua": 54,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": null,
+      "sourceId": "sw-39519",
+      "status": "official"
+    },
+    {
+      "id": "r-202504-50bk",
+      "date": "2025-04-05",
+      "event": "50 Costas",
+      "distance": 50,
+      "stroke": "Costas",
+      "timeSeconds": 58.78,
+      "time": "58\"78",
+      "place": 14,
+      "aqua": 53,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": null,
+      "sourceId": "sw-39519",
+      "status": "official"
+    },
+    {
+      "id": "r-202504-50br",
+      "date": "2025-04-06",
+      "event": "50 Peito",
+      "distance": 50,
+      "stroke": "Peito",
+      "timeSeconds": 75.22,
+      "time": "1'15\"22",
+      "place": 23,
+      "aqua": 36,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": null,
+      "sourceId": "sw-39519",
+      "status": "official"
+    },
+    {
+      "id": "r-202504-100im",
+      "date": "2025-04-06",
+      "event": "100 Medley",
+      "distance": 100,
+      "stroke": "Medley",
+      "timeSeconds": 135.79,
+      "time": "2'15\"79",
+      "place": 11,
+      "aqua": 47,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": null,
+      "sourceId": "sw-39519",
+      "status": "official"
+    },
+    {
+      "id": "r-202507-100fr",
+      "date": "2025-07-04",
+      "event": "100 Livre",
+      "distance": 100,
+      "stroke": "Livre",
+      "timeSeconds": 112.82,
+      "time": "1'52\"82",
+      "place": 29,
+      "aqua": 62,
+      "city": "Colombo",
+      "venue": null,
+      "poolMeters": null,
+      "sourceId": "sw-39523",
+      "status": "official"
+    },
+    {
+      "id": "r-202507-200fr",
+      "date": "2025-07-04",
+      "event": "200 Livre",
+      "distance": 200,
+      "stroke": "Livre",
+      "timeSeconds": 251.29,
+      "time": "4'11\"29",
+      "place": 19,
+      "aqua": 61,
+      "city": "Colombo",
+      "venue": null,
+      "poolMeters": null,
+      "sourceId": "sw-39523",
+      "status": "official"
+    },
+    {
+      "id": "r-202507-50bk",
+      "date": "2025-07-05",
+      "event": "50 Costas",
+      "distance": 50,
+      "stroke": "Costas",
+      "timeSeconds": 56.73,
+      "time": "56\"73",
+      "place": 28,
+      "aqua": 59,
+      "city": "Colombo",
+      "venue": null,
+      "poolMeters": null,
+      "sourceId": "sw-39523",
+      "status": "official"
+    },
+    {
+      "id": "r-202507-50fly",
+      "date": "2025-07-05",
+      "event": "50 Borboleta",
+      "distance": 50,
+      "stroke": "Borboleta",
+      "timeSeconds": 59.68,
+      "time": "59\"68",
+      "place": 20,
+      "aqua": 48,
+      "city": "Colombo",
+      "venue": null,
+      "poolMeters": null,
+      "sourceId": "sw-39523",
+      "status": "official"
+    },
+    {
+      "id": "r-202507-100im",
+      "date": "2025-07-06",
+      "event": "100 Medley",
+      "distance": 100,
+      "stroke": "Medley",
+      "timeSeconds": 128.44,
+      "time": "2'08\"44",
+      "place": 29,
+      "aqua": 56,
+      "city": "Colombo",
+      "venue": null,
+      "poolMeters": null,
+      "sourceId": "sw-39523",
+      "status": "official"
+    },
+    {
+      "id": "r-202509-50fr",
+      "date": "2025-09-13",
+      "event": "50 Livre",
+      "distance": 50,
+      "stroke": "Livre",
+      "timeSeconds": 48.9,
+      "time": "48\"90",
+      "place": 17,
+      "aqua": 78,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": null,
+      "sourceId": "sw-39532",
+      "status": "official"
+    },
+    {
+      "id": "r-202509-200fr",
+      "date": "2025-09-13",
+      "event": "200 Livre",
+      "distance": 200,
+      "stroke": "Livre",
+      "timeSeconds": 241.8,
+      "time": "4'01\"80",
+      "place": 12,
+      "aqua": 75,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": null,
+      "sourceId": "sw-39532",
+      "status": "official"
+    },
+    {
+      "id": "r-202509-50bk",
+      "date": "2025-09-14",
+      "event": "50 Costas",
+      "distance": 50,
+      "stroke": "Costas",
+      "timeSeconds": 58.43,
+      "time": "58\"43",
+      "place": 18,
+      "aqua": 65,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": null,
+      "sourceId": "sw-39532",
+      "status": "official"
+    },
+    {
+      "id": "r-202509-50fly",
+      "date": "2025-09-14",
+      "event": "50 Borboleta",
+      "distance": 50,
+      "stroke": "Borboleta",
+      "timeSeconds": 65.71,
+      "time": "1'05\"71",
+      "place": 16,
+      "aqua": 38,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": null,
+      "sourceId": "sw-39532",
+      "status": "official"
+    },
+    {
+      "id": "r-202511-100fr",
+      "date": "2025-11-07",
+      "event": "100 Livre",
+      "distance": 100,
+      "stroke": "Livre",
+      "timeSeconds": 112.98,
+      "time": "1'52\"98",
+      "place": 51,
+      "aqua": 69,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": 50,
+      "sourceId": "sw-40366",
+      "status": "official"
+    },
+    {
+      "id": "r-202511-200fr",
+      "date": "2025-11-08",
+      "event": "200 Livre",
+      "distance": 200,
+      "stroke": "Livre",
+      "timeSeconds": 227.56,
+      "time": "3'47\"56",
+      "place": 32,
+      "aqua": 90,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": 50,
+      "sourceId": "sw-40366",
+      "status": "official"
+    },
+    {
+      "id": "r-202511-50bk",
+      "date": "2025-11-09",
+      "event": "50 Costas",
+      "distance": 50,
+      "stroke": "Costas",
+      "timeSeconds": 56.98,
+      "time": "56\"98",
+      "place": 42,
+      "aqua": 70,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": 50,
+      "sourceId": "sw-40366",
+      "status": "official"
+    },
+    {
+      "id": "r-202603-100fr",
+      "date": "2026-03-06",
+      "event": "100 Livre",
+      "distance": 100,
+      "stroke": "Livre",
+      "timeSeconds": 105.58,
+      "time": "1'45\"58",
+      "place": 19,
+      "aqua": 76,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": 25,
+      "sourceId": "sw-40595",
+      "status": "official"
+    },
+    {
+      "id": "r-202603-50bk",
+      "date": "2026-03-07",
+      "event": "50 Costas",
+      "distance": 50,
+      "stroke": "Costas",
+      "timeSeconds": 54.68,
+      "time": "54\"68",
+      "place": 9,
+      "aqua": 66,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": 25,
+      "sourceId": "sw-40595",
+      "status": "official"
+    },
+    {
+      "id": "r-202603-100bk",
+      "date": "2026-03-08",
+      "event": "100 Costas",
+      "distance": 100,
+      "stroke": "Costas",
+      "timeSeconds": 115.91,
+      "time": "1'55\"91",
+      "place": 10,
+      "aqua": 72,
+      "city": "Curitiba",
+      "venue": null,
+      "poolMeters": 25,
+      "sourceId": "sw-40595",
+      "status": "official"
+    },
+    {
+      "id": "r-202604-50fr",
+      "date": "2026-04-17",
+      "event": "50 Livre",
+      "distance": 50,
+      "stroke": "Livre",
+      "timeSeconds": 44.68,
+      "time": "44\"68",
+      "place": 30,
+      "aqua": 88,
+      "city": "Colombo",
+      "venue": null,
+      "poolMeters": 25,
+      "sourceId": "sw-40602",
+      "status": "official"
+    },
+    {
+      "id": "r-202604-100fr",
+      "date": "2026-04-17",
+      "event": "100 Livre",
+      "distance": 100,
+      "stroke": "Livre",
+      "timeSeconds": 105.58,
+      "time": "1'45\"58",
+      "place": 35,
+      "aqua": 76,
+      "city": "Colombo",
+      "venue": null,
+      "poolMeters": 25,
+      "sourceId": "sw-40602",
+      "status": "official"
+    },
+    {
+      "id": "r-202604-50bk",
+      "date": "2026-04-18",
+      "event": "50 Costas",
+      "distance": 50,
+      "stroke": "Costas",
+      "timeSeconds": 51.92,
+      "time": "51\"92",
+      "place": 21,
+      "aqua": 77,
+      "city": "Colombo",
+      "venue": null,
+      "poolMeters": 25,
+      "sourceId": "sw-40602",
+      "status": "official"
+    },
+    {
+      "id": "r-202604-100bk",
+      "date": "2026-04-19",
+      "event": "100 Costas",
+      "distance": 100,
+      "stroke": "Costas",
+      "timeSeconds": 115.75,
+      "time": "1'55\"75",
+      "place": 19,
+      "aqua": 72,
+      "city": "Colombo",
+      "venue": null,
+      "poolMeters": 25,
+      "sourceId": "sw-40602",
+      "status": "official"
+    }
+  ],
+  "meets": [
+    {
+      "id": "m-202609",
+      "name": "Campeonato Paranaense de Verão (Mirim/Petiz)",
+      "dateStart": "2026-09-18",
+      "dateEnd": "2026-09-20",
+      "city": "Colombo",
+      "venue": "Santa Mônica Clube de Campo",
+      "poolMeters": 50,
+      "sourceId": "sw-2026-09",
+      "entries": [
+        {
+          "date": "2026-09-18",
+          "event": "100 Livre",
+          "seedSeconds": 112.98,
+          "seed": "1'52\"98",
+          "series": 4,
+          "lane": 8,
+          "scheduled": "10:05"
+        },
+        {
+          "date": "2026-09-18",
+          "event": "50 Costas",
+          "seedSeconds": 55.9,
+          "seed": "55\"90",
+          "series": 4,
+          "lane": 1,
+          "scheduled": "17:42"
+        },
+        {
+          "date": "2026-09-19",
+          "event": "200 Livre",
+          "seedSeconds": 227.56,
+          "seed": "3'47\"56",
+          "series": 3,
+          "lane": 3,
+          "scheduled": "09:37"
+        },
+        {
+          "date": "2026-09-19",
+          "event": "50 Livre",
+          "seedSeconds": 48.9,
+          "seed": "48\"90",
+          "series": 3,
+          "lane": 6,
+          "scheduled": "16:53"
+        },
+        {
+          "date": "2026-09-20",
+          "event": "100 Costas",
+          "seedSeconds": null,
+          "seed": "NT",
+          "series": 1,
+          "lane": 5,
+          "scheduled": "11:18"
+        }
+      ]
+    }
+  ],
+  "manualPending": [],
+  "settings": {
+    "athleteRegistration": "422692",
+    "swimSystemMeetUrl": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
+    "onlyConfirmedForAnalytics": true,
+    "alerts": {
+      "m120": true,
+      "m60": true,
+      "m30": true,
+      "m20": true,
+      "m10": true,
+      "m5": true,
+      "resultPublished": true,
+      "personalBest": true
+    },
+    "pushServerUrl": ""
+  },
+  "audit": {
+    "createdAt": "2026-09-17",
+    "basis": "Somente dados oficiais encontrados no SwimSystem/SwimSystemApp nesta consolidação. Dados do histórico do chat que não foram confirmados no SwimSystem ficaram fora."
+  },
+  "pendingOfficialResults": []
+}</script>
+<script>
+const DROPBOX_APP_KEY='hgpycye1ooqazt7';
+const DROPBOX_REDIRECT=location.origin+location.pathname;
+const DBX_REFRESH='viniswim_dbx_refresh_v1', DBX_ACCESS='viniswim_dbx_access_v1', DBX_PKCE='viniswim_dbx_pkce';
+let DATA=JSON.parse(document.getElementById('seedData').textContent);
+let dropboxReady=false, dropboxRev='', saveTimer=null;
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function fmtDate(s){if(!s)return '—';const [y,m,d]=s.split('-');return `${d}/${m}/${y}`}
+function fmtTime(sec){if(sec==null||!isFinite(sec))return 'NT';sec=Number(sec);if(sec<60)return sec.toFixed(2).replace('.', '\"').replace(/(\d+)\"(\d+)/,'$1\"$2');let m=Math.floor(sec/60),s=sec-m*60;return `${m}'${s.toFixed(2).padStart(5,'0').replace('.', '\"')}`}
+function parseTime(v){v=String(v||'').trim().replace(',', '.').replace(/[”″]/g,'"').replace(/[’′]/g,"'");if(!v)return NaN;let m=0,s=0;if(v.includes("'")){let a=v.split("'");m=Number(a[0])||0;s=Number((a[1]||'').replace('"',''))||0}else if(v.includes(':')){let a=v.split(':');m=Number(a[0])||0;s=Number(a[1])||0}else{s=Number(v.replace('"',''))}return m*60+s}
+function poolLabel(v){return v===25?'25 m':v===50?'50 m':'Não confirmada'}
+function sourceById(id){return DATA.sources.find(x=>x.id===id)||{}}
+function eventList(){return [...new Set(DATA.results.map(r=>r.event))].sort((a,b)=>{let na=parseInt(a),nb=parseInt(b);return na-nb||a.localeCompare(b)})}
+function confirmed(){return DATA.results.filter(r=>r.status==='official'||r.status==='manual')}
+function bestFor(event,pool){let a=confirmed().filter(r=>r.event===event&&(pool==null||r.poolMeters===pool));return a.sort((x,y)=>x.timeSeconds-y.timeSeconds)[0]}
+function officialCount(){return DATA.results.filter(r=>r.status==='official').length}
+
+function nav(page){
+  $$('.page').forEach(x=>x.classList.toggle('active',x.id===page));
+  $$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
+  const names={dashboard:'Visão Geral',history:'Resultados',evolution:'Evolução',meets:'Campeonatos',predictions:'Expectativas',alerts:'Alertas',audit:'Auditoria',settings:'Configurações'};
+  $('#pageTitle').textContent=names[page]||'VINISWIM';
+  if(page==='evolution')setTimeout(drawChart,30);
+}
+$$('[data-page]').forEach(b=>b.onclick=()=>nav(b.dataset.page));
+
+function render(){
+  $('#officialCount').textContent=officialCount();
+  renderCards(); renderBest(); renderHistory(); renderMeets(); renderPredictions(); renderAlerts(); renderAudit(); fillFilters(); drawChart();
+  $('#setReg').value=DATA.settings?.athleteRegistration||'';
+  $('#setMeetUrl').value=DATA.settings?.swimSystemMeetUrl||'';
+  $('#setPushUrl').value=DATA.settings?.pushServerUrl||'';
+}
+function renderCards(){
+  let events=eventList(), latest=[...confirmed()].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  let poolsKnown=confirmed().filter(r=>r.poolMeters!=null).length;
+  let next=DATA.meets.filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)).sort((a,b)=>a.dateStart.localeCompare(b.dateStart))[0];
+  let cards=[
+    ['PROVAS COM HISTÓRICO',events.length,'resultados confirmados'],
+    ['RESULTADOS OFICIAIS',officialCount(),'SwimSystem'],
+    ['PISCINA CONFIRMADA',poolsKnown,`${confirmed().length-poolsKnown} aguardam conferência`],
+    ['PRÓXIMO CAMPEONATO',next?fmtDate(next.dateStart):'—',next?next.name:'Nenhum cadastrado']
+  ];
+  $('#summaryCards').innerHTML=cards.map(c=>`<div class="card"><div class="k">${c[0]}</div><div class="v">${c[1]}</div><div class="s">${c[2]}</div></div>`).join('');
+  if(next){
+    $('#nextMeet').innerHTML=`<div class="meet"><div><h4>${next.name}</h4><p>${fmtDate(next.dateStart)} a ${fmtDate(next.dateEnd)} · ${next.venue||next.city||'local não informado'} · ${poolLabel(next.poolMeters)}</p><div class="entry-grid">${(next.entries||[]).map(e=>`<div class="entry"><b>${e.event}</b><small>${fmtDate(e.date)} · ${e.scheduled||'—'}</small><div class="mono" style="font-size:20px;margin-top:7px">${e.seed||'NT'}</div><small>Série ${e.series??'—'} · Raia ${e.lane??'—'}</small></div>`).join('')}</div></div></div>`
+  } else $('#nextMeet').innerHTML='<span class="muted">Nenhum campeonato futuro cadastrado.</span>';
+}
+function renderBest(){
+  let rows=[];
+  eventList().forEach(ev=>{
+    [25,50,null].forEach(pool=>{
+      let b=pool===null?bestFor(ev):bestFor(ev,pool);
+      if(!b)return;
+      if(pool===null && (confirmed().some(r=>r.event===ev&&r.poolMeters===25)||confirmed().some(r=>r.event===ev&&r.poolMeters===50)))return;
+      rows.push(b);
+    })
+  });
+  let seen=new Set();
+  rows=rows.filter(r=>{let k=r.event+'|'+String(r.poolMeters);if(seen.has(k))return false;seen.add(k);return true});
+  $('#bestTable').innerHTML=rows.map(r=>`<tr><td>${r.event}</td><td class="mono best">${r.time}</td><td>${poolLabel(r.poolMeters)}</td><td>${fmtDate(r.date)}</td><td>${r.venue||r.city||'—'}</td></tr>`).join('');
+}
+function fillFilters(){
+  const events=eventList();
+  const f=$('#fEvent'), ce=$('#chartEvent');
+  let fv=f.value, cv=ce.value;
+  f.innerHTML='<option value="">Todas as provas</option>'+events.map(x=>`<option>${x}</option>`).join('');
+  ce.innerHTML=events.map(x=>`<option>${x}</option>`).join('');
+  if(events.includes(fv))f.value=fv;if(events.includes(cv))ce.value=cv;else ce.value=events[0]||'';
+}
+function renderHistory(){
+  let ev=$('#fEvent')?.value||'', pool=$('#fPool')?.value||'', src=$('#fSource')?.value||'';
+  let a=[...confirmed()].filter(r=>(!ev||r.event===ev)&&(!src||r.status===src)&&(!pool||(pool==='unknown'?r.poolMeters==null:String(r.poolMeters)===pool))).sort((a,b)=>b.date.localeCompare(a.date)||a.event.localeCompare(b.event));
+  $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<tr><td>${fmtDate(r.date)}</td><td>${r.event}</td><td class="mono"><b>${r.time}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${r.venue||r.city||'—'}</td><td>${s.title||r.meet||'—'}</td><td><span class="tag ${r.status}">${r.status==='official'?'OFICIAL SWIMSYSTEM':'MANUAL'}</span></td><td>${r.status==='manual'?`<button class="btn" onclick="deleteResult('${r.id}')">Excluir</button>`:''}</td></tr>`}).join('');
+}
+['fEvent','fPool','fSource'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)renderHistory()}));
+
+function renderMeets(){
+  $('#meetList').innerHTML=[...DATA.meets].sort((a,b)=>b.dateStart.localeCompare(a.dateStart)).map(m=>`<div class="meet"><div><h4>${m.name}</h4><p>${fmtDate(m.dateStart)} a ${fmtDate(m.dateEnd)} · ${m.venue||m.city||'—'} · ${poolLabel(m.poolMeters)}</p>${m.entries?.length?`<div class="entry-grid">${m.entries.map(e=>`<div class="entry"><b>${e.event}</b><small>${fmtDate(e.date)}</small><div class="mono" style="font-size:19px;margin-top:5px">${e.seed||'NT'}</div><small>S${e.series??'—'} / R${e.lane??'—'} · ${e.scheduled||'—'}</small></div>`).join('')}</div>`:''}</div><div>${m.sourceId?'<span class="tag official">OFICIAL</span>':'<span class="tag manual">MANUAL</span>'}</div></div>`).join('');
+}
+function regress(points){
+  if(points.length<2)return null;
+  let t0=new Date(points[0].date).getTime(), xs=points.map(p=>(new Date(p.date).getTime()-t0)/86400000), ys=points.map(p=>p.timeSeconds);
+  let n=xs.length,sx=xs.reduce((a,b)=>a+b,0),sy=ys.reduce((a,b)=>a+b,0),sxx=xs.reduce((a,b)=>a+b*b,0),sxy=xs.reduce((a,b,i)=>a+b*ys[i],0);
+  let den=n*sxx-sx*sx;if(!den)return null;return {a:(sy*(sxx)-sx*sxy)/den,b:(n*sxy-sx*sy)/den,t0};
+}
+function estimate(event,pool,targetDate){
+  let pts=confirmed().filter(r=>r.event===event&&(pool==null||r.poolMeters===pool)).sort((a,b)=>a.date.localeCompare(b.date));
+  let exact=pts;
+  if(exact.length<2 && pool!=null) exact=confirmed().filter(r=>r.event===event).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!exact.length)return null;
+  let recent=exact.slice(-4), best=Math.min(...recent.map(p=>p.timeSeconds)), latest=recent[recent.length-1].timeSeconds;
+  let reg=regress(recent), pred=latest;
+  if(reg){let days=(new Date(targetDate).getTime()-reg.t0)/86400000;pred=reg.a+reg.b*days}
+  // limitação de extrapolação: não deixa o modelo projetar salto superior a 5% abaixo do melhor recente
+  pred=Math.max(pred,best*0.95);
+  let spread=exact.length>=4?0.018:exact.length>=3?0.025:0.035;
+  let aggressive=Math.min(pred*(1-spread/2),best*0.995), conservative=Math.max(pred*(1+spread),latest*0.995);
+  let conf=exact.length>=4?'high':exact.length>=3?'medium':'low';
+  return {prob:pred,aggressive,conservative,conf,n:exact.length,best,latest};
+}
+function renderPredictions(){
+  let future=DATA.meets.filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)).sort((a,b)=>a.dateStart.localeCompare(b.dateStart))[0];
+  if(!future){$('#predictionList').innerHTML='<p>Cadastre um campeonato futuro.</p>';return}
+  $('#predictionList').innerHTML=(future.entries||[]).map(e=>{let est=estimate(e.event,future.poolMeters,e.date);if(!est)return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Sem histórico suficiente</small></div><div></div><div></div><div></div><div class="confidence low">BAIXA</div></div>`;return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · ${est.n} resultado(s) utilizados</small></div><div class="range"><small>Conservadora</small><b class="mono">${fmtTime(est.conservative)}</b></div><div class="range"><small>Provável</small><b class="mono">${fmtTime(est.prob)}</b></div><div class="range"><small>Agressiva</small><b class="mono">${fmtTime(est.aggressive)}</b></div><div class="confidence ${est.conf}">${est.conf==='high'?'ALTA':est.conf==='medium'?'MÉDIA':'BAIXA'}</div></div>`}).join('');
+}
+function renderAudit(){
+  let official=DATA.results.filter(r=>r.status==='official').length, manual=DATA.results.filter(r=>r.status==='manual').length, unknownPool=DATA.results.filter(r=>r.poolMeters==null).length;
+  $('#auditSummary').innerHTML=`<b>${official}</b> resultados oficiais SwimSystem · <b>${manual}</b> manuais confirmados · <b>${unknownPool}</b> registros oficiais com piscina ainda não confirmada na fonte consultada. Esses campos permanecem vazios até conferência.`;
+  $('#sourceList').innerHTML=DATA.sources.map(s=>`<div class="audit-row"><div><span class="tag official">OFICIAL</span></div><div><b>${s.title}</b><div style="color:var(--muted);margin-top:3px">${s.city||'—'} · ${fmtDate(s.dateStart)}${s.dateEnd&&s.dateEnd!==s.dateStart?' a '+fmtDate(s.dateEnd):''} · ${poolLabel(s.poolMeters)}</div><div style="color:var(--muted);margin-top:3px">${s.note||''}</div></div><div><a class="source-link" href="${s.url}" target="_blank">Abrir fonte ↗</a></div></div>`).join('');
+}
+function drawChart(){
+  let c=$('#chart'); if(!c||!c.offsetWidth)return;
+  let ev=$('#chartEvent')?.value||eventList()[0], p=$('#chartPool')?.value||'';
+  let pts=confirmed().filter(r=>r.event===ev&&(!p||(p==='unknown'?r.poolMeters==null:String(r.poolMeters)===p))).sort((a,b)=>a.date.localeCompare(b.date));
+  const dpr=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;c.width=w*dpr;c.height=h*dpr;let ctx=c.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
+  if(!pts.length){ctx.fillStyle='#6c7783';ctx.fillText('Sem dados para este filtro.',20,30);return}
+  let pad={l:58,r:20,t:25,b:55}, min=Math.min(...pts.map(x=>x.timeSeconds)),max=Math.max(...pts.map(x=>x.timeSeconds)); if(min===max){min*=.97;max*=1.03}else{let m=(max-min)*.18;min-=m;max+=m}
+  let x=i=>pad.l+(w-pad.l-pad.r)*(pts.length===1?.5:i/(pts.length-1)), y=v=>pad.t+(h-pad.t-pad.b)*(v-min)/(max-min); // menor tempo mais alto
+  ctx.strokeStyle='#dfe5ea';ctx.lineWidth=1;ctx.font='11px system-ui';ctx.fillStyle='#6c7783';
+  for(let i=0;i<5;i++){let yy=pad.t+(h-pad.t-pad.b)*i/4;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();let val=min+(max-min)*i/4;ctx.fillText(fmtTime(val),6,yy+4)}
+  ctx.strokeStyle='#2d78a5';ctx.lineWidth=2.5;ctx.beginPath();pts.forEach((p,i)=>{let xx=x(i),yy=y(p.timeSeconds);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();
+  pts.forEach((p,i)=>{let xx=x(i),yy=y(p.timeSeconds);ctx.fillStyle='#0d1724';ctx.beginPath();ctx.arc(xx,yy,4.5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#12202d';ctx.textAlign='center';ctx.fillText(p.time,xx,yy-10);ctx.fillStyle='#6c7783';ctx.fillText(p.date.slice(5,7)+'/'+p.date.slice(2,4),xx,h-25)});
+  ctx.textAlign='left';
+  let first=pts[0],last=pts[pts.length-1],delta=last.timeSeconds-first.timeSeconds,pct=first.timeSeconds?(-delta/first.timeSeconds*100):0,best=Math.min(...pts.map(p=>p.timeSeconds));
+  $('#evolutionStats').innerHTML=`<b>${ev}</b> · ${pts.length} resultado(s) · primeiro ${first.time} → último ${last.time} · ganho acumulado <b>${delta<0?(-delta).toFixed(2)+' s':'—'}</b>${delta<0?` · melhora <b>${pct.toFixed(1)}%</b>`:''} · melhor <b>${fmtTime(best)}</b>.`;
+}
+document.addEventListener('change',e=>{if(['chartEvent','chartPool'].includes(e.target.id))drawChart()});window.addEventListener('resize',()=>setTimeout(drawChart,50));
+
+function openResultModal(){resultModal.showModal()}
+function openMeetModal(){meetModal.showModal()}
+function saveResult(){
+  let sec=parseTime($('#rTime').value); if(!$('#rDate').value||!$('#rEvent').value||!isFinite(sec)){alert('Informe data, prova e tempo válidos.');return}
+  let id='manual-'+Date.now(), status=$('#rStatus').value;
+  DATA.results.push({id,date:$('#rDate').value,event:$('#rEvent').value.trim(),distance:parseInt($('#rEvent').value)||null,stroke:$('#rEvent').value.replace(/^\d+\s*/,'').trim(),timeSeconds:sec,time:fmtTime(sec),place:null,aqua:null,city:$('#rCity').value.trim()||null,venue:$('#rVenue').value.trim()||null,poolMeters:$('#rPool').value?Number($('#rPool').value):null,sourceId:null,meet:$('#rMeet').value.trim()||null,status});
+  resultModal.close();render();queueSave();
+}
+function deleteResult(id){if(confirm('Excluir este resultado manual?')){DATA.results=DATA.results.filter(r=>r.id!==id);render();queueSave()}}
+function saveMeet(){
+  if(!$('#mName').value||!$('#mStart').value){alert('Informe nome e data inicial.');return}
+  DATA.meets.push({id:'manual-meet-'+Date.now(),name:$('#mName').value.trim(),dateStart:$('#mStart').value,dateEnd:$('#mEnd').value||$('#mStart').value,city:$('#mCity').value.trim()||null,venue:$('#mVenue').value.trim()||null,poolMeters:$('#mPool').value?Number($('#mPool').value):null,sourceId:null,sourceUrl:$('#mUrl').value.trim()||null,entries:[]});
+  meetModal.close();render();queueSave();
+}
+function saveSettings(){DATA.settings=DATA.settings||{};DATA.settings.athleteRegistration=$('#setReg').value.trim();DATA.settings.swimSystemMeetUrl=$('#setMeetUrl').value.trim();DATA.settings.pushServerUrl=$('#setPushUrl').value.trim();queueSave(true);renderAlerts();alert('Configurações salvas.')}
+function exportJson(){let b=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='viniswim-dados.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+
+
+const ALERT_DEFS=[
+  {key:'m120',label:'2 horas antes',minutes:120},
+  {key:'m60',label:'1 hora antes',minutes:60},
+  {key:'m30',label:'30 minutos antes',minutes:30},
+  {key:'m20',label:'20 minutos antes',minutes:20},
+  {key:'m10',label:'10 minutos antes',minutes:10},
+  {key:'m5',label:'5 minutos antes',minutes:5}
+];
+function ensureAlertSettings(){
+  DATA.settings=DATA.settings||{};
+  if(!DATA.settings.alerts)DATA.settings.alerts={m120:true,m60:true,m30:true,m20:true,m10:true,m5:true,resultPublished:true,personalBest:true};
+  for(const a of ALERT_DEFS) if(DATA.settings.alerts[a.key]===undefined) DATA.settings.alerts[a.key]=true;
+  if(DATA.settings.alerts.resultPublished===undefined)DATA.settings.alerts.resultPublished=true;
+  if(DATA.settings.alerts.personalBest===undefined)DATA.settings.alerts.personalBest=true;
+  DATA.pendingOfficialResults=DATA.pendingOfficialResults||[];
+}
+function alertLabel(key){
+  let a=ALERT_DEFS.find(x=>x.key===key);return a?a.label:key;
+}
+function renderAlerts(){
+  ensureAlertSettings();
+  if(!$('#alertOptions'))return;
+  const opts=[
+    ...ALERT_DEFS.map(a=>({key:a.key,title:a.label,desc:`Avisar ${a.label.toLowerCase()} do horário previsto da prova.`})),
+    {key:'resultPublished',title:'Resultado publicado',desc:'Avisar assim que o resultado oficial for encontrado no SwimSystem.'},
+    {key:'personalBest',title:'Recorde pessoal',desc:'Destacar quando o resultado confirmado superar a melhor marca da mesma piscina.'}
+  ];
+  $('#alertOptions').innerHTML=opts.map(o=>`<div class="alert-option"><div><b>${o.title}</b><small>${o.desc}</small></div><label class="switch"><input type="checkbox" ${DATA.settings.alerts[o.key]?'checked':''} onchange="toggleAlert('${o.key}',this.checked)"><span class="slider"></span></label></div>`).join('');
+  updateNotificationStatus();
+  renderNextAlerts();
+  renderPendingOfficialResults();
+}
+function toggleAlert(key,val){
+  ensureAlertSettings();DATA.settings.alerts[key]=!!val;queueSave();renderNextAlerts();syncPushSubscription().catch(()=>{});
+}
+async function registerSW(){
+  if(!('serviceWorker' in navigator))return null;
+  try{return await navigator.serviceWorker.register('./service-worker.js')}catch(e){console.warn('SW',e);return null}
+}
+async function updateNotificationStatus(){
+  if(!$('#notifPermission'))return;
+  $('#notifPermission').textContent=('Notification' in window)?Notification.permission:'não suportado';
+  let reg=null;
+  try{reg=await navigator.serviceWorker?.getRegistration()}catch(e){}
+  $('#swStatus').textContent=reg?'ativo':'não instalado';
+  const pushUrl=DATA.settings?.pushServerUrl||'';
+  $('#pushStatus').textContent=pushUrl?'configurado':'aguardando servidor';
+  if($('#enableNotificationsBtn'))$('#enableNotificationsBtn').textContent=Notification.permission==='granted'?'Notificações ativas':'Ativar notificações neste aparelho';
+}
+function getFutureEntries(){
+  let out=[];
+  (DATA.meets||[]).forEach(m=>(m.entries||[]).forEach(e=>{
+    if(!e.date||!e.scheduled)return;
+    let dt=new Date(`${e.date}T${e.scheduled}:00`);
+    if(isNaN(dt)||dt.getTime()<Date.now()-3600000)return;
+    out.push({meet:m,entry:e,date:dt});
+  }));
+  return out.sort((a,b)=>a.date-b.date);
+}
+function renderNextAlerts(){
+  if(!$('#nextAlerts'))return;
+  let all=[];
+  for(const x of getFutureEntries()){
+    for(const a of ALERT_DEFS){
+      if(!DATA.settings.alerts[a.key])continue;
+      let when=new Date(x.date.getTime()-a.minutes*60000);
+      if(when.getTime()<Date.now())continue;
+      all.push({when,x,a});
+    }
+  }
+  all.sort((a,b)=>a.when-b.when);all=all.slice(0,12);
+  $('#nextAlerts').innerHTML=all.length?all.map(z=>`<div class="timeline-row"><div class="mono">${z.when.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div><div><b>${z.x.entry.event}</b><small style="display:block;color:var(--muted)">${z.x.meet.name} · prova prevista ${z.x.entry.scheduled}</small></div><div class="right"><span class="tag official">${z.a.label.toUpperCase()}</span></div></div>`).join(''):'<span style="color:var(--muted)">Nenhum aviso futuro calculável com os horários atualmente cadastrados.</span>';
+}
+async function enableNotifications(){
+  ensureAlertSettings();
+  if(!('Notification' in window)){alert('Este navegador não suporta notificações web.');return}
+  let perm=Notification.permission;
+  if(perm!=='granted')perm=await Notification.requestPermission();
+  if(perm!=='granted'){updateNotificationStatus();return}
+  await registerSW();
+  await syncPushSubscription();
+  updateNotificationStatus();
+  testNotification();
+}
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4),base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+async function syncPushSubscription(){
+  ensureAlertSettings();
+  if(Notification.permission!=='granted'||!('serviceWorker' in navigator))return;
+  const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
+  if(!base)return;
+  const reg=await navigator.serviceWorker.ready;
+  let sub=await reg.pushManager.getSubscription();
+  if(!sub){
+    let cfg=await fetch(base+'/config').then(r=>{if(!r.ok)throw new Error('Servidor Push não respondeu.');return r.json()});
+    if(!cfg.publicKey)throw new Error('Servidor Push sem chave pública.');
+    sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(cfg.publicKey)});
+  }
+  let payload={
+    subscription:sub.toJSON(),
+    athlete:{name:DATA.athlete?.name,registration:DATA.settings?.athleteRegistration||DATA.athlete?.registration},
+    alerts:DATA.settings.alerts,
+    meets:(DATA.meets||[]).filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)),
+    swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||''
+  };
+  await fetch(base+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(r=>{if(!r.ok)throw new Error('Não foi possível registrar o aparelho no servidor Push.')});
+  if($('#pushStatus'))$('#pushStatus').textContent='ativo';
+}
+async function testNotification(){
+  if(Notification.permission!=='granted'){alert('Ative as notificações primeiro.');return}
+  const reg=await navigator.serviceWorker.ready;
+  await reg.showNotification('VINISWIM — teste de alerta',{body:'Notificações ativas neste aparelho.',icon:'./icon-192.svg',badge:'./icon-192.svg',tag:'viniswim-test',data:{url:'./#alerts'}});
+}
+function renderPendingOfficialResults(){
+  if(!$('#pendingOfficialResults'))return;
+  let a=DATA.pendingOfficialResults||[];
+  $('#pendingOfficialResults').innerHTML=a.length?a.map((r,i)=>`<div class="card" style="margin-bottom:10px"><div class="k">RESULTADO ENCONTRADO · AGUARDANDO SUA CONFIRMAÇÃO</div><div class="v mono" style="font-size:23px">${r.event||'Prova'} · ${r.time||fmtTime(r.timeSeconds)}</div><div class="s">${r.meet||''} ${r.publishedAt?'· publicado '+new Date(r.publishedAt).toLocaleString('pt-BR'):''}</div><div style="margin-top:10px;display:flex;gap:8px"><button class="btn primary" onclick="confirmOfficialResult(${i})">Confirmar e importar</button><button class="btn" onclick="discardOfficialResult(${i})">Descartar</button></div></div>`).join(''):'<span style="color:var(--muted)">Nenhum resultado oficial aguardando confirmação.</span>';
+}
+function confirmOfficialResult(i){
+  let r=DATA.pendingOfficialResults[i];if(!r)return;
+  r.id=r.id||'official-'+Date.now();r.status='official';
+  DATA.results.push(r);DATA.pendingOfficialResults.splice(i,1);render();queueSave(true);
+}
+function discardOfficialResult(i){DATA.pendingOfficialResults.splice(i,1);renderPendingOfficialResults();queueSave()}
+function checkForegroundReminders(){
+  if(Notification.permission!=='granted')return;
+  ensureAlertSettings();
+  let sent=JSON.parse(localStorage.getItem('viniswim_alerts_sent_v1')||'{}'),now=Date.now();
+  for(const x of getFutureEntries()){
+    for(const a of ALERT_DEFS){
+      if(!DATA.settings.alerts[a.key])continue;
+      let target=x.date.getTime()-a.minutes*60000,key=`${x.meet.id}|${x.entry.date}|${x.entry.event}|${a.key}`;
+      if(!sent[key] && now>=target && now<target+75000){
+        navigator.serviceWorker.ready.then(reg=>reg.showNotification(`VINISWIM — ${x.entry.event} em ${a.label.replace(' antes','')}`,{
+          body:`${x.entry.event} · Série ${x.entry.series??'—'} · Raia ${x.entry.lane??'—'} · ${x.entry.scheduled}`,
+          icon:'./icon-192.svg',badge:'./icon-192.svg',tag:key,data:{url:'./#meets'}
+        }));
+        sent[key]=now;
+      }
+    }
+  }
+  localStorage.setItem('viniswim_alerts_sent_v1',JSON.stringify(sent));
+}
+setInterval(checkForegroundReminders,30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkForegroundReminders()});
+
+function dbxB64(bytes){return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+async function dbxSha(s){return new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))}
+function verifier(){let b=new Uint8Array(64);crypto.getRandomValues(b);return dbxB64(b)}
+async function connectDropbox(){
+  let v=verifier();sessionStorage.setItem(DBX_PKCE,v);let challenge=dbxB64(await dbxSha(v));
+  let u=new URL('https://www.dropbox.com/oauth2/authorize');u.searchParams.set('client_id',DROPBOX_APP_KEY);u.searchParams.set('response_type','code');u.searchParams.set('redirect_uri',DROPBOX_REDIRECT);u.searchParams.set('code_challenge',challenge);u.searchParams.set('code_challenge_method','S256');u.searchParams.set('token_access_type','offline');u.searchParams.set('scope','files.content.read files.content.write');location.href=u.toString();
+}
+async function exchange(code){
+  let v=sessionStorage.getItem(DBX_PKCE);if(!v)throw new Error('Autorização expirada.');
+  let body=new URLSearchParams({code,grant_type:'authorization_code',client_id:DROPBOX_APP_KEY,redirect_uri:DROPBOX_REDIRECT,code_verifier:v});
+  let r=await fetch('https://api.dropboxapi.com/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body}),d=await r.json();if(!r.ok)throw new Error(d.error_description||'Falha Dropbox');
+  sessionStorage.setItem(DBX_ACCESS,d.access_token);if(d.refresh_token)localStorage.setItem(DBX_REFRESH,d.refresh_token);sessionStorage.removeItem(DBX_PKCE);history.replaceState({},document.title,DROPBOX_REDIRECT);return d.access_token;
+}
+async function token(){
+  let a=sessionStorage.getItem(DBX_ACCESS);if(a)return a;let rfr=localStorage.getItem(DBX_REFRESH);if(!rfr)return '';
+  let body=new URLSearchParams({refresh_token:rfr,grant_type:'refresh_token',client_id:DROPBOX_APP_KEY}),r=await fetch('https://api.dropboxapi.com/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body}),d=await r.json();if(!r.ok){localStorage.removeItem(DBX_REFRESH);return ''}sessionStorage.setItem(DBX_ACCESS,d.access_token);return d.access_token;
+}
+function dataFile(){return ($('#setFile')?.value||'/viniswim-dados.json').trim()||'/viniswim-dados.json'}
+async function dbxDownload(){
+  let t=await token();if(!t)return null;
+  let r=await fetch('https://content.dropboxapi.com/2/files/download',{method:'POST',headers:{Authorization:'Bearer '+t,'Dropbox-API-Arg':JSON.stringify({path:dataFile()})}});
+  if(r.status===409)return null;if(!r.ok)throw new Error('Falha ao baixar base do Dropbox.');
+  let api=JSON.parse(r.headers.get('Dropbox-API-Result')||'{}');dropboxRev=api.rev||'';return await r.json();
+}
+async function dbxUpload(){
+  let t=await token();if(!t)return;
+  $('#syncPill').textContent='Dropbox · salvando';$('#syncPill').className='pill';
+  let arg={path:dataFile(),mode:dropboxRev?{'.tag':'update',update:dropboxRev}:'overwrite',autorename:false,mute:true},r=await fetch('https://content.dropboxapi.com/2/files/upload',{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/octet-stream','Dropbox-API-Arg':JSON.stringify(arg)},body:JSON.stringify(DATA)});
+  let d=await r.json();if(!r.ok)throw new Error(d.error_summary||'Falha ao salvar.');dropboxRev=d.rev||dropboxRev;$('#syncPill').textContent='Dropbox · sincronizado';$('#syncPill').className='pill ok';
+}
+function queueSave(now=false){clearTimeout(saveTimer);if(!dropboxReady)return;if(now)dbxUpload().catch(e=>alert(e.message));else saveTimer=setTimeout(()=>dbxUpload().catch(e=>alert(e.message)),600)}
+async function bootstrapDropbox(){
+  try{
+    let q=new URLSearchParams(location.search);if(q.get('code'))await exchange(q.get('code'));
+    let t=await token();if(!t)return;
+    let remote=await dbxDownload();if(remote&&remote.app==='VINISWIM')DATA=remote;else{dropboxReady=true;await dbxUpload()}
+    dropboxReady=true;$('#syncPill').textContent='Dropbox · sincronizado';$('#syncPill').className='pill ok';$('#syncBtn').textContent='Sincronizar';render();
+  }catch(e){$('#syncPill').textContent='Dropbox · atenção';alert(e.message)}
+}
+function logoutDropbox(){sessionStorage.removeItem(DBX_ACCESS);localStorage.removeItem(DBX_REFRESH);dropboxReady=false;$('#syncPill').textContent='Dropbox · não conectado';$('#syncPill').className='pill';$('#syncBtn').textContent='Conectar'}
+$('#syncBtn').onclick=async()=>{if(dropboxReady){try{let d=await dbxDownload();if(d&&d.app==='VINISWIM'){DATA=d;render();$('#syncPill').textContent='Dropbox · sincronizado'}}catch(e){alert(e.message)}}else connectDropbox()}
+
+ensureAlertSettings();render();registerSW().then(()=>updateNotificationStatus());bootstrapDropbox();checkForegroundReminders();
+</script>
+</body>
+</html>
