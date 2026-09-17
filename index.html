@@ -3,25 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0d1724">
-<link rel="manifest" href="manifest.webmanifest?v=14">
+<meta name="theme-color" content="#0e2530">
+<link rel="manifest" href="manifest.webmanifest?v=15">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
 <title>VINISWIM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="viniswim-logo.svg?v=15">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=15">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=15">
 <style>
 :root{
-  --bg:#f4f6f8;--panel:#fff;--ink:#12202d;--muted:#6c7783;--line:#dfe5ea;
-  --nav:#0d1724;--nav2:#132638;--accent:#2d78a5;--good:#237a57;--warn:#9c6715;--bad:#a13d3d;
-  --radius:14px;--shadow:0 8px 30px rgba(20,36,52,.08);
+  --bg:oklch(97.5% 0.006 240);--panel:oklch(99% 0.002 240);--ink:oklch(23% 0.025 245);--muted:oklch(52% 0.02 245);--line:oklch(90% 0.012 240);
+  --nav:oklch(24% 0.05 235);--nav2:oklch(17% 0.04 240);--accent:oklch(64% 0.12 195);--accent2:oklch(58% 0.14 255);
+  --good:oklch(56% 0.12 155);--warn:oklch(68% 0.14 70);--bad:oklch(58% 0.18 25);
+  --radius:16px;--shadow:0 10px 32px oklch(30% 0.05 240 / 10%);
 }
-*{box-sizing:border-box} html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg)}
+h1,h2,h3,h4,.brand strong,.auth-brand strong,.hero h2,.athlete-main h2,.card .v,.hero-stat b{font-family:'Space Grotesk',Inter,sans-serif;letter-spacing:-.01em}
+*{box-sizing:border-box} html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:radial-gradient(1100px circle at 8% -8%,oklch(90% 0.05 195 / 35%),transparent 60%),var(--bg)}
 button,input,select{font:inherit}.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
-.sidebar{background:linear-gradient(180deg,var(--nav),#0a1420);color:#fff;padding:20px 16px;position:sticky;top:0;height:100vh}
-.brand{display:flex;align-items:center;gap:12px;padding:5px 8px 24px}.mark{width:42px;height:42px;border-radius:12px;background:#fff;color:var(--nav);display:grid;place-items:center;font-weight:900;letter-spacing:-1px}.brand strong{font-size:20px;letter-spacing:.08em}.brand small{display:block;color:#9fb0bd;margin-top:2px}
+.sidebar{background:linear-gradient(180deg,var(--nav),var(--nav2));color:#fff;padding:20px 16px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:12px;padding:5px 8px 24px}.mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px oklch(50% 0.1 220 / 30%)}.brand strong{font-size:19px;letter-spacing:.06em}.brand small{display:block;color:#9fb0bd;margin-top:2px}
 .nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#becbd5;text-align:left;padding:12px 13px;border-radius:10px;cursor:pointer}.nav button.active,.nav button:hover{background:var(--nav2);color:#fff}.sidebar-foot{position:absolute;bottom:18px;left:16px;right:16px;font-size:12px;color:#80919f}
-main{min-width:0}.topbar{height:70px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:10}.topbar h1{font-size:18px;margin:0}.sync{display:flex;gap:8px;align-items:center}.pill{padding:7px 10px;border-radius:999px;background:#eef3f6;color:#4b5a67;font-size:12px}.pill.ok{background:#e8f5ef;color:var(--good)}.btn{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:9px;cursor:pointer}.btn.primary{background:var(--nav);color:#fff;border-color:var(--nav)}.btn.danger{color:var(--bad)}.content{padding:24px;max-width:1500px;margin:auto}
-.page{display:none}.page.active{display:block}.hero{background:linear-gradient(135deg,#0d1724,#17354c);color:white;padding:24px;border-radius:18px;display:grid;grid-template-columns:1.5fr .7fr;gap:24px;margin-bottom:20px}.hero h2{font-size:27px;margin:0 0 7px}.hero p{margin:0;color:#b7c5cf}.hero-stat{align-self:center;text-align:right}.hero-stat b{font-size:38px}.hero-stat span{display:block;color:#9fb1bf;font-size:12px}
+main{min-width:0}.topbar{height:70px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:10}.topbar h1{font-size:18px;margin:0}.sync{display:flex;gap:8px;align-items:center}.pill{padding:7px 10px;border-radius:999px;background:#eef3f6;color:#4b5a67;font-size:12px}.pill.ok{background:#e8f5ef;color:var(--good)}.btn{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:9px;cursor:pointer}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}.btn.danger{color:var(--bad)}.content{padding:24px;max-width:1500px;margin:auto}
+.page{display:none}.page.active{display:block}.hero{background:linear-gradient(135deg,var(--nav) 0%,var(--accent2) 100%);color:white;padding:24px;border-radius:18px;display:grid;grid-template-columns:1.5fr .7fr;gap:24px;margin-bottom:20px}.hero h2{font-size:27px;margin:0 0 7px}.hero p{margin:0;color:#b7c5cf}.hero-stat{align-self:center;text-align:right}.hero-stat b{font-size:38px}.hero-stat span{display:block;color:#9fb1bf;font-size:12px}
 .grid{display:grid;gap:16px}.grid.cards{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow)}.card .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}.card .v{font-size:28px;font-weight:750;margin-top:7px}.card .s{font-size:12px;color:var(--muted);margin-top:5px}.section{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.section h3{margin:0;font-size:16px}.filters{display:flex;flex-wrap:wrap;gap:8px}.filters select,.filters input,.form input,.form select{border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff}
 table{border-collapse:collapse;width:100%}th,td{padding:10px 9px;border-bottom:1px solid #edf0f2;text-align:left;font-size:13px}th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#65727d}.mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.tag{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:700}.tag.official{background:#e8f5ef;color:var(--good)}.tag.manual{background:#fff3dd;color:var(--warn)}.tag.unknown{background:#f1f3f5;color:#66717b}.best{font-weight:800;color:var(--good)}
 .chart-wrap{height:360px;position:relative}.chart-wrap canvas{width:100%;height:100%}.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:12px}.legend span:before{content:"";display:inline-block;width:18px;height:3px;background:currentColor;margin-right:6px;vertical-align:middle}
@@ -153,7 +161,7 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
 
 /* VINISWIM V4 — hero global, foto, idade/categoria e evolução multi-provas */
 .athlete-hero{
-  background:linear-gradient(135deg,#0d1724,#17354c);
+  background:linear-gradient(135deg,var(--nav) 0%,var(--accent2) 100%);
   color:#fff;border-radius:18px;padding:18px 22px;margin-bottom:18px;
   display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center
 }
@@ -252,10 +260,10 @@ html{scrollbar-gutter:stable}
 }
 .auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
 .auth-mark{
-  width:48px;height:48px;border-radius:13px;background:var(--nav);color:#fff;
-  display:grid;place-items:center;font-weight:900;letter-spacing:-1px
+  width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
+  display:grid;place-items:center;box-shadow:0 4px 14px oklch(50% 0.1 220 / 30%)
 }
-.auth-brand strong{display:block;font-size:20px;letter-spacing:.08em}
+.auth-brand strong{display:block;font-size:19px;letter-spacing:.06em}
 .auth-brand span{display:block;font-size:11px;color:var(--muted);margin-top:2px}
 .auth-card h2{margin:0 0 7px;font-size:22px}
 .auth-sub{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.45}
@@ -394,11 +402,12 @@ body.auth-locked{overflow:hidden}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="viniswimLogo" viewBox="0 0 64 64"><path d="M16 15 L32 39 L48 15" stroke="currentColor" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 48 Q22 42 32 48 T52 48" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round" opacity=".9"/></symbol></svg>
 
 <div class="auth-gate" id="authGate" hidden>
   <div class="auth-card">
     <div class="auth-brand">
-      <div class="auth-mark">VS</div>
+      <div class="auth-mark"><svg width="26" height="26" viewBox="0 0 64 64"><use href="#viniswimLogo"/></svg></div>
       <div><strong>VINISWIM</strong><span>performance tracker</span></div>
     </div>
     <h2 id="authTitle">Entrar</h2>
@@ -422,7 +431,7 @@ body.auth-locked{overflow:hidden}
 
 <div class="app">
   <aside class="sidebar">
-    <div class="brand"><div class="mark">VS</div><div><strong>VINISWIM</strong><small>performance tracker</small></div></div>
+    <div class="brand"><div class="mark"><svg width="24" height="24" viewBox="0 0 64 64"><use href="#viniswimLogo"/></svg></div><div><strong>VINISWIM</strong><small>performance tracker</small></div></div>
     <div class="nav">
       <button data-page="dashboard" class="active">Visão Geral</button>
       <button data-page="history">Resultados</button>
@@ -445,7 +454,7 @@ body.auth-locked{overflow:hidden}
         <button type="button" id="actionLogout" class="danger">Sair</button>
       </div>
     </div>
-    <div class="sidebar-foot">VINISWIM V14 · Dropbox + GitHub Pages</div>
+    <div class="sidebar-foot">VINISWIM V15 · Dropbox + GitHub Pages</div>
   </aside>
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
   <main>
@@ -1098,7 +1107,7 @@ function toggleAlert(key,val){
 }
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js?v=14')}catch(e){console.warn('SW',e);return null}
+  try{return await navigator.serviceWorker.register('./service-worker.js?v=15')}catch(e){console.warn('SW',e);return null}
 }
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
