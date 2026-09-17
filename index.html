@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e2530">
-<link rel="manifest" href="manifest.webmanifest?v=20">
+<link rel="manifest" href="manifest.webmanifest?v=21">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
@@ -1031,6 +1031,7 @@ async function handlePhotoUpload(file){
   const dataUrl=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)});
   DATA.settings=DATA.settings||{};
   DATA.settings.photoDataUrl=dataUrl;
+  queueSave();
   
   $('#photoPreview').src=dataUrl;
   renderAthleteHero();
@@ -1303,7 +1304,7 @@ function saveSettings(){
   collectSettingsFromForm();
   renderAthleteHero();
   renderAlerts();
-  queueSave(true);
+  queueSave();
 }
 function exportJson(){let b=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='viniswim-dados.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
 
@@ -1343,9 +1344,18 @@ function renderAlerts(){
 function toggleAlert(key,val){
   ensureAlertSettings();DATA.settings.alerts[key]=!!val;queueSave();renderNextAlerts();syncPushSubscription().catch(()=>{});
 }
+async function clearLegacyAppCaches(){
+  try{
+    if('caches' in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.filter(k=>k!=='viniswim-v21').map(k=>caches.delete(k)));
+    }
+  }catch(e){console.warn('Cache cleanup',e)}
+}
+
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js?v=20')}catch(e){console.warn('SW',e);return null}
+  try{return await navigator.serviceWorker.register('./service-worker.js?v=21',{updateViaCache:'none'})}catch(e){console.warn('SW',e);return null}
 }
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
@@ -1718,7 +1728,6 @@ async function dbxUpload(){
   const t=await token();
   if(!t)throw new Error('Dropbox não conectado.');
   setDropboxStatus('Dropbox · salvando');
-  const body=JSON.stringify(DATA,null,2);
   const r=await fetch('https://content.dropboxapi.com/2/files/upload',{
     method:'POST',
     headers:{
@@ -1726,7 +1735,7 @@ async function dbxUpload(){
       'Dropbox-API-Arg':JSON.stringify({path:dataFile(),mode:'overwrite',autorename:false,mute:true}),
       'Content-Type':'application/octet-stream'
     },
-    body
+    body:JSON.stringify(DATA,null,2)
   });
   if(!r.ok){
     let detail='';
@@ -1737,11 +1746,8 @@ async function dbxUpload(){
   setDropboxStatus('Dropbox · sincronizado','ok');
   return true;
 }
-function queueSave(now=false){
-  clearTimeout(saveTimer);
-  if(!dropboxReady)return;
-  if(now)dbxUpload().catch(e=>alert(e.message));
-  else saveTimer=setTimeout(()=>dbxUpload().catch(e=>alert(e.message)),600);
+function queueSave(){
+  if(dropboxReady)setDropboxStatus('Dropbox · alterações não salvas');
 }
 
 function setDropboxStatus(text,state=''){
