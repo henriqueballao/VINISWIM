@@ -1298,7 +1298,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='30';
+const VINISWIM_BUILD='31';
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
 const DBX_REFRESH='viniswim_dbx_refresh_v1', DBX_ACCESS='viniswim_dbx_access_v1', DBX_PKCE='viniswim_dbx_pkce';
@@ -1308,7 +1308,30 @@ let dropboxReady=false, dropboxRev='', saveTimer=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 function fmtDate(s){if(!s)return '—';const [y,m,d]=s.split('-');return `${d}/${m}/${y}`}
 function fmtTime(sec){if(sec==null||!isFinite(sec))return 'NT';sec=Number(sec);if(sec<60)return sec.toFixed(2).replace('.', '\"').replace(/(\d+)\"(\d+)/,'$1\"$2');let m=Math.floor(sec/60),s=sec-m*60;return `${m}'${s.toFixed(2).padStart(5,'0').replace('.', '\"')}`}
-function parseTime(v){v=String(v||'').trim().replace(',', '.').replace(/[”″]/g,'"').replace(/[’′]/g,"'");if(!v)return NaN;let m=0,s=0;if(v.includes("'")){let a=v.split("'");m=Number(a[0])||0;s=Number((a[1]||'').replace('"',''))||0}else if(v.includes(':')){let a=v.split(':');m=Number(a[0])||0;s=Number(a[1])||0}else{s=Number(v.replace('"',''))}return m*60+s}
+function parseTime(v){
+  v=String(v||'').trim().replace(',', '.').replace(/[”″]/g,'"').replace(/[’′]/g,"'");
+  if(!v)return NaN;
+
+  // 1'52"98  -> 112.98 s
+  let m=v.match(/^(\d+)'(\d{1,2})"(\d{1,2})$/);
+  if(m)return Number(m[1])*60+Number(m[2])+Number(m[3])/100;
+
+  // 1'52" / 1'52.98 / 1:52.98
+  m=v.match(/^(\d+)'(\d{1,2})(?:"|\.)(\d{1,2})?$/);
+  if(m)return Number(m[1])*60+Number(m[2])+(m[3]?Number(m[3])/100:0);
+
+  m=v.match(/^(\d+):(\d{1,2})(?:\.(\d{1,2}))?$/);
+  if(m)return Number(m[1])*60+Number(m[2])+(m[3]?Number(m[3])/100:0);
+
+  // 44"68 / 44.68
+  m=v.match(/^(\d{1,3})"(\d{1,2})$/);
+  if(m)return Number(m[1])+Number(m[2])/100;
+
+  m=v.match(/^(\d{1,3})(?:\.(\d{1,2}))?$/);
+  if(m)return Number(m[1])+(m[2]?Number(m[2])/100:0);
+
+  return NaN;
+}
 function poolLabel(v){return v===25?'25 m':v===50?'50 m':'Não confirmada'}
 function canonicalVenue(r={}){
   const city=String(r.city||'').trim().toLowerCase();
