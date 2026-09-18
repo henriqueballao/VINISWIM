@@ -1288,7 +1288,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='28';
+const VINISWIM_BUILD='29';
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
 const DBX_REFRESH='viniswim_dbx_refresh_v1', DBX_ACCESS='viniswim_dbx_access_v1', DBX_PKCE='viniswim_dbx_pkce';
@@ -1905,6 +1905,60 @@ async function fetchJsonWithTimeout(url,options={},timeoutMs=25000){
   }
 }
 
+async function applyIncomingSwimResults(base,registration,incoming,{manual=false}={}){
+  if(!Array.isArray(incoming)||!incoming.length)return {changed:false,count:0};
+
+  const snapshot=JSON.stringify(DATA);
+  const ack=[];
+  let changed=false, imported=0, updated=0;
+
+  for(const x of incoming){
+    const local=normalizeServerResult(x);
+    const slot=swimResultSlotKey(local);
+    let existing=(DATA.results||[]).find(y=>swimResultSlotKey(y)===slot && y.status!=='manual');
+
+    if(existing){
+      const before=JSON.stringify(existing);
+      Object.assign(existing,local,{id:existing.id||local.id});
+      if(before!==JSON.stringify(existing)){changed=true;updated++}
+    }else{
+      DATA.results.push(local);
+      changed=true;
+      imported++;
+    }
+    if(x._rid)ack.push(x._rid);
+  }
+
+  render();
+  renderLastSwimSync();
+
+  if(dropboxReady){
+    try{
+      await dbxUpload();
+    }catch(e){
+      DATA=JSON.parse(snapshot);
+      render();
+      renderLastSwimSync();
+      throw e;
+    }
+    await ackServerResults(base,registration,ack);
+  }
+
+  DATA.pendingOfficialResults=[];
+  renderPendingOfficialResults();
+
+  const total=imported+updated;
+  if(manual){
+    setSwimUpdateStatus(
+      total
+        ? `Atualizado · ${imported} novo(s), ${updated} atualizado(s).`
+        : 'Atualizado · base já estava em dia.',
+      'ok'
+    );
+  }
+  return {changed,count:total,imported,updated};
+}
+
 async function syncPendingResultsFromServer(opts={}){
   const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
   const registration=DATA.settings?.athleteRegistration||DATA.athlete?.registration||'';
@@ -1918,121 +1972,83 @@ async function syncPendingResultsFromServer(opts={}){
     if(manual)setSwimUpdateStatus('Registro SwimSystem do atleta não configurado.','err');
     return {changed:false,count:0,error:new Error('Registro não configurado')};
   }
+
+  // Auto-sync nunca bloqueia o botão manual: se já houver uma rotina automática,
+  // ela apenas termina em silêncio.
   if(swimSyncRunning){
-    if(manual)setSwimUpdateStatus('Atualização já está em andamento. Aguarde alguns segundos.');
-    return {changed:false,count:0,busy:true};
+    if(manual){
+      setSwimUpdateStatus('Finalizando consulta anterior...');
+      await new Promise(r=>setTimeout(r,900));
+      if(swimSyncRunning){
+        setSwimUpdateStatus('Consulta anterior ainda ativa. Tente novamente em alguns segundos.','err');
+        return {changed:false,count:0,busy:true};
+      }
+    }else return {changed:false,count:0,busy:true};
   }
 
   swimSyncRunning=true;
-  if(manual)setSwimUpdateStatus('Consultando SwimSystem...');
-
+  if(manual)setSwimUpdateStatus('Verificando resultados já detectados...');
   DATA.settings=DATA.settings||{};
   DATA.settings.lastSwimSystemSyncAttemptAt=new Date().toISOString();
   renderLastSwimSync();
 
   try{
-    let incoming=[];
-
-    // 1) Primeiro consome resultados que o monitor JÁ detectou.
-    // Isso funciona inclusive se o Render ainda estiver numa versão anterior sem /sync-results.
+    // ETAPA 1 — sempre buscar pendências primeiro e IMPORTAR IMEDIATAMENTE.
+    // Não esperamos uma nova varredura se o monitor já detectou o resultado.
     const pending=await fetchJsonWithTimeout(
       base+'/pending-results?registration='+encodeURIComponent(registration),
       {},
-      20000
+      12000
     );
-    if(pending.ok && Array.isArray(pending.body?.results)){
-      incoming=[...pending.body.results];
+
+    if(pending.ok && Array.isArray(pending.body?.results) && pending.body.results.length){
+      DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+      renderLastSwimSync();
+      const applied=await applyIncomingSwimResults(base,registration,pending.body.results,{manual});
+      if(manual)setSwimUpdateStatus(
+        `Atualizado · ${applied.imported||0} novo(s), ${applied.updated||0} atualizado(s).`,
+        'ok'
+      );
+      return applied;
     }
 
-    // 2) Depois pede uma varredura nova. Se o endpoint ainda não existir (404),
-    // não bloqueia a importação do que já estava pendente.
-    if(manual || Date.now()-lastSwimSyncAt>45000){
-      try{
-        const sr=await fetchJsonWithTimeout(base+'/sync-results',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({registration})
-        },35000);
-
-        if(sr.ok && Array.isArray(sr.body?.results)){
-          const known=new Set(incoming.map(x=>String(x._rid||[x.meetId||x.meet||'',x.event||'',x.time||''].join('|'))));
-          for(const x of sr.body.results){
-            const k=String(x._rid||[x.meetId||x.meet||'',x.event||'',x.time||''].join('|'));
-            if(!known.has(k)){known.add(k);incoming.push(x)}
-          }
-        }else if(sr.status!==404 && !incoming.length){
-          throw new Error('Monitor retornou HTTP '+sr.status+' ao consultar resultados.');
-        }
-      }catch(e){
-        if(!incoming.length)throw e;
-        console.warn('sync-results indisponível; usando pendências já detectadas',e);
-      }
-      lastSwimSyncAt=Date.now();
+    // ETAPA 2 — sincronização automática NÃO faz varredura pesada.
+    // O monitor Render já faz isso em segundo plano a cada intervalo.
+    if(!manual){
+      DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+      renderLastSwimSync();
+      return {changed:false,count:0};
     }
 
+    // ETAPA 3 — somente o clique manual força nova varredura no SwimSystem.
+    setSwimUpdateStatus('Nenhuma pendência. Consultando o SwimSystem agora...');
+
+    const sr=await fetchJsonWithTimeout(base+'/sync-results',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({registration})
+    },55000);
+
+    if(!sr.ok){
+      throw new Error('Monitor retornou HTTP '+sr.status+' ao consultar resultados.');
+    }
+
+    const incoming=Array.isArray(sr.body?.results)?sr.body.results:[];
     DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
     renderLastSwimSync();
 
     if(!incoming.length){
       if(dropboxReady)await dbxUpload().catch(()=>{});
-      if(manual)setSwimUpdateStatus('Consulta concluída · nenhum resultado novo encontrado.','ok');
+      setSwimUpdateStatus('Consulta concluída · nenhum resultado novo encontrado.','ok');
       return {changed:false,count:0};
     }
 
-    const snapshot=JSON.stringify(DATA);
-    const ack=[];
-    let changed=false, imported=0, updated=0;
-
-    for(const x of incoming){
-      const local=normalizeServerResult(x);
-      const slot=swimResultSlotKey(local);
-      let existing=(DATA.results||[]).find(y=>swimResultSlotKey(y)===slot && y.status!=='manual');
-
-      if(existing){
-        const before=JSON.stringify(existing);
-        Object.assign(existing,local,{id:existing.id||local.id});
-        if(before!==JSON.stringify(existing)){changed=true;updated++}
-      }else{
-        DATA.results.push(local);
-        changed=true;
-        imported++;
-      }
-      if(x._rid)ack.push(x._rid);
-    }
-
-    render();
-    renderLastSwimSync();
-
-    if(dropboxReady){
-      try{
-        await dbxUpload();
-      }catch(e){
-        DATA=JSON.parse(snapshot);
-        render();
-        renderLastSwimSync();
-        throw e;
-      }
-      await ackServerResults(base,registration,ack);
-    }
-
-    DATA.pendingOfficialResults=[];
-    renderPendingOfficialResults();
-
-    const total=imported+updated;
-    if(manual){
-      setSwimUpdateStatus(
-        total
-          ? `Atualizado · ${imported} novo(s), ${updated} atualizado(s).`
-          : 'Atualizado · base já estava em dia.',
-        'ok'
-      );
-    }
-    return {changed,count:total};
+    return await applyIncomingSwimResults(base,registration,incoming,{manual:true});
   }catch(e){
     console.warn('automatic result sync',e);
     if(manual){
       const msg=e?.name==='AbortError'
-        ? 'Tempo esgotado aguardando o servidor. Tente novamente.'
+        ? 'O monitor demorou mais de 55 s. A consulta foi encerrada; tente novamente.'
         : 'Falha ao atualizar: '+(e.message||e);
       setSwimUpdateStatus(msg,'err');
     }
