@@ -970,7 +970,7 @@ tbody tr:hover{background:#f8fbfc}
         <button type="button" id="actionLogout" class="danger"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg></span>Sair</button>
       </div>
     </div>
-    <div class="sidebar-foot sidebar-copyright">© 2026 VINISWIM — Performance Tracker.<br>Todos os direitos reservados.</div>
+    <div class="sidebar-foot sidebar-copyright">© 2026 VINISWIM V<span id="footerBuild">—</span> — Performance Tracker.<br>Todos os direitos reservados.</div>
   </aside>
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
   <main>
@@ -1300,7 +1300,8 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='32';
+const VINISWIM_BUILD='33';
+document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
 const DBX_REFRESH='viniswim_dbx_refresh_v1', DBX_ACCESS='viniswim_dbx_access_v1', DBX_PKCE='viniswim_dbx_pkce';
@@ -1856,7 +1857,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v27').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v33').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
@@ -2185,7 +2186,7 @@ async function syncPendingResultsFromServer(opts={}){
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({registration})
-    },55000);
+    },70000);
 
     if(!sr.ok){
       if(sr.status===404){
@@ -2212,7 +2213,7 @@ async function syncPendingResultsFromServer(opts={}){
     console.warn('automatic result sync',e);
     if(manual){
       const msg=e?.name==='AbortError'
-        ? 'O monitor demorou mais de 55 s. A consulta foi encerrada; tente novamente.'
+        ? 'O monitor demorou mais de 70 s. A consulta foi encerrada; tente novamente.'
         : 'Falha ao atualizar: '+(e.message||e);
       setSwimUpdateStatus(msg,'err');
     }
