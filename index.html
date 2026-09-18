@@ -32,7 +32,7 @@ main{min-width:0}.topbar{height:70px;background:#fff;border-bottom:1px solid var
 table{border-collapse:collapse;width:100%}th,td{padding:10px 9px;border-bottom:1px solid #edf0f2;text-align:left;font-size:13px}th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#65727d}.mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.tag{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:700}.tag.official{background:#e8f5ef;color:var(--good)}.tag.manual{background:#fff3dd;color:var(--warn)}.tag.provisional{background:#eaf3ff;color:#2f6faa}.tag.unknown{background:#f1f3f5;color:#66717b}.best{font-weight:800;color:var(--good)}
 .chart-wrap{height:360px;position:relative}.chart-wrap canvas{width:100%;height:100%}.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:12px}.legend span:before{content:"";display:inline-block;width:18px;height:3px;background:currentColor;margin-right:6px;vertical-align:middle}
 .meet{display:grid;grid-template-columns:1fr auto;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}.meet:last-child{border-bottom:0}.meet h4{margin:0 0 4px}.meet p{margin:0;color:var(--muted);font-size:12px}.entry-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}.entry{padding:12px;border:1px solid var(--line);border-radius:10px}.entry b{display:block}.entry small{color:var(--muted)}
-.pred{display:grid;grid-template-columns:1fr repeat(3,130px) 120px;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid var(--line)}.pred:last-child{border-bottom:0}.pred .range{text-align:center;padding:10px;border-radius:9px;background:#f6f8fa}.pred .range b{display:block}.confidence{font-size:11px;padding:6px 8px;border-radius:999px;text-align:center}.confidence.high{background:#e8f5ef;color:var(--good)}.confidence.medium{background:#fff3dd;color:var(--warn)}.confidence.low{background:#f1f3f5;color:#66717b}
+.pred{display:grid;grid-template-columns:minmax(220px,1fr) 160px repeat(3,120px) 105px;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid var(--line)}.pred:last-child{border-bottom:0}.pred .range{text-align:center;padding:10px;border-radius:9px;background:#f6f8fa}.pred .range b{display:block}.confidence{font-size:11px;padding:6px 8px;border-radius:999px;text-align:center}.confidence.high{background:#e8f5ef;color:var(--good)}.confidence.medium{background:#fff3dd;color:var(--warn)}.confidence.low{background:#f1f3f5;color:#66717b}.actual-result-card{border:1px solid #b9dccc;background:#eef8f3;border-radius:10px;padding:9px 10px;text-align:center}.actual-result-card.provisional{border-style:dashed;background:#f3f8fd;border-color:#a9c9e7}.actual-result-card small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}.actual-result-card .actual-time{font:800 18px 'Space Grotesk',Inter,sans-serif;margin-top:2px}.actual-result-card .actual-delta{font-size:11px;font-weight:700;margin-top:4px}.actual-result-card .better{color:var(--good)}.actual-result-card .worse{color:var(--bad)}.actual-result-card .same{color:var(--muted)}.meet-state{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:800;margin-left:8px}.meet-state.current{background:#e8f5ef;color:var(--good)}.meet-state.next{background:#eaf3ff;color:#2f6faa}
 .form{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.form .full{grid-column:1/-1}.notice{padding:12px 14px;border-left:4px solid var(--accent);background:#eef6fa;border-radius:8px;font-size:13px;color:#3e5565}.audit-row{display:grid;grid-template-columns:100px 1fr 180px;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:12px}.source-link{color:#2c6f98;text-decoration:none}.source-link:hover{text-decoration:underline}
 dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:min(760px,calc(100% - 30px));padding:0}dialog::backdrop{background:rgba(6,14,20,.55)}.modal-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.modal-body{padding:18px}.modal-foot{padding:14px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
 .mobile-nav{display:none}
@@ -1300,7 +1300,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='33';
+const VINISWIM_BUILD='34';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -1359,6 +1359,37 @@ function resultForEntry(meet,entry){
     return sa-sb;
   });
   return candidates[0]||null;
+}
+function meetHasPendingEntries(meet){
+  const entries=meet?.entries||[];
+  if(!entries.length)return true;
+  return entries.some(e=>!resultForEntry(meet,e));
+}
+function activeMeet(){
+  const today=new Date().toISOString().slice(0,10);
+  const ordered=[...(DATA.meets||[])].sort((a,b)=>String(a.dateStart||'').localeCompare(String(b.dateStart||'')));
+  const current=ordered.find(m=>String(m.dateStart||'')<=today && String(m.dateEnd||'')>=today && meetHasPendingEntries(m));
+  if(current)return current;
+  const nextUnfinished=ordered.find(m=>String(m.dateEnd||'')>=today && meetHasPendingEntries(m));
+  if(nextUnfinished)return nextUnfinished;
+  return ordered.find(m=>String(m.dateStart||'')>today)||null;
+}
+function meetState(meet){
+  const a=activeMeet();
+  if(!a||!meet)return '';
+  if(a.id===meet.id)return '<span class="meet-state current">ATIVO</span>';
+  const today=new Date().toISOString().slice(0,10);
+  if(String(meet.dateStart||'')>today)return '<span class="meet-state next">PRÓXIMO</span>';
+  return '';
+}
+function actualResultCard(entry,result){
+  if(!result)return '<div class="actual-result-card" style="opacity:.45"><small>Resultado</small><div class="actual-time">—</div></div>';
+  const x=comparisonFor(entry,result);
+  const dir=x?.dir||'same';
+  const icon=dir==='better'?'↓':dir==='worse'?'↑':'=';
+  const delta=x?.delta==null?'':(x.delta>0?'+':'')+x.delta.toFixed(2)+'s';
+  const pct=x?.pct==null?'':(x.pct>0?'+':'')+x.pct.toFixed(2)+'%';
+  return '<div class="actual-result-card '+(result.status==='provisional'?'provisional':'')+'"><small>'+(result.status==='official'?'Resultado oficial':'Resultado provisório')+'</small><div class="actual-time">'+(result.time||fmtTime(result.timeSeconds))+'</div><div class="actual-delta '+dir+'">'+icon+' '+delta+(pct?' · '+pct:'')+'</div></div>';
 }
 function comparisonFor(entry,result){
   if(!result)return null;
@@ -1498,16 +1529,16 @@ function metricIcon(name){
 function renderCards(){
   let events=eventList(), latest=[...confirmed()].sort((a,b)=>b.date.localeCompare(a.date))[0];
   let poolsKnown=confirmed().filter(r=>r.poolMeters!=null).length;
-  let next=DATA.meets.filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)).sort((a,b)=>a.dateStart.localeCompare(b.dateStart))[0];
+  let next=activeMeet();
   let cards=[
     ['PROVAS COM HISTÓRICO',events.length,'resultados confirmados','history'],
     ['RESULTADOS OFICIAIS',officialCount(),'SwimSystem','official'],
     ['PISCINA CONFIRMADA',poolsKnown,`${confirmed().length-poolsKnown} aguardam conferência`,'pool'],
-    ['PRÓXIMO CAMPEONATO',next?fmtDate(next.dateStart):'—',next?next.name:'Nenhum cadastrado','calendar']
+    ['CAMPEONATO ATIVO',next?fmtDate(next.dateStart):'—',next?next.name:'Nenhum cadastrado','calendar']
   ];
   $('#summaryCards').innerHTML=cards.map(c=>`<div class="card kpi-card"><div class="kpi-card-icon">${metricIcon(c[3])}</div><div class="k">${c[0]}</div><div class="v">${c[1]}</div><div class="s">${c[2]}</div></div>`).join('');
   if(next){
-    $('#nextMeet').innerHTML=`<div class="meet modern-meet"><div><h4>${next.name}</h4><p>${fmtDate(next.dateStart)} a ${fmtDate(next.dateEnd)} · ${next.venue||next.city||'local não informado'} · ${poolLabel(next.poolMeters)}</p><div class="entry-grid">${(next.entries||[]).map(e=>{const rr=resultForEntry(next,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)} · ${e.scheduled||'—'}</small><div class="mono" style="font-size:20px;margin-top:7px">${e.seed||'NT'}</div><small>Série ${e.series??'—'} · Raia ${e.lane??'—'}</small>${compareMarkup(e,rr)}</div>`}).join('')}</div></div></div>`
+    $('#nextMeet').innerHTML=`<div class="meet modern-meet"><div><h4>${next.name}${meetState(next)}</h4><p>${fmtDate(next.dateStart)} a ${fmtDate(next.dateEnd)} · ${next.venue||next.city||'local não informado'} · ${poolLabel(next.poolMeters)}</p><div class="entry-grid">${(next.entries||[]).map(e=>{const rr=resultForEntry(next,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)} · ${e.scheduled||'—'}</small><div class="mono" style="font-size:20px;margin-top:7px">${e.seed||'NT'}</div><small>Série ${e.series??'—'} · Raia ${e.lane??'—'}</small>${compareMarkup(e,rr)}</div>`}).join('')}</div></div></div>`
   } else $('#nextMeet').innerHTML='<span class="muted">Nenhum campeonato futuro cadastrado.</span>';
 }
 function renderBest(){
@@ -1624,7 +1655,15 @@ function renderHistory(){
 ['fEvent','fPool','fSource'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)renderHistory()}));
 
 function renderMeets(){
-  $('#meetList').innerHTML=[...DATA.meets].sort((a,b)=>b.dateStart.localeCompare(a.dateStart)).map(m=>`<div class="meet"><div><h4>${m.name}</h4><p>${fmtDate(m.dateStart)} a ${fmtDate(m.dateEnd)} · ${m.venue||m.city||'—'} · ${poolLabel(m.poolMeters)}</p>${m.entries?.length?`<div class="entry-grid">${m.entries.map(e=>{const rr=resultForEntry(m,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)}</small><div class="mono" style="font-size:19px;margin-top:5px">${e.seed||'NT'}</div><small>S${e.series??'—'} / R${e.lane??'—'} · ${e.scheduled||'—'}</small>${compareMarkup(e,rr)}</div>`}).join('')}</div>`:''}</div><div>${m.sourceId?'<span class="tag official">OFICIAL</span>':'<span class="tag manual">MANUAL</span>'}</div></div>`).join('');
+  const today=new Date().toISOString().slice(0,10);
+  const a=activeMeet();
+  const ordered=[...DATA.meets].sort((x,y)=>{
+    if(a && x.id===a.id)return -1;
+    if(a && y.id===a.id)return 1;
+    const xf=String(x.dateEnd||'')>=today?0:1, yf=String(y.dateEnd||'')>=today?0:1;
+    return xf-yf || String(x.dateStart||'').localeCompare(String(y.dateStart||''));
+  });
+  $('#meetList').innerHTML=ordered.map(m=>`<div class="meet"><div><h4>${m.name}${meetState(m)}</h4><p>${fmtDate(m.dateStart)} a ${fmtDate(m.dateEnd)} · ${m.venue||m.city||'—'} · ${poolLabel(m.poolMeters)}</p>${m.entries?.length?`<div class="entry-grid">${m.entries.map(e=>{const rr=resultForEntry(m,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)}</small><div class="mono" style="font-size:19px;margin-top:5px">${e.seed||'NT'}</div><small>S${e.series??'—'} / R${e.lane??'—'} · ${e.scheduled||'—'}</small>${compareMarkup(e,rr)}</div>`}).join('')}</div>`:''}</div><div>${m.sourceId?'<span class="tag official">OFICIAL</span>':'<span class="tag manual">MANUAL</span>'}</div></div>`).join('');
 }
 function regress(points){
   if(points.length<2)return null;
@@ -1648,17 +1687,17 @@ function estimate(event,pool,targetDate){
   return {prob:pred,aggressive,conservative,conf,n:exact.length,best,latest};
 }
 function renderPredictions(){
-  let future=DATA.meets.filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)).sort((a,b)=>a.dateStart.localeCompare(b.dateStart))[0];
-  if(!future){$('#predictionList').innerHTML='<p>Cadastre um campeonato futuro.</p>';return}
-  const head=`<div class="pred-meet-title">${future.name}</div><div class="pred-meet-meta">${fmtDate(future.dateStart)} a ${fmtDate(future.dateEnd)} · ${future.venue||future.city||'—'} · ${poolLabel(future.poolMeters)}</div>`;
+  const future=activeMeet();
+  if(!future){$('#predictionList').innerHTML='<p>Nenhum campeonato ativo ou futuro cadastrado.</p>';return}
+  const head=`<div class="pred-meet-title">${future.name}${meetState(future)}</div><div class="pred-meet-meta">${fmtDate(future.dateStart)} a ${fmtDate(future.dateEnd)} · ${future.venue||future.city||'—'} · ${poolLabel(future.poolMeters)}</div>`;
   $('#predictionList').innerHTML=head+(future.entries||[]).map(e=>{
     const rr=resultForEntry(future,e);
-    let est=estimate(e.event,future.poolMeters,e.date);
+    const est=estimate(e.event,future.poolMeters,e.date);
     if(rr){
-      return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · prova já publicada</small>${compareMarkup(e,rr)}</div><div class="range"><small>Conservadora</small><b class="mono">${est?fmtTime(est.conservative):'—'}</b></div><div class="range"><small>Provável</small><b class="mono">${est?fmtTime(est.prob):'—'}</b></div><div class="range"><small>Agressiva</small><b class="mono">${est?fmtTime(est.aggressive):'—'}</b></div><div class="confidence ${est?est.conf:'low'}">REALIZADA</div></div>`;
+      return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · prova realizada</small></div>${actualResultCard(e,rr)}<div class="range"><small>Conservadora</small><b class="mono">${est?fmtTime(est.conservative):'—'}</b></div><div class="range"><small>Provável</small><b class="mono">${est?fmtTime(est.prob):'—'}</b></div><div class="range"><small>Agressiva</small><b class="mono">${est?fmtTime(est.aggressive):'—'}</b></div><div class="confidence ${rr.status==='official'?'high':'medium'}">${rr.status==='official'?'OFICIAL':'PROVISÓRIO'}</div></div>`;
     }
-    if(!est)return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · Sem histórico suficiente</small></div><div></div><div></div><div></div><div class="confidence low">BAIXA</div></div>`;
-    return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · ${est.n} resultado(s) utilizados</small></div><div class="range"><small>Conservadora</small><b class="mono">${fmtTime(est.conservative)}</b></div><div class="range"><small>Provável</small><b class="mono">${fmtTime(est.prob)}</b></div><div class="range"><small>Agressiva</small><b class="mono">${fmtTime(est.aggressive)}</b></div><div class="confidence ${est.conf}">${est.conf==='high'?'ALTA':est.conf==='medium'?'MÉDIA':'BAIXA'}</div></div>`;
+    if(!est)return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · Sem histórico suficiente</small></div>${actualResultCard(e,null)}<div></div><div></div><div></div><div class="confidence low">BAIXA</div></div>`;
+    return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · ${est.n} resultado(s) utilizados</small></div>${actualResultCard(e,null)}<div class="range"><small>Conservadora</small><b class="mono">${fmtTime(est.conservative)}</b></div><div class="range"><small>Provável</small><b class="mono">${fmtTime(est.prob)}</b></div><div class="range"><small>Agressiva</small><b class="mono">${fmtTime(est.aggressive)}</b></div><div class="confidence ${est.conf}">${est.conf==='high'?'ALTA':est.conf==='medium'?'MÉDIA':'BAIXA'}</div></div>`;
   }).join('');
 }
 function renderAudit(){
@@ -1857,7 +1896,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v33').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v34').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
@@ -2213,7 +2252,7 @@ async function syncPendingResultsFromServer(opts={}){
     console.warn('automatic result sync',e);
     if(manual){
       const msg=e?.name==='AbortError'
-        ? 'O monitor demorou mais de 70 s. A consulta foi encerrada; tente novamente.'
+        ? 'O monitor não respondeu dentro do limite. A sincronização automática continua em segundo plano.'
         : 'Falha ao atualizar: '+(e.message||e);
       setSwimUpdateStatus(msg,'err');
     }
