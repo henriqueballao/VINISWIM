@@ -1276,7 +1276,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='36';
+const VINISWIM_BUILD='37';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -1872,7 +1872,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v36').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v37').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
@@ -2079,6 +2079,21 @@ async function fetchJsonWithTimeout(url,options={},timeoutMs=25000){
   }
 }
 
+async function wakeMonitor(base,{manual=false}={}){
+  const tries=[20000,45000,65000];
+  for(let i=0;i<tries.length;i++){
+    try{
+      if(manual)setSwimUpdateStatus(i===0?'Acordando monitor...':'Monitor iniciando... aguarde.');
+      const r=await fetchJsonWithTimeout(base+'/health',{},tries[i]);
+      if(r.ok)return true;
+    }catch(e){
+      const aborted=e?.name==='AbortError' || /aborted/i.test(String(e?.message||e));
+      if(!aborted)throw e;
+    }
+  }
+  return false;
+}
+
 async function applyIncomingSwimResults(base,registration,incoming,{manual=false}={}){
   if(!Array.isArray(incoming)||!incoming.length)return {changed:false,count:0};
 
@@ -2137,11 +2152,22 @@ async function pollResultSync(base,registration,{manual=false}={}){
   const started=Date.now();
   let lastDetected=0;
   while(Date.now()-started<85000){
-    const status=await fetchJsonWithTimeout(
-      base+'/sync-status?registration='+encodeURIComponent(registration),
-      {},
-      12000
-    );
+    let status;
+    try{
+      status=await fetchJsonWithTimeout(
+        base+'/sync-status?registration='+encodeURIComponent(registration),
+        {},
+        15000
+      );
+    }catch(e){
+      const aborted=e?.name==='AbortError' || /aborted/i.test(String(e?.message||e));
+      if(aborted){
+        if(manual)setSwimUpdateStatus('Monitor processando... aguardando resposta.');
+        await new Promise(r=>setTimeout(r,2500));
+        continue;
+      }
+      throw e;
+    }
 
     if(status.ok){
       const incoming=Array.isArray(status.body?.results)?status.body.results:[];
@@ -2203,13 +2229,31 @@ async function syncPendingResultsFromServer(opts={}){
   renderLastSwimSync();
 
   try{
+    // Em plano gratuito o Render pode estar dormindo. Acorda primeiro para evitar AbortError no iPhone.
+    if(manual){
+      const awake=await wakeMonitor(base,{manual:true});
+      if(!awake){
+        setSwimUpdateStatus('O monitor ainda está iniciando. Tente novamente em alguns segundos.','ok');
+        return {changed:false,count:0,pending:true};
+      }
+    }
+
     // 1) Sempre importa imediatamente qualquer resultado que o monitor já detectou.
     if(manual)setSwimUpdateStatus('Verificando resultados já detectados...');
-    const pending=await fetchJsonWithTimeout(
-      base+'/pending-results?registration='+encodeURIComponent(registration),
-      {},
-      12000
-    );
+    let pending;
+    try{
+      pending=await fetchJsonWithTimeout(
+        base+'/pending-results?registration='+encodeURIComponent(registration),
+        {},
+        manual?25000:8000
+      );
+    }catch(e){
+      const aborted=e?.name==='AbortError' || /aborted/i.test(String(e?.message||e));
+      if(!aborted)throw e;
+      if(!manual)return {changed:false,count:0,pending:true};
+      setSwimUpdateStatus('Monitor respondeu lentamente; iniciando consulta mesmo assim...');
+      pending={ok:false,status:0,body:null};
+    }
     if(pending.ok && Array.isArray(pending.body?.results) && pending.body.results.length){
       DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
       renderLastSwimSync();
@@ -2223,11 +2267,24 @@ async function syncPendingResultsFromServer(opts={}){
 
     // 2) Dispara varredura no servidor e recebe resposta imediata.
     setSwimUpdateStatus('Iniciando consulta ao SwimSystem...');
-    const trigger=await fetchJsonWithTimeout(base+'/sync-results',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({registration})
-    },15000);
+    let trigger;
+    try{
+      trigger=await fetchJsonWithTimeout(base+'/sync-results',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({registration})
+      },25000);
+    }catch(e){
+      const aborted=e?.name==='AbortError' || /aborted/i.test(String(e?.message||e));
+      if(!aborted)throw e;
+      setSwimUpdateStatus('Servidor iniciando consulta... tentando novamente.');
+      await new Promise(r=>setTimeout(r,2500));
+      trigger=await fetchJsonWithTimeout(base+'/sync-results',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({registration})
+      },30000);
+    }
 
     if(!trigger.ok){
       throw new Error('Monitor retornou HTTP '+trigger.status+' ao iniciar a consulta.');
@@ -2249,7 +2306,15 @@ async function syncPendingResultsFromServer(opts={}){
     return await pollResultSync(base,registration,{manual:true});
   }catch(e){
     console.warn('result sync',e);
-    if(manual)setSwimUpdateStatus('Falha ao atualizar: '+(e.message||e),'err');
+    const aborted=e?.name==='AbortError' || /aborted/i.test(String(e?.message||e));
+    if(manual){
+      setSwimUpdateStatus(
+        aborted
+          ? 'O monitor está demorando para responder. A sincronização continuará automaticamente.'
+          : 'Falha ao atualizar: '+(e.message||e),
+        aborted?'ok':'err'
+      );
+    }
     return {changed:false,count:0,error:e};
   }finally{
     swimSyncRunning=false;
