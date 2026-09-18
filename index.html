@@ -1300,7 +1300,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='34';
+const VINISWIM_BUILD='35';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -1896,7 +1896,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v34').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v35').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
@@ -2157,6 +2157,52 @@ async function applyIncomingSwimResults(base,registration,incoming,{manual=false
   return {changed,count:total,imported,updated};
 }
 
+async function pollResultSync(base,registration,{manual=false}={}){
+  const started=Date.now();
+  let lastDetected=0;
+  while(Date.now()-started<85000){
+    const status=await fetchJsonWithTimeout(
+      base+'/sync-status?registration='+encodeURIComponent(registration),
+      {},
+      12000
+    );
+
+    if(status.ok){
+      const incoming=Array.isArray(status.body?.results)?status.body.results:[];
+      lastDetected=Number(status.body?.detected||0);
+
+      if(incoming.length){
+        DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+        renderLastSwimSync();
+        return await applyIncomingSwimResults(base,registration,incoming,{manual});
+      }
+
+      if(status.body?.error){
+        throw new Error(status.body.error);
+      }
+
+      if(status.body?.running===false){
+        DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+        renderLastSwimSync();
+        if(manual)setSwimUpdateStatus(
+          lastDetected
+            ? 'Consulta concluída · resultados detectados já estavam na base.'
+            : 'Consulta concluída · nenhum resultado novo encontrado.',
+          'ok'
+        );
+        return {changed:false,count:0};
+      }
+
+      if(manual)setSwimUpdateStatus('Monitor consultando o SwimSystem em segundo plano...');
+    }
+
+    await new Promise(r=>setTimeout(r,2500));
+  }
+
+  if(manual)setSwimUpdateStatus('Consulta continua no servidor. O VINISWIM verificará novamente automaticamente.','ok');
+  return {changed:false,count:0,pending:true};
+}
+
 async function syncPendingResultsFromServer(opts={}){
   const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
   const registration=DATA.settings?.athleteRegistration||DATA.athlete?.registration||'';
@@ -2170,92 +2216,64 @@ async function syncPendingResultsFromServer(opts={}){
     if(manual)setSwimUpdateStatus('Registro SwimSystem do atleta não configurado.','err');
     return {changed:false,count:0,error:new Error('Registro não configurado')};
   }
-
-  // Auto-sync nunca bloqueia o botão manual: se já houver uma rotina automática,
-  // ela apenas termina em silêncio.
   if(swimSyncRunning){
-    if(manual){
-      setSwimUpdateStatus('Finalizando consulta anterior...');
-      await new Promise(r=>setTimeout(r,900));
-      if(swimSyncRunning){
-        setSwimUpdateStatus('Consulta anterior ainda ativa. Tente novamente em alguns segundos.','err');
-        return {changed:false,count:0,busy:true};
-      }
-    }else return {changed:false,count:0,busy:true};
+    if(manual)setSwimUpdateStatus('Já existe uma atualização em andamento.');
+    return {changed:false,count:0,busy:true};
   }
 
   swimSyncRunning=true;
-  if(manual)setSwimUpdateStatus('Verificando resultados já detectados...');
   DATA.settings=DATA.settings||{};
   DATA.settings.lastSwimSystemSyncAttemptAt=new Date().toISOString();
   renderLastSwimSync();
 
   try{
-    // ETAPA 1 — sempre buscar pendências primeiro e IMPORTAR IMEDIATAMENTE.
-    // Não esperamos uma nova varredura se o monitor já detectou o resultado.
+    // 1) Sempre importa imediatamente qualquer resultado que o monitor já detectou.
+    if(manual)setSwimUpdateStatus('Verificando resultados já detectados...');
     const pending=await fetchJsonWithTimeout(
       base+'/pending-results?registration='+encodeURIComponent(registration),
       {},
       12000
     );
-
     if(pending.ok && Array.isArray(pending.body?.results) && pending.body.results.length){
       DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
       renderLastSwimSync();
-      const applied=await applyIncomingSwimResults(base,registration,pending.body.results,{manual});
-      if(manual)setSwimUpdateStatus(
-        `Atualizado · ${applied.imported||0} novo(s), ${applied.updated||0} atualizado(s).`,
-        'ok'
-      );
-      return applied;
+      return await applyIncomingSwimResults(base,registration,pending.body.results,{manual});
     }
 
-    // ETAPA 2 — sincronização automática NÃO faz varredura pesada.
-    // O monitor Render já faz isso em segundo plano a cada intervalo.
+    // Auto-sync leve: não dispara nova varredura.
     if(!manual){
-      DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
-      renderLastSwimSync();
       return {changed:false,count:0};
     }
 
-    // ETAPA 3 — somente o clique manual força nova varredura no SwimSystem.
-    setSwimUpdateStatus('Nenhuma pendência. Consultando o SwimSystem agora...');
-
-    const sr=await fetchJsonWithTimeout(base+'/sync-results',{
+    // 2) Dispara varredura no servidor e recebe resposta imediata.
+    setSwimUpdateStatus('Iniciando consulta ao SwimSystem...');
+    const trigger=await fetchJsonWithTimeout(base+'/sync-results',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({registration})
-    },70000);
+    },15000);
 
-    if(!sr.ok){
-      if(sr.status===404){
-        DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
-        renderLastSwimSync();
-        setSwimUpdateStatus('Monitor automático ativo · nenhum resultado novo pendente neste momento.','ok');
-        return {changed:false,count:0};
+    if(!trigger.ok){
+      throw new Error('Monitor retornou HTTP '+trigger.status+' ao iniciar a consulta.');
+    }
+
+    // Se já veio algo pendente na resposta do disparo, importa na hora.
+    if(Array.isArray(trigger.body?.results) && trigger.body.results.length){
+      DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+      renderLastSwimSync();
+      const applied=await applyIncomingSwimResults(base,registration,trigger.body.results,{manual:true});
+      // Depois continua apenas para pegar eventual mudança parcial -> oficial da mesma varredura.
+      if(trigger.body?.running!==false){
+        pollResultSync(base,registration,{manual:false}).catch(e=>console.warn('background poll',e));
       }
-      throw new Error('Monitor retornou HTTP '+sr.status+' ao consultar resultados.');
+      return applied;
     }
 
-    const incoming=Array.isArray(sr.body?.results)?sr.body.results:[];
-    DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
-    renderLastSwimSync();
-
-    if(!incoming.length){
-      if(dropboxReady)await dbxUpload().catch(()=>{});
-      setSwimUpdateStatus('Consulta concluída · nenhum resultado novo encontrado.','ok');
-      return {changed:false,count:0};
-    }
-
-    return await applyIncomingSwimResults(base,registration,incoming,{manual:true});
+    // 3) A varredura acontece no Render; o app só acompanha o status.
+    return await pollResultSync(base,registration,{manual:true});
   }catch(e){
-    console.warn('automatic result sync',e);
-    if(manual){
-      const msg=e?.name==='AbortError'
-        ? 'O monitor não respondeu dentro do limite. A sincronização automática continua em segundo plano.'
-        : 'Falha ao atualizar: '+(e.message||e);
-      setSwimUpdateStatus(msg,'err');
-    }
+    console.warn('result sync',e);
+    if(manual)setSwimUpdateStatus('Falha ao atualizar: '+(e.message||e),'err');
     return {changed:false,count:0,error:e};
   }finally{
     swimSyncRunning=false;
