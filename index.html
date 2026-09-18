@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e2530">
-<link rel="manifest" href="manifest.webmanifest?v=23">
+<link rel="manifest" href="manifest.webmanifest?v=24">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
@@ -865,6 +865,21 @@ tbody tr:hover{background:#f8fbfc}
   .tutorial-step{grid-template-columns:30px minmax(0,1fr);gap:9px;padding:11px}
 }
 
+
+/* VINISWIM V24 — evita zoom automático do iPhone ao focar campos */
+@media(max-width:900px){
+  input, select, textarea, button{
+    font-size:16px!important;
+  }
+  .auth-form input,
+  .auth-form select,
+  .auth-form textarea{
+    font-size:16px!important;
+    line-height:1.25!important;
+    min-height:44px;
+  }
+}
+
 @media print{
   .mobile-hamburger,.sidebar-backdrop{display:none!important}
   body.sidebar-open{overflow:visible!important}
@@ -1649,6 +1664,7 @@ function alertLabel(key){
   let a=ALERT_DEFS.find(x=>x.key===key);return a?a.label:key;
 }
 function renderAlerts(){
+  setTimeout(()=>syncPendingResultsFromServer(),50);
   ensureAlertSettings();
   if(!$('#alertOptions'))return;
   const opts=[
@@ -1668,14 +1684,14 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v23').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v24').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
 
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js?v=23',{updateViaCache:'none'})}catch(e){console.warn('SW',e);return null}
+  try{return await navigator.serviceWorker.register('./service-worker.js?v=24',{updateViaCache:'none'})}catch(e){console.warn('SW',e);return null}
 }
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
@@ -1743,7 +1759,9 @@ async function syncPushSubscription(){
     athlete:{name:DATA.athlete?.name,registration:DATA.settings?.athleteRegistration||DATA.athlete?.registration},
     alerts:DATA.settings.alerts,
     meets:(DATA.meets||[]).filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)),
-    swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||''
+    swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||'',
+    timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo',
+    appUrl:location.origin+location.pathname
   };
   await fetch(base+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(r=>{if(!r.ok)throw new Error('Não foi possível registrar o aparelho no servidor Push.')});
   if($('#pushStatus'))$('#pushStatus').textContent='ativo';
@@ -1753,6 +1771,36 @@ async function testNotification(){
   const reg=await navigator.serviceWorker.ready;
   await reg.showNotification('VINISWIM — teste de alerta',{body:'Notificações ativas neste aparelho.',icon:'./icon-192.png',badge:'./icon-192.png',tag:'viniswim-test',data:{url:'./#alerts'}});
 }
+
+async function syncPendingResultsFromServer(){
+  const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
+  const registration=DATA.settings?.athleteRegistration||DATA.athlete?.registration||'';
+  if(!base||!registration)return;
+  try{
+    const r=await fetch(base+'/pending-results?registration='+encodeURIComponent(registration),{cache:'no-store'});
+    if(!r.ok)return;
+    const d=await r.json();
+    const incoming=Array.isArray(d.results)?d.results:[];
+    DATA.pendingOfficialResults=DATA.pendingOfficialResults||[];
+    let changed=false;
+    for(const x of incoming){
+      const key=[x.meetId||x.meet||'',x.event||'',x.date||'',x.time||x.timeSeconds||''].join('|');
+      const exists=DATA.pendingOfficialResults.some(y=>[y.meetId||y.meet||'',y.event||'',y.date||'',y.time||y.timeSeconds||''].join('|')===key)
+        || (DATA.results||[]).some(y=>[y.meetId||y.meet||'',y.event||'',y.date||'',y.time||y.timeSeconds||''].join('|')===key);
+      if(!exists){
+        DATA.pendingOfficialResults.push(x);
+        changed=true;
+      }
+    }
+    if(changed){
+      renderPendingOfficialResults();
+      queueSave();
+    }
+  }catch(e){
+    console.warn('pending results sync',e);
+  }
+}
+
 function renderPendingOfficialResults(){
   if(!$('#pendingOfficialResults'))return;
   let a=DATA.pendingOfficialResults||[];
