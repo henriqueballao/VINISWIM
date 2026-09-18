@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e2530">
-<link rel="manifest" href="manifest.webmanifest?v=26">
+<link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
@@ -1288,6 +1288,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
+const VINISWIM_BUILD='27';
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
 const DBX_REFRESH='viniswim_dbx_refresh_v1', DBX_ACCESS='viniswim_dbx_access_v1', DBX_PKCE='viniswim_dbx_pkce';
@@ -1697,15 +1698,43 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v24').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v27').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
 
+let swReloading=false;
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js?v=26',{updateViaCache:'none'})}catch(e){console.warn('SW',e);return null}
+  try{
+    const reg=await navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'});
+    await reg.update().catch(()=>{});
+    if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
+    reg.addEventListener('updatefound',()=>{
+      const nw=reg.installing;
+      if(!nw)return;
+      nw.addEventListener('statechange',()=>{
+        if(nw.state==='installed'&&navigator.serviceWorker.controller){
+          nw.postMessage({type:'SKIP_WAITING'});
+        }
+      });
+    });
+    return reg;
+  }catch(e){console.warn('SW',e);return null}
 }
+
+navigator.serviceWorker?.addEventListener('controllerchange',()=>{
+  if(swReloading)return;
+  swReloading=true;
+  location.reload();
+});
+
+setInterval(async()=>{
+  try{
+    const reg=await navigator.serviceWorker?.getRegistration();
+    if(reg)await reg.update();
+  }catch(e){}
+},60000);
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
   $('#notifPermission').textContent=('Notification' in window)?Notification.permission:'não suportado';
