@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e2530">
-<link rel="manifest" href="manifest.webmanifest?v=24">
+<link rel="manifest" href="manifest.webmanifest?v=25">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
@@ -52,6 +52,8 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
 .req:after{content:" *";color:var(--bad)}
 .inline-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .results-head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.swim-update-cluster{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.last-swim-update{font-size:11px;color:var(--muted);white-space:nowrap}
 .swimsystem-update-status{font-size:12px;color:var(--muted);margin:10px 0 2px;min-height:18px}
 .swimsystem-update-status.ok{color:var(--good)}
 .swimsystem-update-status.err{color:var(--bad)}
@@ -890,7 +892,7 @@ tbody tr:hover{background:#f8fbfc}
 }
 
 @media print{.sidebar,.topbar,.mobile-nav,.no-print{display:none!important}.app{display:block}.content{padding:0}.page{display:block!important;break-after:page}.page:last-child{break-after:auto}.section,.card,.hero{box-shadow:none;break-inside:avoid}}
-@media(max-width:700px){.results-head-actions{width:100%;display:grid;grid-template-columns:1fr}.results-head-actions .btn{width:100%}}
+@media(max-width:700px){.results-head-actions{width:100%;display:grid;grid-template-columns:1fr}.results-head-actions .btn{width:100%}.swim-update-cluster{display:grid;grid-template-columns:1fr;width:100%;gap:5px}.last-swim-update{text-align:center;white-space:normal}}
 </style>
 </head>
 <body>
@@ -992,7 +994,7 @@ tbody tr:hover{background:#f8fbfc}
 
       <section id="history" class="page">
         <div class="section">
-          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultados</span></h3><div class="results-head-actions no-print"><button class="btn" id="updateSwimSystemBtn" onclick="updateFromSwimSystem()">↻ Atualizar SwimSystem</button><button class="btn primary" onclick="openResultModal()">+ Novo resultado</button></div></div>
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultados</span></h3><div class="results-head-actions no-print"><div class="swim-update-cluster"><button class="btn" id="updateSwimSystemBtn" onclick="updateFromSwimSystem()">↻ Atualizar SwimSystem</button><span id="lastSwimSystemUpdate" class="last-swim-update">Última atualização: —</span></div><button class="btn primary" onclick="openResultModal()">+ Novo resultado</button></div></div>
           <div class="filters"><select id="fEvent"><option value="">Todas as provas</option></select><select id="fPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Piscina não confirmada</option></select><select id="fSource"><option value="">Todas as origens</option><option value="official">Oficial SwimSystem</option><option value="provisional">SwimSystem parcial</option><option value="manual">Manual confirmado</option></select></div>
           <div id="swimSystemUpdateStatus" class="swimsystem-update-status"></div>
           <div class="table-scroll"><table><thead><tr><th>Data</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody id="historyTable"></tbody></table></div><div id="mobileHistory" class="mobile-results"></div>
@@ -1329,6 +1331,7 @@ function liveAthleteSettingsPreview(){
   DATA.settings.birthDate=birth;
   DATA.settings.category=category;
   renderAthleteHero();
+  renderLastSwimSync();
 }
 document.addEventListener('input',e=>{
   if(['setAthleteName','setTeam','setReg','setBirthDate'].includes(e.target.id))liveAthleteSettingsPreview();
@@ -1701,7 +1704,7 @@ async function clearLegacyAppCaches(){
 
 async function registerSW(){
   if(!('serviceWorker' in navigator))return null;
-  try{return await navigator.serviceWorker.register('./service-worker.js?v=24',{updateViaCache:'none'})}catch(e){console.warn('SW',e);return null}
+  try{return await navigator.serviceWorker.register('./service-worker.js?v=25',{updateViaCache:'none'})}catch(e){console.warn('SW',e);return null}
 }
 async function updateNotificationStatus(){
   if(!$('#notifPermission'))return;
@@ -1788,6 +1791,19 @@ let lastSwimSyncAt=0;
 function swimResultSlotKey(r){
   return [r.meetId||r.meet||'',r.event||'',r.date||''].join('|');
 }
+function normalizeSwimEventName(v=''){
+  return String(v||'').replace(/\b(\d{2,4})\s*m\b/i,'$1').replace(/\s+/g,' ').trim();
+}
+function formatSyncStamp(iso){
+  if(!iso)return 'Última atualização: —';
+  const d=new Date(iso);
+  if(isNaN(d))return 'Última atualização: —';
+  return 'Última atualização: '+d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function renderLastSwimSync(){
+  const el=$('#lastSwimSystemUpdate');
+  if(el)el.textContent=formatSyncStamp(DATA.settings?.lastSwimSystemSyncAt);
+}
 function inferServerResultDate(x){
   if(x.date)return x.date;
   const meet=(DATA.meets||[]).find(m=>(x.meetId&&m.id===x.meetId)||(x.meet&&m.name===x.meet));
@@ -1811,7 +1827,7 @@ function normalizeServerResult(x){
     id:x._rid||('swim-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)),
     _rid:x._rid||null,
     date:inferServerResultDate(x),
-    event:x.event||'Prova',
+    event:normalizeSwimEventName(x.event||'Prova'),
     timeSeconds:seconds,
     time:x.time||fmtTime(seconds),
     poolMeters:Number(x.poolMeters||x.pool)||null,
@@ -1850,28 +1866,41 @@ async function syncPendingResultsFromServer(opts={}){
   const manual=!!opts.manual;
   if(manual)setSwimUpdateStatus('Consultando SwimSystem...');
   try{
+    let incoming=[];
+
     if(manual || Date.now()-lastSwimSyncAt>45000){
-      try{
-        await fetch(base+'/sync-results',{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({registration})
-        });
-      }catch(e){}
+      const sr=await fetch(base+'/sync-results',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({registration}),
+        cache:'no-store'
+      });
+      if(!sr.ok)throw new Error('Monitor não respondeu à consulta do SwimSystem.');
+      const sd=await sr.json();
+      if(Array.isArray(sd.results))incoming=sd.results;
       lastSwimSyncAt=Date.now();
     }
 
-    const r=await fetch(base+'/pending-results?registration='+encodeURIComponent(registration),{cache:'no-store'});
-    if(!r.ok)throw new Error('Monitor não respondeu à atualização.');
-    const d=await r.json();
-    const incoming=Array.isArray(d.results)?d.results:[];
     if(!incoming.length){
-      if(manual)setSwimUpdateStatus('SwimSystem atualizado · nenhum resultado novo.','ok');
+      const r=await fetch(base+'/pending-results?registration='+encodeURIComponent(registration),{cache:'no-store'});
+      if(!r.ok)throw new Error('Monitor não respondeu à atualização.');
+      const d=await r.json();
+      incoming=Array.isArray(d.results)?d.results:[];
+    }
+
+    DATA.settings=DATA.settings||{};
+    DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+    renderLastSwimSync();
+
+    if(!incoming.length){
+      if(dropboxReady)await dbxUpload().catch(()=>{});
+      if(manual)setSwimUpdateStatus('SwimSystem consultado · nenhum resultado novo.','ok');
       return {changed:false,count:0};
     }
 
     const snapshot=JSON.stringify(DATA);
     const ack=[];
-    let changed=false, imported=0, officialized=0;
+    let changed=false, imported=0, updated=0;
 
     for(const x of incoming){
       const local=normalizeServerResult(x);
@@ -1881,10 +1910,7 @@ async function syncPendingResultsFromServer(opts={}){
       if(existing){
         const before=JSON.stringify(existing);
         Object.assign(existing,local,{id:existing.id||local.id});
-        if(before!==JSON.stringify(existing)){
-          changed=true;
-          if(local.status==='official')officialized++;
-        }
+        if(before!==JSON.stringify(existing)){changed=true;updated++}
       }else{
         DATA.results.push(local);
         changed=true;imported++;
@@ -1892,25 +1918,32 @@ async function syncPendingResultsFromServer(opts={}){
       if(x._rid)ack.push(x._rid);
     }
 
-    if(changed){
-      render();
-      if(dropboxReady){
-        try{
-          await dbxUpload();
-        }catch(e){
-          DATA=JSON.parse(snapshot);
-          render();
-          throw e;
-        }
+    render();
+
+    if(dropboxReady){
+      try{
+        await dbxUpload();
+      }catch(e){
+        DATA=JSON.parse(snapshot);
+        render();
+        throw e;
       }
+      await ackServerResults(base,registration,ack);
     }
 
-    if(dropboxReady)await ackServerResults(base,registration,ack);
     DATA.pendingOfficialResults=[];
     renderPendingOfficialResults();
+    renderLastSwimSync();
 
-    const total=imported+officialized;
-    if(manual)setSwimUpdateStatus(total?(`SwimSystem atualizado · ${total} resultado(s) incorporado(s).`):'SwimSystem atualizado · base já estava em dia.','ok');
+    const total=imported+updated;
+    if(manual){
+      setSwimUpdateStatus(
+        total
+          ? `SwimSystem atualizado · ${imported} novo(s), ${updated} atualizado(s).`
+          : 'SwimSystem atualizado · base já estava em dia.',
+        'ok'
+      );
+    }
     return {changed,count:total};
   }catch(e){
     console.warn('automatic result sync',e);
@@ -1958,6 +1991,7 @@ function checkForegroundReminders(){
   localStorage.setItem('viniswim_alerts_sent_v1',JSON.stringify(sent));
 }
 setInterval(checkForegroundReminders,30000);
+setInterval(()=>{if(!document.hidden)syncPendingResultsFromServer({auto:true});},60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkForegroundReminders();syncPendingResultsFromServer({auto:true});}});
 
 
