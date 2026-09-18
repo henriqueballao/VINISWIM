@@ -916,32 +916,9 @@ tbody tr:hover{background:#f8fbfc}
       <div class="auth-mark"><svg width="26" height="26" viewBox="0 0 64 64"><use href="#viniswimLogo"/></svg></div>
       <div><strong>VINISWIM</strong><span>performance tracker</span></div>
     </div>
-    <h2 id="authTitle">Entrar</h2>
-    <p class="auth-sub" id="authSubtitle">Acesse o acompanhamento do atleta.</p>
-    <form class="auth-form" id="authForm">
-      <label>Login
-        <input id="authLogin" autocomplete="username" required>
-      </label>
-      <label>Senha
-        <div class="password-field">
-          <input id="authPassword" type="password" autocomplete="current-password" required>
-          <button class="password-toggle" id="authPasswordToggle" type="button" aria-label="Mostrar senha" title="Mostrar senha">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </div>
-      </label>
-      <label id="authConfirmWrap" hidden>Confirmar senha
-        <div class="password-field">
-          <input id="authConfirm" type="password" autocomplete="new-password">
-          <button class="password-toggle" id="authConfirmToggle" type="button" aria-label="Mostrar senha" title="Mostrar senha">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </div>
-      </label>
-      <div class="auth-error" id="authError"></div>
-      <button class="auth-submit" id="authSubmit" type="submit">Entrar</button>
-    </form>
-    <div class="auth-note" id="authNote"></div>
+    <h2>Conectar Dropbox</h2>
+    <p class="auth-sub">Conecte a base privada do VINISWIM para carregar os dados.</p>
+    <button class="auth-submit" type="button" id="authDropboxConnect">Conectar Dropbox</button>
   </div>
 </div>
 
@@ -967,7 +944,6 @@ tbody tr:hover{background:#f8fbfc}
         <button type="button" id="actionSave"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l2 2v16H5V3Z"/><path d="M8 3v6h8V3M8 21v-8h8v8"/></svg></span>Salvar</button>
         <button type="button" id="actionTutorial"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.4 2.4 0 0 1 4.5 1.2c0 1.8-2.3 2-2.3 3.8M12 17h.01"/></svg></span>Como usar o VINISWIM</button>
         <button type="button" id="actionPrint"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7"/></svg></span>Imprimir / PDF</button>
-        <button type="button" id="actionLogout" class="danger"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg></span>Sair</button>
       </div>
     </div>
     <div class="sidebar-foot sidebar-copyright">© 2026 VINISWIM V<span id="footerBuild">—</span> — Performance Tracker.<br>Todos os direitos reservados.</div>
@@ -1300,7 +1276,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='35';
+const VINISWIM_BUILD='36';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -1896,7 +1872,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v35').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v36').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
@@ -2456,8 +2432,6 @@ async function submitAuth(e){
 }
 function logoutApp(){
   closeActionsMenu();
-  sessionStorage.removeItem(AUTH_SESSION_KEY);
-  showAuthGate();
 }
 
 function openMobileSidebar(){
@@ -2493,7 +2467,6 @@ function initMobileSidebar(){
   $('#actionSave')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
   $('#actionTutorial')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
   $('#actionPrint')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
-  $('#actionLogout')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
 
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'&&document.body.classList.contains('sidebar-open'))closeMobileSidebar();
@@ -2562,7 +2535,6 @@ function initActionsMenu(){
   $('#actionSave').onclick=actionSaveNow;
   $('#actionTutorial').onclick=()=>{closeActionsMenu();tutorialModal.showModal()};
   $('#actionPrint').onclick=()=>{closeActionsMenu();window.print()};
-  $('#actionLogout').onclick=logoutApp;
   document.addEventListener('click',e=>{
     if(!e.target.closest('.sidebar-actions'))closeActionsMenu();
   });
@@ -2645,11 +2617,8 @@ async function bootstrapDropbox(){
       renderAthleteHero();
       document.body.classList.add('auth-locked');
       $('#authGate').hidden=false;
-      $('#authTitle').textContent='Conectar Dropbox';
-      $('#authSubtitle').textContent='Conecte a base privada do VINISWIM antes de entrar.';
-      $('#authForm').hidden=true;
-      $('#authNote').innerHTML='<button class="auth-submit" type="button" id="authDropboxConnect">Conectar Dropbox</button>';
-      setTimeout(()=>{const b=$('#authDropboxConnect');if(b)b.onclick=connectDropbox},0);
+      const b=$('#authDropboxConnect');
+      if(b)b.onclick=connectDropbox;
       return;
     }
     setDropboxStatus('Dropbox · carregando');
@@ -2665,9 +2634,9 @@ async function bootstrapDropbox(){
     setDropboxStatus('Dropbox · sincronizado','ok');
     
     
+    document.body.classList.remove('auth-locked');
+    $('#authGate').hidden=true;
     render();
-    $('#authForm').hidden=false;
-    await initAuth();
     if('Notification' in window && Notification.permission==='granted'){
       syncPushSubscription().catch(e=>console.warn('push auto-register',e));
     }
@@ -2684,10 +2653,9 @@ async function bootstrapDropbox(){
 function logoutDropbox(){sessionStorage.removeItem(DBX_ACCESS);localStorage.removeItem(DBX_REFRESH);dropboxReady=false;setDropboxStatus('Dropbox · não conectado','err');}
 
 ensureAlertSettings();
-document.body.classList.add('auth-locked');
-$('#authGate').hidden=false;
+document.body.classList.remove('auth-locked');
+$('#authGate').hidden=true;
 renderAthleteHero();
-initPasswordToggles();
 initActionsMenu();
 initMobileSidebar();
 registerSW().then(()=>updateNotificationStatus());
