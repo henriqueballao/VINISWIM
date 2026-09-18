@@ -64,6 +64,8 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
 .pred-meet-title{font-weight:800;font-size:14px;margin:0 0 4px}
 .pred-meet-meta{font-size:11px;color:var(--muted);margin-bottom:12px}
 .row-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.chart-provisional-legend{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:11px}
+.chart-provisional-dot{width:9px;height:9px;border:2px solid currentColor;border-radius:50%;background:#fff;display:inline-block}
 .swimsystem-update-status{font-size:12px;color:var(--muted);margin:10px 0 2px;min-height:18px}
 .swimsystem-update-status.ok{color:var(--good)}
 .swimsystem-update-status.err{color:var(--bad)}
@@ -1298,7 +1300,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='31';
+const VINISWIM_BUILD='32';
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
 const DBX_REFRESH='viniswim_dbx_refresh_v1', DBX_ACCESS='viniswim_dbx_access_v1', DBX_PKCE='viniswim_dbx_pkce';
@@ -1667,7 +1669,7 @@ function drawChart(){
   let c=$('#chart'); if(!c||!c.offsetWidth)return;
   let ev=$('#chartEvent')?.value||'__all', p=$('#chartPool')?.value||'';
   const filterPool=r=>(!p||(p==='unknown'?r.poolMeters==null:String(r.poolMeters)===p));
-  let all=confirmed().filter(filterPool).sort((a,b)=>a.date.localeCompare(b.date));
+  let all=[...(DATA.results||[])].filter(r=>(r.status==='official'||r.status==='manual'||r.status==='provisional')&&filterPool(r)).sort((a,b)=>a.date.localeCompare(b.date));
   const dpr=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;c.width=w*dpr;c.height=h*dpr;
   let ctx=c.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
   const legend=$('#chartLegend'); if(legend)legend.innerHTML='';
@@ -1696,16 +1698,37 @@ function drawChart(){
     const color=palette[gi%palette.length];
     ctx.strokeStyle=color;ctx.lineWidth=2.3;ctx.beginPath();
     g.pts.forEach((pt,i)=>{let xx=xDate(pt.date),yy=y(pt.timeSeconds);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();
-    g.pts.forEach(pt=>{let xx=xDate(pt.date),yy=y(pt.timeSeconds);ctx.fillStyle=color;ctx.beginPath();ctx.arc(xx,yy,4,0,Math.PI*2);ctx.fill();if(ev!=='__all'){ctx.fillStyle='#12202d';ctx.textAlign='center';ctx.fillText(pt.time,xx,yy-9)}});
+    g.pts.forEach(pt=>{
+      let xx=xDate(pt.date),yy=y(pt.timeSeconds);
+      ctx.beginPath();ctx.arc(xx,yy,4.5,0,Math.PI*2);
+      if(pt.status==='provisional'){
+        ctx.fillStyle='#fff';ctx.fill();
+        ctx.strokeStyle=color;ctx.lineWidth=2;ctx.stroke();
+      }else{
+        ctx.fillStyle=color;ctx.fill();
+      }
+      if(ev!=='__all'){
+        ctx.fillStyle='#12202d';ctx.textAlign='center';
+        ctx.fillText(pt.time+(pt.status==='provisional'?' *':''),xx,yy-9);
+      }
+    });
     if(legend)legend.innerHTML+=`<span><i style="background:${color}"></i>${g.name}</span>`;
+
   });
 
+  if(legend && ptsAll.some(p=>p.status==='provisional')){
+    legend.innerHTML+=`<span class="chart-provisional-legend"><i class="chart-provisional-dot"></i>Provisório SwimSystem</span>`;
+  }
   ctx.textAlign='left';
   if(ev==='__all'){
     $('#evolutionStats').innerHTML=`<b>Todos os estilos</b> · ${groups.length} prova(s) · ${ptsAll.length} resultado(s) confirmados${p?` · ${p==='unknown'?'piscina não confirmada':p+' m'}`:''}. Cada linha representa uma prova; os tempos não são comparados entre distâncias diferentes.`;
   }else{
-    let pts=groups[0].pts,first=pts[0],last=pts[pts.length-1],delta=last.timeSeconds-first.timeSeconds,pct=first.timeSeconds?(-delta/first.timeSeconds*100):0,best=Math.min(...pts.map(p=>p.timeSeconds));
-    $('#evolutionStats').innerHTML=`<b>${ev}</b> · ${pts.length} resultado(s) · primeiro ${first.time} → último ${last.time} · ganho acumulado <b>${delta<0?(-delta).toFixed(2)+' s':'—'}</b>${delta<0?` · melhora <b>${pct.toFixed(1)}%</b>`:''} · melhor <b>${fmtTime(best)}</b>.`;
+    let pts=groups[0].pts;
+    let confirmedPts=pts.filter(p=>p.status==='official'||p.status==='manual');
+    let basis=confirmedPts.length?confirmedPts:pts;
+    let first=basis[0],last=basis[basis.length-1],delta=last.timeSeconds-first.timeSeconds,pct=first.timeSeconds?(-delta/first.timeSeconds*100):0,best=Math.min(...basis.map(p=>p.timeSeconds));
+    const provisional=pts.filter(p=>p.status==='provisional').sort((a,b)=>a.date.localeCompare(b.date)).at(-1);
+    $('#evolutionStats').innerHTML=`<b>${ev}</b> · ${basis.length} resultado(s) confirmado(s) · primeiro ${first.time} → último confirmado ${last.time} · ganho acumulado <b>${delta<0?(-delta).toFixed(2)+' s':'—'}</b>${delta<0?` · melhora <b>${pct.toFixed(1)}%</b>`:''} · melhor confirmado <b>${fmtTime(best)}</b>${provisional?` · provisório SwimSystem <b>${provisional.time}</b>`:''}.`;
   }
 }
 document.addEventListener('change',e=>{if(['chartEvent','chartPool'].includes(e.target.id))drawChart()});window.addEventListener('resize',()=>setTimeout(drawChart,50));
@@ -2165,6 +2188,12 @@ async function syncPendingResultsFromServer(opts={}){
     },55000);
 
     if(!sr.ok){
+      if(sr.status===404){
+        DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+        renderLastSwimSync();
+        setSwimUpdateStatus('Monitor automático ativo · nenhum resultado novo pendente neste momento.','ok');
+        return {changed:false,count:0};
+      }
       throw new Error('Monitor retornou HTTP '+sr.status+' ao consultar resultados.');
     }
 
