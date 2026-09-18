@@ -1276,7 +1276,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='37';
+const VINISWIM_BUILD='38';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -1401,16 +1401,32 @@ function confirmed(){return DATA.results.filter(r=>r.status==='official'||r.stat
 function bestFor(event,pool){let a=confirmed().filter(r=>r.event===event&&(pool==null||r.poolMeters===pool));return a.sort((x,y)=>x.timeSeconds-y.timeSeconds)[0]}
 function officialCount(){return DATA.results.filter(r=>r.status==='official').length}
 
-function nav(page){
+const NAV_PAGES=['dashboard','history','evolution','meets','predictions','alerts','audit','settings'];
+function pageFromHash(){
+  const h=String(location.hash||'').replace(/^#/,'').toLowerCase();
+  const aliases={results:'history',resultado:'history',resultados:'history',history:'history',meets:'meets',campeonatos:'meets',predictions:'predictions',expectativas:'predictions',alerts:'alerts',alertas:'alerts',audit:'audit',auditoria:'audit',settings:'settings',configuracoes:'settings',evolution:'evolution',evolucao:'evolution',dashboard:'dashboard'};
+  return aliases[h]||null;
+}
+function nav(page,{persist=true,updateHash=false}={}){
+  if(!NAV_PAGES.includes(page))page='dashboard';
   closeMobileSidebar();
-  $$('.page').forEach(x=>x.classList.toggle('active',x.id===page));
-  $$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
+  $('.page').forEach(x=>x.classList.toggle('active',x.id===page));
+  $('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
   const names={dashboard:'Visão Geral',history:'Resultados',evolution:'Evolução',meets:'Campeonatos',predictions:'Expectativas',alerts:'Alertas',audit:'Auditoria',settings:'Configurações'};
   $('#pageTitle').textContent=names[page]||'VINISWIM';
+  if(persist)localStorage.setItem('viniswim_last_page',page);
+  if(updateHash)history.replaceState(null,'','#'+page);
   if(page==='evolution')setTimeout(drawChart,30);
   window.scrollTo({top:0,left:0,behavior:'auto'});
 }
-$$('[data-page]').forEach(b=>b.onclick=()=>nav(b.dataset.page));
+function restoreNav(){
+  const fromHash=pageFromHash();
+  const saved=localStorage.getItem('viniswim_last_page');
+  nav(fromHash||saved||'dashboard',{persist:true,updateHash:false});
+  // Remove notification/deep-link hash after using it so the next normal open returns to last page.
+  if(fromHash)history.replaceState(null,'',location.pathname+location.search);
+}
+$('[data-page]').forEach(b=>b.onclick=()=>nav(b.dataset.page,{persist:true,updateHash:false}));
 
 
 
@@ -1872,7 +1888,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v37').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v38').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
@@ -2439,7 +2455,7 @@ function unlockApp(){
   sessionStorage.setItem(AUTH_SESSION_KEY,'1');
   const gate=$('#authGate');if(gate)gate.hidden=true;
   document.body.classList.remove('auth-locked');
-  nav('dashboard');
+  
 }
 function showAuthGate(){
   const first=!authConfigured();
@@ -2723,6 +2739,7 @@ $('#authGate').hidden=true;
 renderAthleteHero();
 initActionsMenu();
 initMobileSidebar();
+setTimeout(restoreNav,0);
 registerSW().then(()=>updateNotificationStatus());
 bootstrapDropbox();
 checkForegroundReminders();
