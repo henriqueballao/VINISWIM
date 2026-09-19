@@ -1,0 +1,35 @@
+name: SwimSystem raw diagnostic
+on:
+  push:
+    paths:
+      - '.github/workflows/swimsystem-raw-diagnostic.yml'
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect event status data
+        shell: bash
+        run: |
+          node <<'NODE'
+          const base='https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0';
+          for(const id of ['15d9f398-a1e0-46e4-b45a-acd12eedf4d8','8f48b7d8-67bb-45be-ad84-43ae2048e08c']){
+            const r=await fetch(base+'/results?e='+id,{headers:{'user-agent':'Mozilla/5.0'}});
+            const html=await r.text();
+            console.log('EVENT',id,'HTTP',r.status,'LEN',html.length,'CORS',r.headers.get('access-control-allow-origin'));
+            let from=0,n=0;
+            while((from=html.indexOf(id,from))>=0 && n<12){
+              const chunk=html.slice(Math.max(0,from-1800),from+3000).replace(/\s+/g,' ');
+              console.log('OCC',n,'AT',from,chunk);
+              from+=id.length;n++;
+            }
+            const patterns=['isOfficial','officialized','official','resultStatus','publicationStatus','status'];
+            for(const p of patterns){
+              const re=new RegExp(p,'ig'); let m,k=0;
+              while((m=re.exec(html))&&k<8){
+                console.log('KEY',p,k,'AT',m.index,html.slice(Math.max(0,m.index-500),m.index+1000).replace(/\s+/g,' '));
+                k++;
+              }
+            }
+          }
+          NODE
