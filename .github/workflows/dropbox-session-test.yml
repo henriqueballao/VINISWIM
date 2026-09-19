@@ -30,7 +30,7 @@ jobs:
           const fs = require('fs');
           (async()=>{
             const browser = await chromium.launch({headless:true});
-            const ctx = await browser.newContext();
+            const ctx = await browser.newContext({serviceWorkers:'block'});
             const page = await ctx.newPage();
 
             const dataset = {
