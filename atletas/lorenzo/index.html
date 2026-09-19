@@ -2618,11 +2618,13 @@ async function syncPendingResultsFromServer(opts={}){
         registration,
         athlete:{
           name:DATA.athlete?.name||DATA.settings?.athleteName||'',
+          aliases:DATA.athlete?.aliases||['Lorenzo Azevedo FORTES','Lorenzo de Azevedo FORTES'],
           registration,
           category:DATA.settings?.category||DATA.athlete?.category||''
         },
         meets:(DATA.meets||[]).filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)),
         swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||'',
+        resultSources:DATA.settings?.resultSources||[],
         timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo',
         appUrl:location.origin+location.pathname,
         knownResults:knownResultSignatures()
@@ -2640,11 +2642,13 @@ async function syncPendingResultsFromServer(opts={}){
         registration,
         athlete:{
           name:DATA.athlete?.name||DATA.settings?.athleteName||'',
+          aliases:DATA.athlete?.aliases||['Lorenzo Azevedo FORTES','Lorenzo de Azevedo FORTES'],
           registration,
           category:DATA.settings?.category||DATA.athlete?.category||''
         },
         meets:(DATA.meets||[]).filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)),
         swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||'',
+        resultSources:DATA.settings?.resultSources||[],
         timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo',
         appUrl:location.origin+location.pathname,
         knownResults:knownResultSignatures()
