@@ -1,5 +1,5 @@
-const BUILD='51';
-const CACHE='viniswim-v51';
+const BUILD='52';
+const CACHE='viniswim-v52';
 const CORE=['./manifest.webmanifest','./apple-touch-icon.png','./icon-192.png','./icon-512.png','./viniswim-logo.svg'];
 
 self.addEventListener('install',e=>{
@@ -57,7 +57,7 @@ self.addEventListener('push',e=>{
     icon:'./icon-192.png',badge:'./icon-192.png',
     tag:d.tag||'viniswim-push',
     data:d.data||{url:'./#alerts'},
-    renotify:true
+    renotify:false
   }));
 });
 
