@@ -1272,7 +1272,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='51';
+const VINISWIM_BUILD='52';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -1910,7 +1910,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v51').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v52').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
