@@ -1272,7 +1272,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='43';
+const VINISWIM_BUILD='44';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -1416,11 +1416,10 @@ function pageFromHash(){
 function nav(page,{persist=true,updateHash=false}={}){
   if(!NAV_PAGES.includes(page))page='dashboard';
   closeMobileSidebar();
-  $('.page').forEach(x=>x.classList.toggle('active',x.id===page));
-  $('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
+  $$('.page').forEach(x=>x.classList.toggle('active',x.id===page));
+  $$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
   const names={dashboard:'Visão Geral',history:'Resultados',evolution:'Evolução',meets:'Campeonatos',predictions:'Expectativas',alerts:'Alertas',audit:'Auditoria',settings:'Configurações'};
   $('#pageTitle').textContent=names[page]||'VINISWIM';
-  // O VINISWIM sempre inicia na Visão Geral; não persistir a última aba.
   if(updateHash)history.replaceState(null,'','#'+page);
   if(page==='evolution')setTimeout(drawChart,30);
   window.scrollTo({top:0,left:0,behavior:'auto'});
@@ -1893,7 +1892,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v43').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v44').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
