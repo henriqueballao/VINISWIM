@@ -965,6 +965,11 @@ tbody tr:hover{background:#f8fbfc}
     </div>
 
       <section id="dashboard" class="page active">
+        <div id="dropboxRecoveryPanel" class="section" hidden style="border:2px solid #2f80ed;background:#f7fbff">
+          <div class="section-head"><h3 class="section-title">Dropbox desconectado</h3></div>
+          <div class="notice" style="margin-bottom:12px">A base do VINISWIM não foi carregada neste aparelho.</div>
+          <button class="btn primary" type="button" id="dashboardDropboxConnect" style="width:100%;min-height:52px;font-weight:800">Reconectar Dropbox</button>
+        </div>
         <div class="grid cards" id="summaryCards"></div>
         <div class="section"><div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v3M18 3v3M4 8h16"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 12h4M13 12h4M7 16h4"/></svg></span><span>Próximo campeonato</span></h3></div><div id="nextMeet"></div></div>
         <div class="section"><div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m4 13 5-5 4 3 6-7"/></svg></span><span>Melhores marcas confirmadas</span></h3></div><div class="table-scroll"><table><thead><tr><th>Prova</th><th>Melhor</th><th>Piscina</th><th>Data</th><th>Local</th></tr></thead><tbody id="bestTable"></tbody></table></div><div id="bestMobile" class="best-mobile"></div></div>
@@ -1267,7 +1272,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='41';
+const VINISWIM_BUILD='42';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -1495,6 +1500,7 @@ document.addEventListener('change',e=>{if(e.target.id==='setPhoto')handlePhotoUp
 
 function render(){
   normalizeKnownVenues();
+  renderDropboxRecovery();
   renderCards(); renderBest(); renderHistory(); renderMeets(); renderPredictions(); renderAlerts(); renderAudit(); fillFilters(); populateResultSelectors(); renderAthleteHero(); drawChart();
   $('#setAthleteName').value=DATA.settings?.athleteName||DATA.athlete?.name||'';
   $('#setTeam').value=DATA.settings?.team||DATA.athlete?.team||DATA.settings?.club||DATA.athlete?.club||'';
@@ -1887,7 +1893,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v41').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v42').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
@@ -2529,16 +2535,19 @@ function closeMobileSidebar(){
 function toggleMobileSidebar(){
   document.body.classList.contains('sidebar-open') ? closeMobileSidebar() : openMobileSidebar();
 }
+document.addEventListener('click',e=>{
+  const hb=e.target.closest('#mobileSidebarBtn');
+  if(hb){
+    e.preventDefault();
+    e.stopPropagation();
+    toggleMobileSidebar();
+  }
+});
+
 function initMobileSidebar(){
   const btn=$('#mobileSidebarBtn'), backdrop=$('#sidebarBackdrop');
   const mq=window.matchMedia('(max-width: 900px)');
-  if(btn){
-    btn.addEventListener('click',e=>{
-      e.preventDefault();
-      e.stopPropagation();
-      toggleMobileSidebar();
-    });
-  }
+  // clique do hambúrguer tratado por delegação global para maior robustez
   if(backdrop)backdrop.addEventListener('click',closeMobileSidebar);
 
   $$('.sidebar [data-page]').forEach(b=>{
@@ -2703,6 +2712,14 @@ function setDropboxStatus(text,state=''){
     s.className='sidebar-sync-status'+(state?' '+state:'');
   }
 }
+function renderDropboxRecovery(){
+  const panel=$('#dropboxRecoveryPanel');
+  if(panel)panel.hidden=!!dropboxReady;
+  const b=$('#dashboardDropboxConnect');
+  if(b)b.onclick=connectDropbox;
+  const s=$('#settingsDropboxConnect');
+  if(s)s.onclick=connectDropbox;
+}
 
 async function bootstrapDropbox(){
   try{
@@ -2718,6 +2735,7 @@ async function bootstrapDropbox(){
       setDropboxStatus('Dropbox · reconectar','err');
       document.body.classList.remove('auth-locked');
       render();
+      renderDropboxRecovery();
       nav('dashboard',{persist:false,updateHash:false});
       return;
     }
@@ -2733,8 +2751,7 @@ async function bootstrapDropbox(){
     }
     dropboxReady=true;
     setDropboxStatus('Dropbox · sincronizado','ok');
-    
-    
+    renderDropboxRecovery();
     document.body.classList.remove('auth-locked');
     cacheLocalData();
     render();
@@ -2757,6 +2774,7 @@ function logoutDropbox(){sessionStorage.removeItem(DBX_ACCESS);localStorage.remo
 ensureAlertSettings();
 document.body.classList.remove('auth-locked');
 render();
+renderDropboxRecovery();
 nav('dashboard',{persist:false,updateHash:false});
 initActionsMenu();
 initMobileSidebar();
