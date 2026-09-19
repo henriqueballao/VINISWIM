@@ -1272,7 +1272,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='48';
+const VINISWIM_BUILD='49';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -1886,7 +1886,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v48').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v49').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
@@ -2861,14 +2861,28 @@ async function bootstrapDropbox(){
     setTimeout(()=>syncPendingResultsFromServer({auto:true}),1200);
   }catch(e){
     dropboxReady=false;
-    setDropboxStatus('Dropbox · reconectar','err');
     console.error('VINISWIM Dropbox bootstrap',e);
+    const hasCached=!!readLocalData();
+    const hasCredential=!!(localStorage.getItem(DBX_ACCESS)||localStorage.getItem(DBX_REFRESH));
+    // Falha de rede/API na abertura não é motivo para pedir OAuth novamente.
+    // Com base local ou credencial persistida, o app abre normalmente e tenta
+    // sincronizar de novo na próxima oportunidade.
+    setDropboxStatus((hasCached||hasCredential)?'Dropbox · offline':'Dropbox · reconectar',(hasCached||hasCredential)?'':'err');
     document.body.classList.remove('auth-locked');
     render();
+    const panel=$('#dropboxRecoveryPanel');
+    if(panel)panel.hidden=!!(hasCached||hasCredential);
     nav('dashboard',{persist:false,updateHash:false});
   }
 }
-function logoutDropbox(){sessionStorage.removeItem(DBX_ACCESS);localStorage.removeItem(DBX_REFRESH);dropboxReady=false;setDropboxStatus('Dropbox · não conectado','err');}
+function logoutDropbox(){
+  localStorage.removeItem(DBX_ACCESS);
+  localStorage.removeItem(DBX_ACCESS_EXPIRES);
+  localStorage.removeItem(DBX_REFRESH);
+  sessionStorage.removeItem(DBX_PKCE);
+  dropboxReady=false;
+  setDropboxStatus('Dropbox · não conectado','err');
+}
 
 ensureAlertSettings();
 document.body.classList.remove('auth-locked');
