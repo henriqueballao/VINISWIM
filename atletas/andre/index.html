@@ -2253,7 +2253,8 @@ async function syncPushSubscription(){
 
   let sub=await reg.pushManager.getSubscription();
   const lastKey=String(DATA.settings?.vapidPublicKey||'');
-  if(sub && lastKey!==cfg.publicKey){
+  const vapidChanged=lastKey!==cfg.publicKey;
+  if(sub && vapidChanged){
     try{await sub.unsubscribe()}catch(_){}
     sub=null;
   }
@@ -2263,6 +2264,7 @@ async function syncPushSubscription(){
   DATA.settings.vapidPublicKey=cfg.publicKey;
   DATA.settings.pushServerUrl=VINISWIM_MONITOR_BASE;
   cacheLocalData();
+  if(vapidChanged && dropboxReady) dbxUpload().catch(e=>console.warn('push migration save',e));
   const payload={
     subscription:sub.toJSON(),
     athlete:{
@@ -3357,7 +3359,7 @@ async function bootstrapDropbox(){
     const remote=await dbxDownload();
     if(remote&&remote.app==='VINISWIM'){
       DATA=remote;
-      ensureRailwayMonitor();
+      const railwayMigrated=ensureRailwayMonitor();
       let personalMerged=false;
       if(cachedBeforeRemote && String(cachedBeforeRemote.settings?.athleteRegistration||cachedBeforeRemote.athlete?.registration||'')===String(DATA.settings?.athleteRegistration||DATA.athlete?.registration||'')){
         DATA.settings=DATA.settings||{};
@@ -3368,7 +3370,7 @@ async function bootstrapDropbox(){
       }
       const migrated=applyHistorical35Migration();
       cacheLocalData();
-      if(personalMerged && !migrated){
+      if((personalMerged||railwayMigrated) && !migrated){
         dropboxReady=true;
         await dbxUpload();
       }
