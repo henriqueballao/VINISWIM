@@ -1276,7 +1276,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='54';
+const VINISWIM_BUILD='60';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -1439,6 +1439,35 @@ function ensureHistoricalSources(){
     const x=DATA.sources.find(z=>z.id===id);
     if(x)Object.assign(x,p);
   }
+}
+function reconcileViniCurrentOfficialResults(){
+  DATA.settings=DATA.settings||{};
+  DATA.sources=DATA.sources||[];
+  DATA.results=DATA.results||[];
+
+  const meetUrl='https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0';
+  DATA.settings.athleteRegistration=DATA.settings.athleteRegistration||'422692';
+  DATA.settings.swimSystemMeetUrl=meetUrl;
+  DATA.settings.pushServerUrl=DATA.settings.pushServerUrl||'https://viniswim-monitor.onrender.com';
+  DATA.settings.resultSources=[...new Set([...(DATA.settings.resultSources||[]),meetUrl,'https://fdap.org.br/','https://fgda.org.br/'])];
+
+  if(!DATA.sources.find(s=>s.url===meetUrl)){
+    DATA.sources.push({id:'sw-202609-paranaense',title:'Campeonato Paranaense de Verão (Mirim/Petiz)',url:meetUrl,kind:'official'});
+  }
+
+  const official200={
+    date:'2026-09-19',category:'Petiz I',competitionType:'Estadual',
+    meet:'Campeonato Paranaense de Verão (Mirim/Petiz)',
+    venue:'Santa Mônica Clube de Campo',city:'Colombo',poolMeters:50,
+    event:'200 Livre',timeSeconds:216.38,time:'3\'36"38',
+    status:'official',
+    sourceId:'sw-202609-paranaense',
+    sourceUrl:'https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0/results?e=32ad25f4-1cfb-476a-8019-8afff3772117'
+  };
+  let r=DATA.results.find(x=>String(x.date||'')==='2026-09-19' && normalizeSwimEventName(x.event||'')==='200 Livre');
+  if(r)Object.assign(r,official200,{id:r.id||'vini-20260919-200livre'});
+  else DATA.results.push({id:'vini-20260919-200livre',...official200});
+  return true;
 }
 function applyHistorical35Migration(){
   DATA.settings=DATA.settings||{};
@@ -3215,6 +3244,7 @@ async function bootstrapDropbox(){
         }
       }
       const migrated=applyHistorical35Migration();
+      reconcileViniCurrentOfficialResults();
       cacheLocalData();
       if(personalMerged && !migrated){
         dropboxReady=true;
@@ -3267,6 +3297,7 @@ function logoutDropbox(){
 
 ensureAlertSettings();
 applyHistorical35Migration();
+reconcileViniCurrentOfficialResults();
 document.body.classList.remove('auth-locked');
 render();
 renderDropboxRecovery();
