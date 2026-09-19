@@ -980,7 +980,7 @@ tbody tr:hover{background:#f8fbfc}
           <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultados</span></h3><div class="results-head-actions no-print"><div class="swim-update-cluster"><button class="btn" id="updateSwimSystemBtn" onclick="updateFromSwimSystem()">↻ Atualizar SwimSystem</button><span id="lastSwimSystemUpdate" class="last-swim-update">Última atualização: —</span></div><button class="btn primary" onclick="openResultModal()">+ Novo resultado</button></div></div>
           <div class="filters"><select id="fEvent"><option value="">Todas as provas</option></select><select id="fPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Piscina não confirmada</option></select><select id="fSource"><option value="">Todas as origens</option><option value="official">Oficial SwimSystem</option><option value="provisional">SwimSystem parcial</option><option value="manual">Manual confirmado</option></select></div>
           <div id="swimSystemUpdateStatus" class="swimsystem-update-status"></div>
-          <div class="table-scroll"><table><thead><tr><th>Data</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody id="historyTable"></tbody></table></div><div id="mobileHistory" class="mobile-results"></div>
+          <div class="table-scroll"><table><thead><tr><th>Data</th><th>Categoria</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody id="historyTable"></tbody></table></div><div id="mobileHistory" class="mobile-results"></div>
         </div>
       </section>
 
@@ -1272,7 +1272,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='52';
+const VINISWIM_BUILD='53';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -1292,6 +1292,16 @@ let dropboxReady=false, dropboxRev='', saveTimer=null;
 
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 function fmtDate(s){if(!s)return '—';const [y,m,d]=s.split('-');return `${d}/${m}/${y}`}
+function resultDateLabel(r={}){
+  if(r.datePrecision==='competition-range' && r.dateEnd && r.dateEnd!==r.date)return fmtDate(r.date)+' a '+fmtDate(r.dateEnd);
+  return fmtDate(r.date);
+}
+function categoryForDate(date){
+  const year=String(date||'').slice(0,4);
+  return DATA.settings?.categoryByYear?.[year] || DATA.settings?.category || DATA.athlete?.category || '—';
+}
+function resultCategory(r={}){return r.category||categoryForDate(r.date)}
+
 function fmtTime(sec){if(sec==null||!isFinite(sec))return 'NT';sec=Number(sec);if(sec<60)return sec.toFixed(2).replace('.', '\"').replace(/(\d+)\"(\d+)/,'$1\"$2');let m=Math.floor(sec/60),s=sec-m*60;return `${m}'${s.toFixed(2).padStart(5,'0').replace('.', '\"')}`}
 function parseTime(v){
   v=String(v||'').trim().replace(',', '.').replace(/[”″]/g,'"').replace(/[’′]/g,"'");
@@ -1401,6 +1411,55 @@ function normalizeKnownVenues(){
   }
   return changed;
 }
+const HISTORICAL35_ROWS=[["2025-03-22","2025-03-23","competition-range","Mirim 2","Regional","Torneio Regional da 1ª Região","Santa Mônica Clube de Campo","Colombo",25,"100 Livre",131.61,"2'11\"61","manual","hist-202503"],["2025-03-22","2025-03-23","competition-range","Mirim 2","Regional","Torneio Regional da 1ª Região","Santa Mônica Clube de Campo","Colombo",25,"200 Livre",276.44,"4'36\"44","manual","hist-202503"],["2025-03-22","2025-03-23","competition-range","Mirim 2","Regional","Torneio Regional da 1ª Região","Santa Mônica Clube de Campo","Colombo",25,"50 Costas",57.52,"57\"52","manual","hist-202503"],["2025-03-22","2025-03-23","competition-range","Mirim 2","Regional","Torneio Regional da 1ª Região","Santa Mônica Clube de Campo","Colombo",25,"50 Livre",57.63,"57\"63","manual","hist-202503"],["2025-04-05","2025-04-05","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"50 Livre",53.09,"53\"09","official","sw-39519"],["2025-04-05","2025-04-05","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"50 Costas",58.78,"58\"78","official","sw-39519"],["2025-04-06","2025-04-06","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"50 Peito",75.22,"1'15\"22","official","sw-39519"],["2025-04-06","2025-04-06","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"100 Medley",135.79,"2'15\"79","official","sw-39519"],["2025-07-04","2025-07-04","exact","Mirim 2","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"100 Livre",112.82,"1'52\"82","official","sw-39523"],["2025-07-04","2025-07-04","exact","Mirim 2","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"200 Livre",251.29,"4'11\"29","official","sw-39523"],["2025-07-05","2025-07-05","exact","Mirim 2","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"50 Costas",56.73,"56\"73","official","sw-39523"],["2025-07-05","2025-07-05","exact","Mirim 2","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"50 Borboleta",59.68,"59\"68","official","sw-39523"],["2025-07-06","2025-07-06","exact","Mirim 2","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"100 Medley",128.44,"2'08\"44","official","sw-39523"],["2025-09-13","2025-09-13","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",50,"50 Livre",48.9,"48\"90","official","sw-39532"],["2025-09-13","2025-09-13","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",50,"200 Livre",241.8,"4'01\"80","official","sw-39532"],["2025-09-14","2025-09-14","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",50,"50 Costas",58.43,"58\"43","official","sw-39532"],["2025-09-14","2025-09-14","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",50,"50 Borboleta",65.71,"1'05\"71","official","sw-39532"],["2025-10-11","2025-10-12","competition-range","Mirim 2","Estadual","Campeonato Paranaense de Verão","Clube Curitibano","Curitiba",50,"100 Livre",115.1,"1'55\"10","official","sw-39533"],["2025-10-11","2025-10-12","competition-range","Mirim 2","Estadual","Campeonato Paranaense de Verão","Clube Curitibano","Curitiba",50,"200 Livre",230.75,"3'50\"75","official","sw-39533"],["2025-10-11","2025-10-12","competition-range","Mirim 2","Estadual","Campeonato Paranaense de Verão","Clube Curitibano","Curitiba",50,"50 Costas",55.9,"55\"90","official","sw-39533"],["2025-10-11","2025-10-12","competition-range","Mirim 2","Estadual","Campeonato Paranaense de Verão","Clube Curitibano","Curitiba",50,"50 Borboleta",68.83,"1'08\"83","official","sw-39533"],["2025-11-07","2025-11-07","exact","Mirim 2","Sul-Brasileiro","Campeonato Sul-Brasileiro Mirim & Petiz","Clube Curitibano","Curitiba",50,"100 Livre",112.98,"1'52\"98","official","sw-40366"],["2025-11-07","2025-11-07","exact","Mirim 2","Sul-Brasileiro","Campeonato Sul-Brasileiro Mirim & Petiz","Clube Curitibano","Curitiba",50,"50 Costas",56.98,"56\"98","official","sw-40366"],["2025-11-08","2025-11-08","exact","Mirim 2","Sul-Brasileiro","Campeonato Sul-Brasileiro Mirim & Petiz","Clube Curitibano","Curitiba",50,"200 Livre",227.56,"3'47\"56","official","sw-40366"],["2026-03-06","2026-03-06","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"100 Livre",105.58,"1'45\"58","official","sw-40595"],["2026-03-07","2026-03-07","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"50 Costas",54.68,"54\"68","official","sw-40595"],["2026-03-08","2026-03-08","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"100 Costas",115.91,"1'55\"91","official","sw-40595"],["2026-04-17","2026-04-17","exact","Petiz I","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"100 Livre",105.58,"1'45\"58","official","sw-40602"],["2026-04-18","2026-04-18","exact","Petiz I","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"50 Costas",51.92,"51\"92","official","sw-40602"],["2026-04-18","2026-04-18","exact","Petiz I","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"100 Costas",115.75,"1'55\"75","official","sw-40602"],["2026-04-19","2026-04-19","exact","Petiz I","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"50 Livre",44.68,"44\"68","official","sw-40602"],["2026-08-15","2026-08-15","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"100 Costas",106.97,"1'46\"97","manual","hist-202608"],["2026-08-15","2026-08-15","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"50 Livre",42.63,"42\"63","manual","hist-202608"],["2026-08-16","2026-08-16","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"50 Costas",52.94,"52\"94","manual","hist-202608"],["2026-08-16","2026-08-16","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"100 Livre",100.92,"1'40\"92","manual","hist-202608"]];
+function ensureHistoricalSources(){
+  const src=[
+    {id:'hist-202503',title:'Torneio Regional da 1ª Região',dateStart:'2025-03-22',dateEnd:'2025-03-23',city:'Colombo',venue:'Santa Mônica Clube de Campo',poolMeters:25,kind:'confirmed-history',note:'Histórico confirmado pelo usuário; centésimos corroborados por tempos de inscrição em relatórios oficiais posteriores.'},
+    {id:'sw-39533',title:'Campeonato Paranaense de Verão',url:'https://swimsystem.swimtimebrasil.com/39533/ProgressionDetails.pdf',dateStart:'2025-10-11',dateEnd:'2025-10-12',city:'Curitiba',venue:'Clube Curitibano',poolMeters:50,kind:'official'},
+    {id:'hist-202608',title:'Torneio Regional da 1ª Região',dateStart:'2026-08-15',dateEnd:'2026-08-16',city:'Curitiba',venue:'Clube Curitibano',poolMeters:25,kind:'confirmed-history',note:'Startlist oficial confirma piscina e competição; resultados confirmados no histórico do atleta.'}
+  ];
+  DATA.sources=DATA.sources||[];
+  for(const s of src){
+    const x=DATA.sources.find(z=>z.id===s.id);
+    if(x)Object.assign(x,s); else DATA.sources.push(s);
+  }
+  const patch={
+    'sw-39519':{title:'Torneio Regional da 1ª Região',poolMeters:25,venue:'Clube Curitibano'},
+    'sw-39523':{title:'Campeonato Paranaense de Inverno',poolMeters:25,venue:'Santa Mônica Clube de Campo'},
+    'sw-39532':{title:'Torneio Regional da 1ª Região',poolMeters:50,venue:'Clube Curitibano'},
+    'sw-40366':{title:'Campeonato Sul-Brasileiro Mirim & Petiz',poolMeters:50,venue:'Clube Curitibano'},
+    'sw-40595':{title:'Torneio Regional da 1ª Região',poolMeters:25,venue:'Clube Curitibano'},
+    'sw-40602':{title:'Campeonato Paranaense de Inverno',poolMeters:25,venue:'Santa Mônica Clube de Campo'}
+  };
+  for(const [id,p] of Object.entries(patch)){
+    const x=DATA.sources.find(z=>z.id===id);
+    if(x)Object.assign(x,p);
+  }
+}
+function applyHistorical35Migration(){
+  DATA.settings=DATA.settings||{};
+  DATA.audit=DATA.audit||{};
+  DATA.settings.categoryByYear={...(DATA.settings.categoryByYear||{}),'2025':'Mirim 2','2026':'Petiz I'};
+  ensureHistoricalSources();
+  if(DATA.audit.historical35Version===1)return false;
+
+  const future=(DATA.results||[]).filter(r=>String(r.date||'')>'2026-08-16');
+  const hist=HISTORICAL35_ROWS.map((x,i)=>({
+    id:'hist35-'+String(i+1).padStart(2,'0'),
+    date:x[0],dateEnd:x[1],datePrecision:x[2],
+    category:x[3],competitionType:x[4],meet:x[5],
+    venue:x[6],city:x[7],poolMeters:x[8],
+    event:x[9],timeSeconds:x[10],time:x[11],
+    status:x[12],sourceId:x[13],
+    migration:'historical35-v1'
+  }));
+  DATA.results=[...hist,...future];
+  DATA.audit.historical35Version=1;
+  DATA.audit.historical35AppliedAt=new Date().toISOString();
+  DATA.audit.historical35Count=35;
+  DATA.audit.categoryAnalysis='Evolução esportiva observada deve ser analisada separadamente da mudança de faixa etária/categoria.';
+  return true;
+}
 function sourceById(id){return DATA.sources.find(x=>x.id===id)||{}}
 function eventList(){return [...new Set(DATA.results.map(r=>r.event))].sort((a,b)=>{let na=parseInt(a),nb=parseInt(b);return na-nb||a.localeCompare(b)})}
 function confirmed(){return DATA.results.filter(r=>r.status==='official'||r.status==='manual')}
@@ -1445,6 +1504,8 @@ function liveAthleteSettingsPreview(){
   if(reg!==undefined)DATA.settings.athleteRegistration=reg;
   DATA.settings.birthDate=birth;
   DATA.settings.category=category;
+  DATA.settings.categoryByYear=DATA.settings.categoryByYear||{};
+  if(category)DATA.settings.categoryByYear[String(new Date().getFullYear())]=category;
   renderAthleteHero();
   renderLastSwimSync();
 }
@@ -1544,9 +1605,9 @@ function renderBest(){
     .map(ev=>bestFor(ev))
     .filter(Boolean);
 
-  $('#bestTable').innerHTML=rows.map(r=>`<tr><td>${r.event}</td><td class="mono best">${r.time}</td><td>${poolLabel(r.poolMeters)}</td><td>${fmtDate(r.date)}</td><td>${canonicalVenue(r)}</td></tr>`).join('');
+  $('#bestTable').innerHTML=rows.map(r=>`<tr><td>${r.event}</td><td class="mono best">${r.time}</td><td>${poolLabel(r.poolMeters)}</td><td>${resultDateLabel(r)}</td><td>${canonicalVenue(r)}</td></tr>`).join('');
   const bm=$('#bestMobile');
-  if(bm)bm.innerHTML=rows.map(r=>`<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${poolLabel(r.poolMeters)} · ${fmtDate(r.date)}</div></div><div class="time mono best">${r.time}</div></div><div class="meta">${canonicalVenue(r)}</div></div>`).join('');
+  if(bm)bm.innerHTML=rows.map(r=>`<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${poolLabel(r.poolMeters)} · ${resultDateLabel(r)}</div></div><div class="time mono best">${r.time}</div></div><div class="meta">${canonicalVenue(r)}</div></div>`).join('');
 }
 function fillFilters(){
   const events=eventList();
@@ -1638,9 +1699,9 @@ function resultStatusLabel(status){
 function renderHistory(){
   let ev=$('#fEvent')?.value||'', pool=$('#fPool')?.value||'', src=$('#fSource')?.value||'';
   let a=[...(DATA.results||[])].filter(r=>(!ev||r.event===ev)&&(!src||r.status===src)&&(!pool||(pool==='unknown'?r.poolMeters==null:String(r.poolMeters)===pool))).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(a.event||'').localeCompare(String(b.event||'')));
-  $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<tr><td>${fmtDate(r.date)}</td><td>${r.event}</td><td class="mono"><b>${r.time||fmtTime(r.timeSeconds)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||s.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusLabel(r.status)}</span></td><td><div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div></td></tr>`}).join('');
+  $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<tr><td>${resultDateLabel(r)}</td><td><b>${resultCategory(r)}</b></td><td>${r.event}</td><td class="mono"><b>${r.time||fmtTime(r.timeSeconds)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||s.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusLabel(r.status)}</span></td><td><div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div></td></tr>`}).join('');
   const mh=$('#mobileHistory');
-  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${fmtDate(r.date)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${r.time||fmtTime(r.timeSeconds)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div><div class="actions"><span class="tag ${r.status}">${resultStatusLabel(r.status)}</span><button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button></div></div>`}).join('');
+  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${r.time||fmtTime(r.timeSeconds)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div><div class="actions"><span class="tag ${r.status}">${resultStatusLabel(r.status)}</span><button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button></div></div>`}).join('');
 }
 ['fEvent','fPool','fSource'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)renderHistory()}));
 
@@ -1739,6 +1800,20 @@ function drawChart(){
   ctx.strokeStyle='#dfe5ea';ctx.lineWidth=1;ctx.font='11px system-ui';ctx.fillStyle='#6c7783';ctx.textAlign='left';
   for(let i=0;i<5;i++){let yy=pad.t+(h-pad.t-pad.b)*i/4;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();let val=max-(max-min)*i/4;ctx.fillText(fmtTime(val),6,yy+4)}
   dates.forEach((d,i)=>{if(dates.length>6 && i%Math.ceil(dates.length/6)!==0 && i!==dates.length-1)return;ctx.textAlign='center';ctx.fillStyle='#6c7783';ctx.fillText(d.slice(5,7)+'/'+d.slice(2,4),xDate(d),h-24)});
+  // Mudanças de categoria são contexto visual, sem atribuir causalidade ao crescimento.
+  let prevCat=null;
+  dates.forEach((d,i)=>{
+    const cats=[...new Set(ptsAll.filter(p=>p.date===d).map(resultCategory))];
+    const cat=cats[0]||null;
+    if(cat && prevCat && cat!==prevCat){
+      const xx=xDate(d);
+      ctx.save();ctx.strokeStyle='#87939f';ctx.setLineDash([5,5]);ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.moveTo(xx,pad.t);ctx.lineTo(xx,h-pad.b);ctx.stroke();
+      ctx.setLineDash([]);ctx.fillStyle='#596673';ctx.font='10px system-ui';ctx.textAlign='left';
+      ctx.fillText(cat,Math.min(xx+5,w-pad.r-55),pad.t+11);ctx.restore();
+    }
+    if(cat)prevCat=cat;
+  });
 
   groups.forEach((g,gi)=>{
     const color=palette[gi%palette.length];
@@ -1775,14 +1850,20 @@ function drawChart(){
   }
   ctx.textAlign='left';
   if(ev==='__all'){
-    $('#evolutionStats').innerHTML=`<b>Todos os estilos</b> · ${groups.length} prova(s) · ${ptsAll.length} resultado(s) confirmados${p?` · ${p==='unknown'?'piscina não confirmada':p+' m'}`:''}. Cada linha representa uma prova; os tempos não são comparados entre distâncias diferentes.`;
+    const cats=[...new Set(ptsAll.map(resultCategory))];
+    $('#evolutionStats').innerHTML=`<b>Evolução esportiva observada</b> · ${groups.length} prova(s) · ${ptsAll.length} resultado(s)${p?` · ${p==='unknown'?'piscina não confirmada':p+' m'}`:''}. Categorias no período: <b>${cats.join(' → ')}</b>. As mudanças de categoria aparecem como contexto no gráfico; não são tratadas como causa automática da melhora ou piora.`;
   }else{
     let pts=groups[0].pts;
     let confirmedPts=pts.filter(p=>p.status==='official'||p.status==='manual');
     let basis=confirmedPts.length?confirmedPts:pts;
     let first=basis[0],last=basis[basis.length-1],delta=last.timeSeconds-first.timeSeconds,pct=first.timeSeconds?(-delta/first.timeSeconds*100):0,best=Math.min(...basis.map(p=>p.timeSeconds));
     const provisional=pts.filter(p=>p.status==='provisional').sort((a,b)=>a.date.localeCompare(b.date)).at(-1);
-    $('#evolutionStats').innerHTML=`<b>${ev}</b> · ${basis.length} resultado(s) confirmado(s) · primeiro ${first.time} → último confirmado ${last.time} · ganho acumulado <b>${delta<0?(-delta).toFixed(2)+' s':'—'}</b>${delta<0?` · melhora <b>${pct.toFixed(1)}%</b>`:''} · melhor confirmado <b>${fmtTime(best)}</b>${provisional?` · provisório SwimSystem <b>${provisional.time}</b>`:''}.`;
+    const cats=[...new Set(basis.map(resultCategory))];
+    const lastCat=resultCategory(last);
+    const catPts=basis.filter(x=>resultCategory(x)===lastCat);
+    const cf=catPts[0],cl=catPts[catPts.length-1],cd=cl.timeSeconds-cf.timeSeconds,cp=cf.timeSeconds?(-cd/cf.timeSeconds*100):0;
+    const catText=catPts.length>1?` · dentro de <b>${lastCat}</b>: ${cf.time} → ${cl.time}, ${cd<0?'ganho '+(-cd).toFixed(2)+' s ('+cp.toFixed(1)+'%)':cd>0?'aumento '+cd.toFixed(2)+' s':'sem variação'}`:` · categoria atual do histórico: <b>${lastCat}</b>`;
+    $('#evolutionStats').innerHTML=`<b>Evolução esportiva observada — ${ev}</b> · ${basis.length} resultado(s) · primeiro ${first.time} → último ${last.time} · melhor <b>${fmtTime(best)}</b>${catText}${cats.length>1?` · transição <b>${cats.join(' → ')}</b> considerada como contexto de faixa etária`:''}. A mudança de categoria não é usada como explicação causal automática.${provisional?` Provisório SwimSystem: <b>${provisional.time}</b>.`:''}`;
   }
 }
 document.addEventListener('change',e=>{if(['chartEvent','chartPool'].includes(e.target.id))drawChart()});window.addEventListener('resize',()=>setTimeout(drawChart,50));
@@ -1851,7 +1932,7 @@ function saveResult(){
 function deleteResult(id){
   const r=DATA.results.find(x=>x.id===id);
   if(!r)return;
-  if(confirm(`Excluir ${r.event} · ${r.time||fmtTime(r.timeSeconds)} de ${fmtDate(r.date)}?\n\nA exclusão vale para a base local/Dropbox. Se o resultado continuar publicado no SwimSystem, uma sincronização futura poderá encontrá-lo novamente.`)){
+  if(confirm(`Excluir ${r.event} · ${r.time||fmtTime(r.timeSeconds)} de ${resultDateLabel(r)}?\n\nA exclusão vale para a base local/Dropbox. Se o resultado continuar publicado no SwimSystem, uma sincronização futura poderá encontrá-lo novamente.`)){
     DATA.results=DATA.results.filter(x=>x.id!==id);
     render();queueSave();
   }
@@ -1910,7 +1991,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v52').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v53').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
@@ -2648,7 +2729,11 @@ function collectSettingsFromForm(){
   if(team) DATA.settings.team=team.value.trim();
   if(reg) DATA.settings.athleteRegistration=reg.value.trim();
   if(birth) DATA.settings.birthDate=birth.value;
-  if(category) DATA.settings.category=category.value;
+  if(category){
+    DATA.settings.category=category.value;
+    DATA.settings.categoryByYear=DATA.settings.categoryByYear||{};
+    if(category.value)DATA.settings.categoryByYear[String(new Date().getFullYear())]=category.value;
+  }
   if(meetUrl) DATA.settings.swimSystemMeetUrl=meetUrl.value.trim();
   if(pushUrl) DATA.settings.pushServerUrl=pushUrl.value.trim();
 
@@ -2880,7 +2965,12 @@ async function bootstrapDropbox(){
     const remote=await dbxDownload();
     if(remote&&remote.app==='VINISWIM'){
       DATA=remote;
+      const migrated=applyHistorical35Migration();
       cacheLocalData();
+      if(migrated){
+        dropboxReady=true;
+        await dbxUpload();
+      }
     }else{
       DATA=JSON.parse(document.getElementById('seedData').textContent);
       dropboxReady=true;
@@ -2923,6 +3013,7 @@ function logoutDropbox(){
 }
 
 ensureAlertSettings();
+applyHistorical35Migration();
 document.body.classList.remove('auth-locked');
 render();
 renderDropboxRecovery();
