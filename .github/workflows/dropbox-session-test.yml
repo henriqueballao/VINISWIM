@@ -23,7 +23,6 @@ jobs:
       - name: Run persistence test
         shell: bash
         run: |
-          python3 -m http.server 4173 >/tmp/viniswim-http.log 2>&1 &
           node <<'NODE'
           const { chromium } = require('playwright');
           const assert = require('assert');
@@ -50,7 +49,7 @@ jobs:
               await route.fulfill({status:200,contentType:'application/json',body:'{"ok":true,"results":[]}'});
             });
 
-            await page.goto('http://127.0.0.1:4173/index.html');
+            await page.goto('https://henriqueballao.github.io/VINISWIM/',{waitUntil:'domcontentloaded'});
             await page.evaluate(()=>{
               localStorage.setItem('viniswim_dbx_access_v1','persisted-token');
               localStorage.setItem('viniswim_dbx_access_expires_v1',String(Date.now()+3600000));
@@ -58,6 +57,7 @@ jobs:
             });
             await page.reload();
             await page.waitForTimeout(1500);
+            console.log('LIVE_BUILD',await page.evaluate(()=>document.querySelector('#footerBuild')?.textContent||''));
 
             let state = await page.evaluate(()=>({
               status:document.querySelector('#sidebarSyncStatus')?.textContent||'',
@@ -79,7 +79,7 @@ jobs:
             await page2.route('https://viniswim-monitor.onrender.com/**', async route=>{
               await route.fulfill({status:200,contentType:'application/json',body:'{"ok":true,"results":[]}'});
             });
-            await page2.goto('http://127.0.0.1:4173/index.html');
+            await page2.goto('https://henriqueballao.github.io/VINISWIM/',{waitUntil:'domcontentloaded'});
             await page2.waitForTimeout(1500);
             state = await page2.evaluate(()=>({
               status:document.querySelector('#sidebarSyncStatus')?.textContent||'',
