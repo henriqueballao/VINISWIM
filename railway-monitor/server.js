@@ -1,4 +1,4 @@
-// VINISWIM MONITOR V38 — registra DNS/DSQ/DNF sem contaminar desempenho
+// VINISWIM MONITOR V39 — DNS/DSQ/DNF real + descoberta automatica das provas do atleta
 import express from 'express';
 import cors from 'cors';
 import webpush from 'web-push';
@@ -216,6 +216,14 @@ function participationStatus(raw=''){
   if(/\bdnf\b|nao completou|não completou|abandonou/.test(s))return {status:'dnf',code:'DNF',label:'Não Completou'};
   if(/\bns\b|nao largou|não largou/.test(s))return {status:'dns',code:'DNS',label:'Não Compareceu'};
   return null;
+}
+function participationFromResultStatus(raw=''){
+  const s=String(raw||'').trim().toUpperCase();
+  if(['DNS','NS','NO_SHOW','NOSHOW'].includes(s))return {status:'dns',code:'DNS',label:'Não Compareceu'};
+  if(['DSQ','DQ','DISQUALIFIED'].includes(s))return {status:'dsq',code:'DSQ',label:'Desclassificado'};
+  if(['DNF','DID_NOT_FINISH'].includes(s))return {status:'dnf',code:'DNF',label:'Não Completou'};
+  if(['WDR','WD','WITHDRAWN'].includes(s))return {status:'dns',code:'DNS',label:'Não Compareceu'};
+  return participationStatus(s);
 }
 
 function eventStatusFromPage($,eventLabel=''){
@@ -676,11 +684,13 @@ function pickEmbeddedRow(rows,entry){
   const seed=expectedSeedMs(entry);
   const lane=Number(entry?.lane);
   const scored=rows
-    .filter(r=>Number.isFinite(r.resultTimeMs)&&r.resultTimeMs>0&&r.resultStatus!=='DNS'&&r.resultStatus!=='WDR')
+    .filter(r=>(Number.isFinite(r.resultTimeMs)&&r.resultTimeMs>0) || !!participationFromResultStatus(r.resultStatus))
     .map(r=>{
       let score=0;
       if(Number.isFinite(lane)&&r.lane===lane)score+=6;
       if(seed!=null && (r.entryTimeMs===seed || r.seedTimeMs===seed))score+=10;
+      // Status de participação é tão válido quanto um tempo publicado.
+      if(participationFromResultStatus(r.resultStatus))score+=1;
       return {r,score};
     })
     .sort((a,b)=>b.score-a.score);
@@ -736,7 +746,26 @@ async function detectEmbeddedOfficialResults(base,device,meet,expected){
       ?'official'
       :(/PARTIAL|PROVISION|UNOFFICIAL/.test(rawStatus)?'partial':'published');
 
+    const participation=participationFromResultStatus(row.resultStatus);
+    if(participation){
+      out.push({
+        event:entry.event,
+        timeSeconds:null,
+        time:null,
+        entryTime:entry.seed||null,
+        lane:row.lane||entry.lane||null,
+        place:row.place,
+        aqua:row.performancePoints,
+        status:participation.status,
+        resultCode:participation.code,
+        resultLabel:participation.label,
+        sourceUrl
+      });
+      continue;
+    }
+
     const sec=row.resultTimeMs/1000;
+    if(!Number.isFinite(sec)||sec<=0)continue;
     out.push({
       event:entry.event,
       timeSeconds:sec,
@@ -992,6 +1021,52 @@ async function detectFederationResults(device){
   return results;
 }
 
+async function discoverAthleteExpectedEvents(base,athlete){
+  try{
+    const html=await fetchText(meetBase(base)+'/athletes',12000);
+    const $=cheerio.load(html);
+    const names=athleteNameForms(athlete);
+    let bestText='';
+
+    $('body *').each((_,el)=>{
+      const own=$(el).clone().children().remove().end().text().replace(/\s+/g,' ').trim();
+      if(!own)return;
+      const ownNorm=canonicalPersonName(own);
+      if(!names.some(n=>ownNorm===n))return;
+
+      let cur=$(el);
+      for(let depth=0;depth<8&&cur.length;depth++,cur=cur.parent()){
+        const txt=cur.text().replace(/\s+/g,' ').trim();
+        const matches=[...txt.matchAll(/\b((?:\d+x)?\d{2,4})\s*m?\s*(Livre|Costas|Peito|Borboleta|Medley)\b/gi)];
+        if(matches.length){
+          if(!bestText || txt.length<bestText.length)bestText=txt;
+          break;
+        }
+      }
+    });
+
+    // Fallback: janela de texto a partir do nome até o próximo bloco de atleta.
+    if(!bestText){
+      const body=$('body').text().replace(/\s+/g,' ').trim();
+      for(const raw of [athlete.name,...(athlete.aliases||[])].filter(Boolean)){
+        const pos=normalize(body).indexOf(normalize(raw));
+        if(pos>=0){bestText=body.slice(pos,pos+1800);break;}
+      }
+    }
+
+    const out=[];
+    const seen=new Set();
+    for(const m of bestText.matchAll(/\b((?:\d+x)?\d{2,4})\s*m?\s*(Livre|Costas|Peito|Borboleta|Medley)\b/gi)){
+      const ev=cleanEventName(m[1]+' '+m[2]);
+      if(ev&&!seen.has(ev)){seen.add(ev);out.push(ev);}
+    }
+    return out;
+  }catch(e){
+    console.warn('athlete event discovery',e?.message||e);
+    return [];
+  }
+}
+
 async function detectResults(device,state=null){
   const base=meetBase(device.swimSystemMeetUrl||device.meets?.find(m=>m.sourceUrl)?.sourceUrl||'');
   if(!base)return [];
@@ -999,7 +1074,8 @@ async function detectResults(device,state=null){
   const athlete=device.athlete||{};
   const registration=String(athlete.registration||'');
   const meet=device.meets?.find(m=>meetBase(m.sourceUrl||'')===base) || device.meets?.[0] || null;
-  const expected=expectedEventNames(device);
+  let expected=expectedEventNames(device);
+  if(!expected.length)expected=await discoverAthleteExpectedEvents(base,athlete);
   const results=[];
 
   // Caminho principal e rápido: dados estruturados embutidos pelo próprio SwimSystem.
@@ -1022,9 +1098,14 @@ async function detectResults(device,state=null){
     let pages=discovery.pages;
     const filtered=pages.filter(p=>likelyExpectedEvent(p.label,expected));
     if(filtered.length)pages=filtered;
-    else if(expected.length)pages=pages.slice(0,12);
+    else if(expected.length){
+      const explicit=discoverExpectedEventPages(discovery.resultsHtml||'',base,expected);
+      if(explicit.length)pages=explicit;
+      else pages=pages.slice(0,Math.min(36,pages.length));
+    }
 
-    const scanPages=pages.slice(0,24);
+    // Sem lista de provas, varre todas as páginas descobertas do meet para não perder DNS.
+    const scanPages=expected.length?pages.slice(0,36):pages.slice(0,96);
     const pageResults=await mapLimit(scanPages,12,async p=>{
       const html=await fetchText(p.url,6000);
       const norm=normalize(html);
@@ -1045,7 +1126,13 @@ async function detectResults(device,state=null){
 
   const seen=new Set();
   return results.filter(r=>{
-    const key=[r.event||'',r.time||'',r.sourceUrl||''].join('|');
+    const key=[
+      registration,
+      r.date||'',
+      cleanEventName(r.event||''),
+      r.time||r.resultCode||r.status||'',
+      r.sourceUrl||''
+    ].join('|');
     if(seen.has(key))return false;
     seen.add(key);
     return true;
@@ -1130,7 +1217,7 @@ function canonicalResultKey(r={}){
     String(r.registration||''),
     String(r.date||''),
     cleanEventName(r.event||''),
-    String(r.time||fmt(Number(r.timeSeconds))||'')
+    String(r.time||r.resultCode||r.status||fmt(Number(r.timeSeconds))||'')
   ].join('|');
 }
 
@@ -1191,9 +1278,14 @@ async function applyDetectedResults(state,devices,found,{notify=true}={}){
       // nunca envia notificação novamente, mesmo após restart/deploy do monitor.
       if(deviceKnowsResult(device,r))continue;
       const partial=r.status==='partial';
+      const participation=['dns','dsq','dnf'].includes(r.status);
       const ok=await sendPush(device,{
-        title:r.status==='official'?'VINISWIM — resultado oficial':`VINISWIM — resultado publicado${partial?' (parcial)':''}`,
-        body:`${r.event||'Prova'}: ${r.time}${partial?' · ainda não oficializado':''}`,
+        title:participation
+          ?'VINISWIM — situação da prova'
+          :(r.status==='official'?'VINISWIM — resultado oficial':`VINISWIM — resultado publicado${partial?' (parcial)':''}`),
+        body:participation
+          ?`${r.event||'Prova'}: ${r.resultCode||r.status.toUpperCase()} · ${r.resultLabel||''}`.trim()
+          :`${r.event||'Prova'}: ${r.time}${partial?' · ainda não oficializado':''}`,
         // tag estável: o sistema operacional substitui uma eventual cópia,
         // em vez de empilhar notificações iguais.
         tag:'result-'+canonicalKey,
@@ -1332,7 +1424,7 @@ async function monitor(){
   finally{checking=false}
 }
 
-app.get('/health',(req,res)=>res.json({ok:true,version:'V38',features:{fdapCrawler:true,fdapPagination:true,fdapJsonApi:true,jsonpTransport:true,autonomousAthletes:true,refreshOnDemand:true,asyncRefresh:true},time:new Date().toISOString()}));
+app.get('/health',(req,res)=>res.json({ok:true,version:'V39',features:{fdapCrawler:true,fdapPagination:true,fdapJsonApi:true,jsonpTransport:true,autonomousAthletes:true,refreshOnDemand:true,asyncRefresh:true},time:new Date().toISOString()}));
 
 
 app.get('/refresh-athlete',async(req,res)=>{
@@ -1368,7 +1460,7 @@ app.get('/refresh-athlete',async(req,res)=>{
   const pending=state.pendingResults.filter(x=>String(x.registration||'')===registration);
   jsonOrJsonp(req,res,{
     ok:true,
-    version:'V38',
+    version:'V39',
     registration,
     started:!existing?.running,
     running:true,
@@ -1387,7 +1479,7 @@ app.get('/athletes-summary',async(req,res)=>{
       updatedAt:null
     })
   }));
-  res.json({ok:true,version:'V38',athletes});
+  res.json({ok:true,version:'V39',athletes});
 });
 
 app.get('/status',async(req,res)=>{
@@ -1397,7 +1489,7 @@ app.get('/status',async(req,res)=>{
   const devices=state.devices.filter(x=>!registration||String(x.athlete?.registration||'')===registration);
   res.json({
     ok:true,
-    version:'V38',
+    version:'V39',
     devices:devices.length,
     registrations:devices.map(x=>String(x.athlete?.registration||'')),
     pendingResults:state.pendingResults.filter(x=>!registration||String(x.registration||'')===registration).length,
@@ -1417,7 +1509,7 @@ app.get('/debug-meet-base',async(req,res)=>{
   const raw=device.swimSystemMeetUrl||device.meets?.find(m=>m.sourceUrl)?.sourceUrl||'';
   res.json({
     ok:true,
-    version:'V38',
+    version:'V39',
     raw,
     meetBase:meetBase(raw)
   });
@@ -1442,7 +1534,7 @@ app.get('/scan-event-now',async(req,res)=>{
   catch(e){return res.status(502).json({error:e.message,url:u.toString()})}
 
   const rows=parseAthleteRowsFromResultPage(html,u.toString(),device,'');
-  res.json({ok:true,version:'V38',url:u.toString(),athleteFound:normalize(html).includes(normalize(device.athlete?.name||'')),rows});
+  res.json({ok:true,version:'V39',url:u.toString(),athleteFound:normalize(html).includes(normalize(device.athlete?.name||'')),rows});
 });
 
 app.get('/scan-results-now',async(req,res)=>{
@@ -1472,7 +1564,7 @@ app.get('/scan-results-now',async(req,res)=>{
   }
 
   await saveState(state);
-  res.json({ok:true,devices:devices.length,version:'V38',scans});
+  res.json({ok:true,devices:devices.length,version:'V39',scans});
 });
 
 app.get('/schedule-test-alert',async(req,res)=>{
@@ -1619,7 +1711,7 @@ async function runResultScanForRegistration(registration,fallbackDevice=null){
     job.detectedSwimSystem=liveDetected.length;
     job.detectedFederation=federationDetected.length;
     job.federationPagesScanned=Number(federationDetected._pagesScanned||0);
-    job.lastVersion='V38';
+    job.lastVersion='V39';
 
     await applyDetectedResults(state,devices,detected);
     await saveState(state);
@@ -1635,7 +1727,7 @@ async function runResultScanForRegistration(registration,fallbackDevice=null){
   }
 }
 
-app.get('/config',(req,res)=>jsonOrJsonp(req,res,{publicKey:VAPID_PUBLIC_KEY,version:'V38'}));
+app.get('/config',(req,res)=>jsonOrJsonp(req,res,{publicKey:VAPID_PUBLIC_KEY,version:'V39'}));
 
 app.post('/subscribe',async(req,res)=>{
   const b=req.body||{};
@@ -1700,7 +1792,7 @@ app.get('/subscribe-simple',async(req,res)=>{
   };
   if(existing)Object.assign(existing,device); else state.devices.push(device);
   await saveState(state);
-  jsonOrJsonp(req,res,{ok:true,version:'V38',deviceId:device.id});
+  jsonOrJsonp(req,res,{ok:true,version:'V39',deviceId:device.id});
 });
 
 app.post('/sync-results',async(req,res)=>{
@@ -1768,7 +1860,7 @@ app.post('/sync-results',async(req,res)=>{
   const pending=state.pendingResults.filter(x=>String(x.registration)===registration);
   res.json({
     ok:true,
-    version:'V38',
+    version:'V39',
     started:!existing?.running,
     running:true,
     devices:devices.length,
@@ -1832,7 +1924,7 @@ app.get('/sync-results-simple',async(req,res)=>{
     runResultScanForRegistration(registration,fallbackDevice).catch(e=>console.error('async simple result scan',e));
   }
   const pending=state.pendingResults.filter(x=>String(x.registration)===registration);
-  jsonOrJsonp(req,res,{ok:true,version:'V38',started:!existing?.running,running:true,devices:devices.length,transient:!devices.length,results:pending});
+  jsonOrJsonp(req,res,{ok:true,version:'V39',started:!existing?.running,running:true,devices:devices.length,transient:!devices.length,results:pending});
 });
 
 app.get('/sync-status',async(req,res)=>{
@@ -1842,7 +1934,7 @@ app.get('/sync-status',async(req,res)=>{
   const results=state.pendingResults.filter(x=>String(x.registration)===registration);
   jsonOrJsonp(req,res,{
     ok:true,
-    version:'V38',
+    version:'V39',
     running:!!job?.running,
     startedAt:job?.startedAt||null,
     finishedAt:job?.finishedAt||null,
@@ -1893,7 +1985,7 @@ app.get('/pending-results/ack-simple',async(req,res)=>{
   }
   state.pendingResults=state.pendingResults.filter(x=>!(String(x.registration)===registration && rids.includes(String(x._rid||''))));
   await saveState(state);
-  jsonOrJsonp(req,res,{ok:true,version:'V38',removed:before-state.pendingResults.length});
+  jsonOrJsonp(req,res,{ok:true,version:'V39',removed:before-state.pendingResults.length});
 });
 
 app.post('/swimsystem/import',async(req,res)=>{
