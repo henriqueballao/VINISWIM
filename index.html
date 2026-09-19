@@ -30,7 +30,8 @@ button,input,select{font:inherit}.app{display:grid;grid-template-columns:250px 1
 main{min-width:0}.topbar{height:70px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:10}.topbar h1{font-size:18px;margin:0}.sync{display:flex;gap:8px;align-items:center}.pill{padding:7px 10px;border-radius:999px;background:#eef3f6;color:#4b5a67;font-size:12px}.pill.ok{background:#e8f5ef;color:var(--good)}.btn{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:9px;cursor:pointer}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}.btn.danger{color:var(--bad)}.content{padding:24px;max-width:1500px;margin:auto}
 .page{display:none}.page.active{display:block}.hero{background:linear-gradient(135deg,var(--nav) 0%,var(--accent2) 100%);color:white;padding:24px;border-radius:18px;display:grid;grid-template-columns:1.5fr .7fr;gap:24px;margin-bottom:20px}.hero h2{font-size:27px;margin:0 0 7px}.hero p{margin:0;color:#b7c5cf}.hero-stat{align-self:center;text-align:right}.hero-stat b{font-size:38px}.hero-stat span{display:block;color:#9fb1bf;font-size:12px}
 .grid{display:grid;gap:16px}.grid.cards{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow)}.card .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}.card .v{font-size:28px;font-weight:750;margin-top:7px}.card .s{font-size:12px;color:var(--muted);margin-top:5px}.section{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.section h3{margin:0;font-size:16px}.filters{display:flex;flex-wrap:wrap;gap:8px}.filters select,.filters input,.form input,.form select{border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff}
-table{border-collapse:collapse;width:100%}th,td{padding:10px 9px;border-bottom:1px solid #edf0f2;text-align:left;font-size:13px}th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#65727d}.mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.tag{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:700}.tag.official{background:#e8f5ef;color:var(--good)}.tag.manual{background:#fff3dd;color:var(--warn)}.tag.provisional{background:#eaf3ff;color:#2f6faa}.tag.unknown{background:#f1f3f5;color:#66717b}.best{font-weight:800;color:var(--good)}
+table{border-collapse:collapse;width:100%}th,td{padding:10px 9px;border-bottom:1px solid #edf0f2;text-align:left;font-size:13px}th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#65727d}.mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.tag{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:700}.tag.official{background:#e8f5ef;color:var(--good)}.tag.manual{background:#fff3dd;color:var(--warn)}.tag.provisional{background:#eaf3ff;color:#2f6faa}.tag.unknown{background:#f1f3f5;color:#66717b}
+.tag.dns,.tag.dsq,.tag.dnf{background:#f3f4f6;color:#4b5563}.best{font-weight:800;color:var(--good)}
 .chart-wrap{height:360px;position:relative}.chart-wrap canvas{width:100%;height:100%}.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:12px}.legend span:before{content:"";display:inline-block;width:18px;height:3px;background:currentColor;margin-right:6px;vertical-align:middle}
 .meet{display:grid;grid-template-columns:1fr auto;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}.meet:last-child{border-bottom:0}.meet h4{margin:0 0 4px}.meet p{margin:0;color:var(--muted);font-size:12px}.entry-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}.entry{padding:12px;border:1px solid var(--line);border-radius:10px}.entry b{display:block}.entry small{color:var(--muted)}
 .pred{display:grid;grid-template-columns:minmax(220px,1fr) 160px repeat(3,120px) 105px;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid var(--line)}.pred:last-child{border-bottom:0}.pred .range{text-align:center;padding:10px;border-radius:9px;background:#f6f8fa}.pred .range b{display:block}.confidence{font-size:11px;padding:6px 8px;border-radius:999px;text-align:center}.confidence.high{background:#e8f5ef;color:var(--good)}.confidence.medium{background:#fff3dd;color:var(--warn)}.confidence.low{background:#f1f3f5;color:#66717b}.actual-result-card{border:1px solid #b9dccc;background:#eef8f3;border-radius:10px;padding:9px 10px;text-align:center}.actual-result-card.provisional{border-style:dashed;background:#f3f8fd;border-color:#a9c9e7}.actual-result-card small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}.actual-result-card .actual-time{font:800 18px 'Space Grotesk',Inter,sans-serif;margin-top:2px}.actual-result-card .actual-delta{font-size:11px;font-weight:700;margin-top:4px}.actual-result-card .better{color:var(--good)}.actual-result-card .worse{color:var(--bad)}.actual-result-card .same{color:var(--muted)}.expect-vs-actual{display:block;margin-top:4px;font-size:10px;font-weight:800}.expect-vs-actual.better{color:var(--good)}.expect-vs-actual.worse{color:var(--bad)}.expect-vs-actual.same{color:var(--muted)}.meet-state{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:800;margin-left:8px}.meet-state.current{background:#e8f5ef;color:var(--good)}.meet-state.next{background:#eaf3ff;color:#2f6faa}
@@ -1495,9 +1496,9 @@ function applyHistorical35Migration(){
 }
 function sourceById(id){return DATA.sources.find(x=>x.id===id)||{}}
 function eventList(){return [...new Set(DATA.results.map(r=>r.event))].sort((a,b)=>{let na=parseInt(a),nb=parseInt(b);return na-nb||a.localeCompare(b)})}
-function confirmed(){return DATA.results.filter(r=>r.status==='official'||r.status==='manual')}
+function confirmed(){return DATA.results.filter(r=>(r.status==='official'||r.status==='manual')&&Number.isFinite(Number(r.timeSeconds))&&Number(r.timeSeconds)>0)}
 function bestFor(event,pool){let a=confirmed().filter(r=>r.event===event&&(pool==null||r.poolMeters===pool));return a.sort((x,y)=>x.timeSeconds-y.timeSeconds)[0]}
-function officialCount(){return DATA.results.filter(r=>r.status==='official').length}
+function officialCount(){return DATA.results.filter(r=>r.status==='official'&&Number.isFinite(Number(r.timeSeconds))&&Number(r.timeSeconds)>0).length}
 
 const NAV_PAGES=['dashboard','history','evolution','meets','predictions','alerts','audit','settings'];
 function pageFromHash(){
@@ -1732,14 +1733,21 @@ document.addEventListener('input',e=>{if(e.target.id==='rTime')syncResultPreview
 function resultStatusLabel(status){
   if(status==='official')return 'OFICIAL SWIMSYSTEM';
   if(status==='provisional')return 'SWIMSYSTEM PARCIAL';
+  if(status==='dns')return 'DNS · NÃO COMPARECEU';
+  if(status==='dsq')return 'DSQ · DESCLASSIFICADO';
+  if(status==='dnf')return 'DNF · NÃO COMPLETOU';
   return 'MANUAL';
+}
+function resultDisplayValue(r){
+  if(r.status==='dns'||r.status==='dsq'||r.status==='dnf')return r.resultCode||resultStatusLabel(r.status).split(' · ')[0];
+  return r.time||fmtTime(r.timeSeconds);
 }
 function renderHistory(){
   let ev=$('#fEvent')?.value||'', pool=$('#fPool')?.value||'', src=$('#fSource')?.value||'';
   let a=[...(DATA.results||[])].filter(r=>(!ev||r.event===ev)&&(!src||r.status===src)&&(!pool||(pool==='unknown'?r.poolMeters==null:String(r.poolMeters)===pool))).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(a.event||'').localeCompare(String(b.event||'')));
-  $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<tr><td>${resultDateLabel(r)}</td><td><b>${resultCategory(r)}</b></td><td>${r.event}</td><td class="mono"><b>${r.time||fmtTime(r.timeSeconds)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||s.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusLabel(r.status)}</span></td><td><div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div></td></tr>`}).join('');
+  $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<tr><td>${resultDateLabel(r)}</td><td><b>${resultCategory(r)}</b></td><td>${r.event}</td><td class="mono"><b>${resultDisplayValue(r)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||s.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusLabel(r.status)}</span></td><td><div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div></td></tr>`}).join('');
   const mh=$('#mobileHistory');
-  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${r.time||fmtTime(r.timeSeconds)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div><div class="actions"><span class="tag ${r.status}">${resultStatusLabel(r.status)}</span><button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button></div></div>`}).join('');
+  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${resultDisplayValue(r)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div><div class="actions"><span class="tag ${r.status}">${resultStatusLabel(r.status)}</span><button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button></div></div>`}).join('');
 }
 ['fEvent','fPool','fSource'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)renderHistory()}));
 
@@ -1970,7 +1978,7 @@ function saveResult(){
 function deleteResult(id){
   const r=DATA.results.find(x=>x.id===id);
   if(!r)return;
-  if(confirm(`Excluir ${r.event} · ${r.time||fmtTime(r.timeSeconds)} de ${resultDateLabel(r)}?\n\nA exclusão vale para a base local/Dropbox. Se o resultado continuar publicado no SwimSystem, uma sincronização futura poderá encontrá-lo novamente.`)){
+  if(confirm(`Excluir ${r.event} · ${resultDisplayValue(r)} de ${resultDateLabel(r)}?\n\nA exclusão vale para a base local/Dropbox. Se o resultado continuar publicado no SwimSystem, uma sincronização futura poderá encontrá-lo novamente.`)){
     DATA.results=DATA.results.filter(x=>x.id!==id);
     render();queueSave();
   }
@@ -2230,14 +2238,16 @@ function ensureAutoSource(x){
 }
 function normalizeServerResult(x){
   const seconds=Number.isFinite(Number(x.timeSeconds))?Number(x.timeSeconds):parseTime(x.time);
-  const status=x.status==='official'?'official':'provisional';
+  const status=['official','dns','dsq','dnf'].includes(x.status)?x.status:'provisional';
   return {
     id:x._rid||('swim-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)),
     _rid:x._rid||null,
     date:inferServerResultDate(x),
     event:normalizeSwimEventName(x.event||'Prova'),
-    timeSeconds:seconds,
-    time:x.time||fmtTime(seconds),
+    timeSeconds:['dns','dsq','dnf'].includes(status)?null:seconds,
+    time:['dns','dsq','dnf'].includes(status)?null:(x.time||fmtTime(seconds)),
+    resultCode:x.resultCode||null,
+    resultLabel:x.resultLabel||null,
     poolMeters:Number(x.poolMeters||x.pool)||null,
     venue:x.venue||null,
     city:x.city||null,
@@ -2745,7 +2755,7 @@ async function updateFromSwimSystem(){
 function renderPendingOfficialResults(){
   if(!$('#pendingOfficialResults'))return;
   let a=DATA.pendingOfficialResults||[];
-  $('#pendingOfficialResults').innerHTML=a.length?a.map((r,i)=>`<div class="card" style="margin-bottom:10px"><div class="k">RESULTADO ENCONTRADO · SINCRONIZAÇÃO PENDENTE</div><div class="v mono" style="font-size:23px">${r.event||'Prova'} · ${r.time||fmtTime(r.timeSeconds)}</div><div class="s">${r.meet||''} ${r.publishedAt?'· publicado '+new Date(r.publishedAt).toLocaleString('pt-BR'):''}</div><div style="margin-top:10px;display:flex;gap:8px"><button class="btn primary" onclick="confirmOfficialResult(${i})">Confirmar e importar</button><button class="btn" onclick="discardOfficialResult(${i})">Descartar</button></div></div>`).join(''):'<span style="color:var(--muted)">Nenhum resultado oficial aguardando confirmação.</span>';
+  $('#pendingOfficialResults').innerHTML=a.length?a.map((r,i)=>`<div class="card" style="margin-bottom:10px"><div class="k">RESULTADO ENCONTRADO · SINCRONIZAÇÃO PENDENTE</div><div class="v mono" style="font-size:23px">${r.event||'Prova'} · ${resultDisplayValue(r)}</div><div class="s">${r.meet||''} ${r.publishedAt?'· publicado '+new Date(r.publishedAt).toLocaleString('pt-BR'):''}</div><div style="margin-top:10px;display:flex;gap:8px"><button class="btn primary" onclick="confirmOfficialResult(${i})">Confirmar e importar</button><button class="btn" onclick="discardOfficialResult(${i})">Descartar</button></div></div>`).join(''):'<span style="color:var(--muted)">Nenhum resultado oficial aguardando confirmação.</span>';
 }
 function confirmOfficialResult(i){
   let r=DATA.pendingOfficialResults[i];if(!r)return;
