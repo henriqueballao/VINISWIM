@@ -1250,7 +1250,7 @@ tbody tr:hover{background:#f8fbfc}
   "app": "VINISWIM",
   "athlete": {
     "name": "Lorenzo Azevedo FORTES",
-    "aliases": ["Lorenzo de Azevedo FORTES", "Lorenzo Azevedo FORTES"],
+    "aliases": ["Lorenzo de Azevedo FORTES", "Lorenzo Azevedo FORTES", "Lorenzo De Fortes"],
     "registration": "399680",
     "birthYear": 2015,
     "club": "Clube Curitibano",
@@ -1599,7 +1599,7 @@ const HISTORICAL35_ROWS=[["2025-03-22","2025-03-23","competition-range","Mirim 2
 function ensureLorenzoIdentityAndCurrentResults(){
   DATA.athlete=DATA.athlete||{};
   DATA.settings=DATA.settings||{};
-  DATA.athlete.aliases=[...new Set([...(DATA.athlete.aliases||[]),'Lorenzo Azevedo FORTES','Lorenzo de Azevedo FORTES'])];
+  DATA.athlete.aliases=[...new Set([...(DATA.athlete.aliases||[]),'Lorenzo Azevedo FORTES','Lorenzo de Azevedo FORTES','Lorenzo De Fortes'])];
   const official=[
     {id:'lor-20260918-50costas',date:'2026-09-18',category:'Petiz I',competitionType:'Estadual',meet:'Campeonato Paranaense de Verão (Mirim/Petiz)',meetId:'m-202609',venue:'Santa Mônica Clube de Campo',city:'Colombo',poolMeters:50,event:'50 Costas',timeSeconds:41.31,time:'41"31',seed:'41"89',series:6,lane:1,status:'official',sourceId:'swimsystem-auto',sourceUrl:'https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0/results?e=8f48b7d8-67bb-45be-ad84-43ae2048e08c'},
     {id:'lor-20260919-200livre',date:'2026-09-19',category:'Petiz I',competitionType:'Estadual',meet:'Campeonato Paranaense de Verão (Mirim/Petiz)',meetId:'m-202609',venue:'Santa Mônica Clube de Campo',city:'Colombo',poolMeters:50,event:'200 Livre',timeSeconds:166.54,time:'2\'46"54',seed:'2\'45"54',series:7,lane:6,status:'official',sourceId:'swimsystem-auto',sourceUrl:'https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0/results?e=32ad25f4-1cfb-476a-8019-8afff3772117'}
