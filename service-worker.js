@@ -1,5 +1,5 @@
-const BUILD='54';
-const CACHE='viniswim-v54';
+const BUILD='55';
+const CACHE='viniswim-v55';
 const CORE=['./manifest.webmanifest','./apple-touch-icon.png','./icon-192.png','./icon-512.png','./viniswim-logo.svg'];
 
 self.addEventListener('install',e=>{
@@ -27,16 +27,23 @@ self.addEventListener('message',e=>{
 
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
-  const url=new URL(e.request.url);
-  const isNavigation=e.request.mode==='navigate' || url.pathname.endsWith('/VINISWIM/') || url.pathname.endsWith('/VINISWIM/index.html');
+  const u=new URL(e.request.url);
 
-  if(isNavigation){
+  // Não interceptar chamadas externas (Render, Dropbox, SwimSystem, FDAP etc.).
+  // Deixa o navegador receber o erro real/retry, evitando respondWith(null).
+  if(u.origin!==self.location.origin)return;
+
+  const nav=e.request.mode==='navigate'||u.pathname.endsWith('/VINISWIM/')||u.pathname.endsWith('/VINISWIM/index.html');
+  if(nav){
     e.respondWith(
       fetch(e.request,{cache:'no-store'}).then(r=>{
         const copy=r.clone();
         caches.open(CACHE).then(cache=>cache.put('./index.html',copy)).catch(()=>{});
         return r;
-      }).catch(()=>caches.match('./index.html'))
+      }).catch(async()=>{
+        const cached=await caches.match('./index.html');
+        return cached||new Response('Offline',{status:503,statusText:'Offline'});
+      })
     );
     return;
   }
@@ -46,10 +53,12 @@ self.addEventListener('fetch',e=>{
       const copy=r.clone();
       caches.open(CACHE).then(cache=>cache.put(e.request,copy)).catch(()=>{});
       return r;
-    }).catch(()=>caches.match(e.request))
+    }).catch(async()=>{
+      const cached=await caches.match(e.request);
+      return cached||new Response('Offline',{status:503,statusText:'Offline'});
+    })
   );
 });
-
 self.addEventListener('push',e=>{
   let d={};try{d=e.data?e.data.json():{}}catch(_){d={body:e.data?.text()||''}}
   e.waitUntil(self.registration.showNotification(d.title||'VINISWIM',{
