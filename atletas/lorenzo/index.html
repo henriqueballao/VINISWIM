@@ -2581,7 +2581,14 @@ async function applyIncomingSwimResults(base,registration,incoming,{manual=false
   for(const x of incoming){
     const local=normalizeServerResult(x);
     const slot=swimResultSlotKey(local);
-    let existing=(DATA.results||[]).find(y=>swimResultSlotKey(y)===slot && y.status!=='manual');
+    let existing=(DATA.results||[]).find(y=>swimResultSlotKey(y)===slot && y.status!=='manual')
+      || (DATA.results||[]).find(y=>
+        y.status!=='manual' &&
+        String(y.date||'')===String(local.date||'') &&
+        normalizeSwimEventName(y.event||'')===normalizeSwimEventName(local.event||'') &&
+        String(y.meetId||y.meet||'')===String(local.meetId||local.meet||'') &&
+        (y.status!=='official' || local.status==='official')
+      );
 
     if(existing){
       const before=JSON.stringify(existing);
@@ -2871,8 +2878,40 @@ function startAutonomousResultPolling(){
 async function updateFromSwimSystem(){
   const btn=$('#updateSwimSystemBtn');
   if(btn){btn.disabled=true;btn.textContent='Atualizando...'}
-  try{await pullAutonomousResults({manual:true})}
-  finally{if(btn){btn.disabled=false;btn.textContent='↻ Atualizar Resultados'}}
+  const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
+  const registration=String(DATA.settings?.athleteRegistration||DATA.athlete?.registration||'');
+  try{
+    if(!base||!registration)throw new Error('Monitor não configurado.');
+    setSwimUpdateStatus('Consultando FDAP e SwimSystem...');
+    const fresh=await jsonpRequest(
+      base+'/refresh-athlete?registration='+encodeURIComponent(registration),
+      180000
+    );
+    if(!fresh?.ok)throw new Error(fresh?.error||'Falha no monitor');
+    const incoming=Array.isArray(fresh.results)?fresh.results:[];
+    DATA.settings=DATA.settings||{};
+    DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+    renderLastSwimSync();
+
+    if(incoming.length){
+      const applied=await applyIncomingSwimResults(base,registration,incoming,{manual:false});
+      const s=fresh.stats||{};
+      setSwimUpdateStatus(
+        'Atualizado · '+Number(s.detected||0)+' detectado(s) · FDAP '+Number(s.federation||0)+' · SwimSystem '+Number(s.swimSystem||0)+'.',
+        'ok'
+      );
+      return applied;
+    }
+    const s=fresh.stats||{};
+    setSwimUpdateStatus(
+      'Atualizado · '+Number(s.detected||0)+' detectado(s) · nenhum novo pendente.',
+      'ok'
+    );
+  }catch(e){
+    setSwimUpdateStatus('Falha ao atualizar: '+(e.message||e),'err');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='↻ Atualizar Resultados'}
+  }
 }
 
 function renderPendingOfficialResults(){
