@@ -1398,7 +1398,7 @@ tbody tr:hover{background:#f8fbfc}
       "2026": "Petiz I"
     },
     "swimSystemMeetUrl": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
-    "pushServerUrl": "https://viniswim-monitor.onrender.com",
+    "pushServerUrl": "https://viniswim-monitor-live-production.up.railway.app",
     "onlyConfirmedForAnalytics": true,
     "alerts": {
       "m120": true,
@@ -1419,6 +1419,7 @@ tbody tr:hover{background:#f8fbfc}
 }</script>
 <script>
 const VINISWIM_BUILD='53-ANDRE-2';
+const VINISWIM_MONITOR_BASE='https://viniswim-monitor-live-production.up.railway.app';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='x7hepfpb668fhs5';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -2099,6 +2100,12 @@ const ALERT_DEFS=[
   {key:'m10',label:'10 minutos antes',minutes:10},
   {key:'m5',label:'5 minutos antes',minutes:5}
 ];
+function ensureRailwayMonitor(){
+  DATA.settings=DATA.settings||{};
+  const changed=DATA.settings.pushServerUrl!==VINISWIM_MONITOR_BASE;
+  DATA.settings.pushServerUrl=VINISWIM_MONITOR_BASE;
+  return changed;
+}
 function ensureAlertSettings(){
   DATA.settings=DATA.settings||{};
   if(!DATA.settings.alerts)DATA.settings.alerts={m120:true,m60:true,m30:true,m20:true,m10:true,m5:true,resultPublished:true,personalBest:true};
@@ -2112,7 +2119,8 @@ function alertLabel(key){
 }
 function renderAlerts(){
   setTimeout(()=>syncPendingResultsFromServer(),50);
-  ensureAlertSettings();
+  ensureRailwayMonitor();
+ensureAlertSettings();
   if(!$('#alertOptions'))return;
   const opts=[
     ...ALERT_DEFS.map(a=>({key:a.key,title:a.label,desc:`Avisar ${a.label.toLowerCase()} do horário previsto da prova.`})),
@@ -2230,21 +2238,31 @@ function knownResultSignatures(){
 }
 async function syncPushSubscription(){
   ensureAlertSettings();
+  ensureRailwayMonitor();
   if(Notification.permission!=='granted'||!('serviceWorker' in navigator))return;
-  const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
-  if(!base)return;
+  const base=VINISWIM_MONITOR_BASE;
   const reg=await navigator.serviceWorker.ready;
+
+  let cfg=null;
+  try{
+    cfg=await fetch(base+'/config',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('Servidor Push não respondeu.');return r.json()});
+  }catch(_){
+    cfg=await jsonpRequest(base+'/config',60000);
+  }
+  if(!cfg?.publicKey)throw new Error('Servidor Push sem chave pública.');
+
   let sub=await reg.pushManager.getSubscription();
+  const lastKey=String(DATA.settings?.vapidPublicKey||'');
+  if(sub && lastKey!==cfg.publicKey){
+    try{await sub.unsubscribe()}catch(_){}
+    sub=null;
+  }
   if(!sub){
-    let cfg=null;
-    try{
-      cfg=await fetch(base+'/config',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('Servidor Push não respondeu.');return r.json()});
-    }catch(_){
-      cfg=await jsonpRequest(base+'/config',60000);
-    }
-    if(!cfg?.publicKey)throw new Error('Servidor Push sem chave pública.');
     sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(cfg.publicKey)});
   }
+  DATA.settings.vapidPublicKey=cfg.publicKey;
+  DATA.settings.pushServerUrl=VINISWIM_MONITOR_BASE;
+  cacheLocalData();
   const payload={
     subscription:sub.toJSON(),
     athlete:{
@@ -2606,7 +2624,7 @@ async function pollResultSync(base,registration,{manual=false}={}){
 }
 
 async function syncPendingResultsFromServer(opts={}){
-  const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
+  const base=VINISWIM_MONITOR_BASE;
   const registration=DATA.settings?.athleteRegistration||DATA.athlete?.registration||'';
   const manual=!!opts.manual;
 
@@ -2753,7 +2771,7 @@ async function syncPendingResultsFromServer(opts={}){
   }
 }
 async function pullAutonomousResults({manual=false}={}){
-  const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
+  const base=VINISWIM_MONITOR_BASE;
   const registration=String(DATA.settings?.athleteRegistration||DATA.athlete?.registration||'');
   if(!base||!registration){
     if(manual)setSwimUpdateStatus('Monitor não configurado.','err');
@@ -2794,7 +2812,7 @@ function startAutonomousResultPolling(){
 async function updateFromSwimSystem(){
   const btn=$('#updateSwimSystemBtn');
   if(btn){btn.disabled=true;btn.textContent='Atualizando...'}
-  const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
+  const base=VINISWIM_MONITOR_BASE;
   const registration=String(DATA.settings?.athleteRegistration||DATA.athlete?.registration||'');
   try{
     if(!base||!registration)throw new Error('Monitor não configurado.');
@@ -2888,7 +2906,7 @@ async function importFromSwimSystem(){
   if(!/^https:\/\/(www\.)?swimsystem\.app\/meets\/sw\//i.test(url)){
     status.innerHTML='<span class="tag manual">URL SWIMSYSTEM INVÁLIDA</span>';return;
   }
-  const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
+  const base=VINISWIM_MONITOR_BASE;
   if(!base){
     status.innerHTML='<div class="notice"><b>Conector ainda não configurado.</b> O navegador não consulta o SwimSystem diretamente com confiabilidade por causa de CORS. Configure o servidor/conector na aba Configurações; a interface de importação já está pronta.</div>';
     return;
@@ -3339,6 +3357,7 @@ async function bootstrapDropbox(){
     const remote=await dbxDownload();
     if(remote&&remote.app==='VINISWIM'){
       DATA=remote;
+      ensureRailwayMonitor();
       let personalMerged=false;
       if(cachedBeforeRemote && String(cachedBeforeRemote.settings?.athleteRegistration||cachedBeforeRemote.athlete?.registration||'')===String(DATA.settings?.athleteRegistration||DATA.athlete?.registration||'')){
         DATA.settings=DATA.settings||{};
@@ -3359,6 +3378,7 @@ async function bootstrapDropbox(){
       }
     }else{
       DATA=JSON.parse(document.getElementById('seedData').textContent);
+      ensureRailwayMonitor();
       dropboxReady=true;
       await dbxUpload();
     }
