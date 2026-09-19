@@ -1272,11 +1272,11 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='47';
+const VINISWIM_BUILD='48';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
-const DBX_REFRESH='viniswim_dbx_refresh_v1', DBX_ACCESS='viniswim_dbx_access_v1', DBX_PKCE='viniswim_dbx_pkce';
+const DBX_REFRESH='viniswim_dbx_refresh_v1', DBX_ACCESS='viniswim_dbx_access_v1', DBX_ACCESS_EXPIRES='viniswim_dbx_access_expires_v1', DBX_PKCE='viniswim_dbx_pkce';
 const LOCAL_DATA_CACHE='viniswim_local_data_v1';
 function readLocalData(){
   try{
@@ -1886,7 +1886,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v47').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v48').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
@@ -2657,37 +2657,115 @@ async function connectDropbox(){
   let u=new URL('https://www.dropbox.com/oauth2/authorize');u.searchParams.set('client_id',DROPBOX_APP_KEY);u.searchParams.set('response_type','code');u.searchParams.set('redirect_uri',DROPBOX_REDIRECT);u.searchParams.set('code_challenge',challenge);u.searchParams.set('code_challenge_method','S256');u.searchParams.set('token_access_type','offline');u.searchParams.set('scope','files.content.read files.content.write');location.href=u.toString();
 }
 async function exchange(code){
-  let v=sessionStorage.getItem(DBX_PKCE);if(!v)throw new Error('Autorização expirada.');
-  let body=new URLSearchParams({code,grant_type:'authorization_code',client_id:DROPBOX_APP_KEY,redirect_uri:DROPBOX_REDIRECT,code_verifier:v});
-  let r=await fetch('https://api.dropboxapi.com/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body}),d=await r.json();if(!r.ok)throw new Error(d.error_description||'Falha Dropbox');
-  sessionStorage.setItem(DBX_ACCESS,d.access_token);if(d.refresh_token)localStorage.setItem(DBX_REFRESH,d.refresh_token);sessionStorage.removeItem(DBX_PKCE);history.replaceState({},document.title,DROPBOX_REDIRECT);return d.access_token;
+  const v=sessionStorage.getItem(DBX_PKCE);
+  if(!v)throw new Error('Autorização expirada.');
+  const body=new URLSearchParams({
+    code,
+    grant_type:'authorization_code',
+    client_id:DROPBOX_APP_KEY,
+    redirect_uri:DROPBOX_REDIRECT,
+    code_verifier:v
+  });
+  const r=await fetch('https://api.dropboxapi.com/oauth2/token',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body
+  });
+  const d=await r.json();
+  if(!r.ok)throw new Error(d.error_description||'Falha Dropbox');
+
+  // Persistir a autorização no aparelho. Antes o access token ficava apenas
+  // em sessionStorage e desaparecia ao fechar o PWA.
+  localStorage.setItem(DBX_ACCESS,d.access_token);
+  localStorage.setItem(DBX_ACCESS_EXPIRES,String(Date.now()+(Number(d.expires_in||14400)*1000)));
+  if(d.refresh_token)localStorage.setItem(DBX_REFRESH,d.refresh_token);
+
+  sessionStorage.removeItem(DBX_PKCE);
+  history.replaceState({},document.title,DROPBOX_REDIRECT);
+  return d.access_token;
 }
+
 async function token(){
-  const a=sessionStorage.getItem(DBX_ACCESS);
-  if(a)return a;
+  const access=localStorage.getItem(DBX_ACCESS)||'';
+  const expiresAt=Number(localStorage.getItem(DBX_ACCESS_EXPIRES)||0);
+
+  // Reutiliza o token persistido enquanto válido. Isso evita reautorizar
+  // o Dropbox em toda abertura do VINISWIM.
+  if(access && (!expiresAt || expiresAt>Date.now()+60000))return access;
+
   const rfr=localStorage.getItem(DBX_REFRESH);
-  if(!rfr)return '';
-  try{
-    const body=new URLSearchParams({refresh_token:rfr,grant_type:'refresh_token',client_id:DROPBOX_APP_KEY});
-    const r=await fetch('https://api.dropboxapi.com/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
-    let d={};try{d=await r.json()}catch(e){}
-    if(!r.ok){
-      // Só descarta o refresh token quando o Dropbox confirma que ele é inválido/revogado.
-      if(r.status===400 && /invalid_grant|invalid_refresh/i.test(JSON.stringify(d)))localStorage.removeItem(DBX_REFRESH);
-      return '';
-    }
-    sessionStorage.setItem(DBX_ACCESS,d.access_token);
-    return d.access_token;
-  }catch(e){
+  if(!rfr){
+    // Compatibilidade com versões antigas: se ainda existe um access token
+    // sem refresh token, usa-o até o Dropbox recusá-lo.
+    if(access && !expiresAt)return access;
     return '';
+  }
+
+  try{
+    const body=new URLSearchParams({
+      refresh_token:rfr,
+      grant_type:'refresh_token',
+      client_id:DROPBOX_APP_KEY
+    });
+    const r=await fetch('https://api.dropboxapi.com/oauth2/token',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body
+    });
+    let d={};
+    try{d=await r.json()}catch(e){}
+
+    if(!r.ok){
+      const detail=JSON.stringify(d||{});
+      // Só exige nova autorização quando o próprio Dropbox confirma
+      // revogação/invalid_grant. Falhas temporárias não apagam credenciais.
+      if(r.status===400 && /invalid_grant|invalid_refresh_token|expired_access_token/i.test(detail)){
+        localStorage.removeItem(DBX_ACCESS);
+        localStorage.removeItem(DBX_ACCESS_EXPIRES);
+        localStorage.removeItem(DBX_REFRESH);
+        return '';
+      }
+      // Em falha transitória, preserva a autorização. Se o access token ainda
+      // existir, deixa a chamada seguinte decidir pela resposta do Dropbox.
+      return access||'';
+    }
+
+    if(d.access_token){
+      localStorage.setItem(DBX_ACCESS,d.access_token);
+      localStorage.setItem(DBX_ACCESS_EXPIRES,String(Date.now()+(Number(d.expires_in||14400)*1000)));
+    }
+    if(d.refresh_token)localStorage.setItem(DBX_REFRESH,d.refresh_token);
+    return d.access_token||access||'';
+  }catch(e){
+    // Sem rede / timeout: não destrói a sessão persistente.
+    return access||'';
   }
 }
 function dataFile(){return ($('#setFile')?.value||'/viniswim-dados.json').trim()||'/viniswim-dados.json'}
 async function dbxDownload(){
-  let t=await token();if(!t)return null;
-  let r=await fetch('https://content.dropboxapi.com/2/files/download',{method:'POST',headers:{Authorization:'Bearer '+t,'Dropbox-API-Arg':JSON.stringify({path:dataFile()})}});
-  if(r.status===409)return null;if(!r.ok)throw new Error('Falha ao baixar base do Dropbox.');
-  let api=JSON.parse(r.headers.get('Dropbox-API-Result')||'{}');dropboxRev=api.rev||'';
+  let t=await token();
+  if(!t)return null;
+
+  const doDownload=tok=>fetch('https://content.dropboxapi.com/2/files/download',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+tok,'Dropbox-API-Arg':JSON.stringify({path:dataFile()})}
+  });
+
+  let r=await doDownload(t);
+
+  // Se o access token persistido expirou antes do relógio local perceber,
+  // força apenas a renovação silenciosa; não manda o usuário ao OAuth.
+  if(r.status===401 && localStorage.getItem(DBX_REFRESH)){
+    localStorage.removeItem(DBX_ACCESS);
+    localStorage.removeItem(DBX_ACCESS_EXPIRES);
+    t=await token();
+    if(t)r=await doDownload(t);
+  }
+
+  if(r.status===409)return null;
+  if(!r.ok)throw new Error('Falha ao baixar base do Dropbox.');
+  let api=JSON.parse(r.headers.get('Dropbox-API-Result')||'{}');
+  dropboxRev=api.rev||'';
   const data=await r.json();
   if(data&&data.app==='VINISWIM'){DATA=data;cacheLocalData()}
   return data;
@@ -2749,10 +2827,14 @@ async function bootstrapDropbox(){
     const t=await token();
     if(!t){
       dropboxReady=false;
-      setDropboxStatus('Dropbox · reconectar','err');
+      const hasCached=!!readLocalData();
+      setDropboxStatus(hasCached?'Dropbox · offline':'Dropbox · reconectar',hasCached?'':'err');
       document.body.classList.remove('auth-locked');
       render();
-      renderDropboxRecovery();
+      // Só mostra "Reconectar Dropbox" quando realmente não existe
+      // autorização persistente nem base local.
+      const panel=$('#dropboxRecoveryPanel');
+      if(panel)panel.hidden=hasCached;
       nav('dashboard',{persist:false,updateHash:false});
       return;
     }
