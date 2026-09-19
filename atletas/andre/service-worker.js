@@ -1,4 +1,4 @@
-const BUILD='53-ANDRE-1';
+const BUILD='53-ANDRE-2';
 const PREFIX='viniswim-andre-';
 const CACHE=PREFIX+'v1';
 const CORE=['./','./index.html','./manifest.webmanifest','../../icon-192.png','../../icon-512.png'];
