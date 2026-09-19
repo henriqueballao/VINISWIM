@@ -2347,7 +2347,8 @@ async function syncPushSubscription(){
 
   let sub=await reg.pushManager.getSubscription();
   const lastKey=String(DATA.settings?.vapidPublicKey||'');
-  if(sub && lastKey!==cfg.publicKey){
+  const vapidChanged=lastKey!==cfg.publicKey;
+  if(sub && vapidChanged){
     try{await sub.unsubscribe()}catch(_){}
     sub=null;
   }
@@ -2357,6 +2358,7 @@ async function syncPushSubscription(){
   DATA.settings.vapidPublicKey=cfg.publicKey;
   DATA.settings.pushServerUrl=VINISWIM_MONITOR_BASE;
   cacheLocalData();
+  if(vapidChanged && dropboxReady) dbxUpload().catch(e=>console.warn('push migration save',e));
   const payload={
     subscription:sub.toJSON(),
     athlete:{
@@ -3451,7 +3453,7 @@ async function bootstrapDropbox(){
     const remote=await dbxDownload();
     if(remote&&remote.app==='VINISWIM'){
       DATA=remote;
-      ensureRailwayMonitor();
+      const railwayMigrated=ensureRailwayMonitor();
       // Reaplica a identidade-base do Lorenzo se uma base antiga/vazia do Dropbox
       // sobrescrever os dados publicados do atleta.
       const seed=JSON.parse(document.getElementById('seedData').textContent);
@@ -3477,7 +3479,7 @@ async function bootstrapDropbox(){
       const identityMigrated=ensureLorenzoIdentityAndCurrentResults();
       const migrated=applyHistorical35Migration();
       cacheLocalData();
-      if((personalMerged||identityMigrated) && !migrated){
+      if((personalMerged||identityMigrated||railwayMigrated) && !migrated){
         dropboxReady=true;
         await dbxUpload();
       }
