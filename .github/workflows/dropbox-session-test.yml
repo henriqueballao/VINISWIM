@@ -39,8 +39,13 @@ jobs:
               results:[],meets:[],sources:[],audit:{}
             };
 
+            let uploaded=null;
             await page.route('https://content.dropboxapi.com/2/files/download', async route=>{
               await route.fulfill({status:200,headers:{'content-type':'application/json','Dropbox-API-Result':'{"rev":"testrev"}'},body:JSON.stringify(dataset)});
+            });
+            await page.route('https://content.dropboxapi.com/2/files/upload', async route=>{
+              uploaded=JSON.parse(route.request().postData());
+              await route.fulfill({status:200,contentType:'application/json',body:'{"rev":"migration-rev"}'});
             });
             await page.route('https://api.dropboxapi.com/oauth2/token', async route=>{
               await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({access_token:'refreshed-token',expires_in:14400,token_type:'bearer'})});
@@ -62,11 +67,38 @@ jobs:
             let state = await page.evaluate(()=>({
               status:document.querySelector('#sidebarSyncStatus')?.textContent||'',
               recoveryHidden:document.querySelector('#dropboxRecoveryPanel')?.hidden,
-              access:localStorage.getItem('viniswim_dbx_access_v1')
+              access:localStorage.getItem('viniswim_dbx_access_v1'),
+              build:typeof VINISWIM_BUILD!=='undefined'?VINISWIM_BUILD:'',
+              histCount:(DATA.results||[]).filter(r=>String(r.date||'')<='2026-08-16').length,
+              total:(DATA.results||[]).length,
+              mar100:(DATA.results||[]).find(r=>r.migration==='historical35-v1'&&r.event==='100 Livre'&&r.date==='2025-03-22')?.timeSeconds,
+              octFly:(DATA.results||[]).find(r=>r.migration==='historical35-v1'&&r.event==='50 Borboleta'&&r.date==='2025-10-11')?.timeSeconds,
+              aug100:(DATA.results||[]).find(r=>r.migration==='historical35-v1'&&r.event==='100 Livre'&&r.date==='2026-08-16')?.timeSeconds,
+              cat2025:categoryForDate('2025-09-13'),
+              cat2026:categoryForDate('2026-08-16'),
+              marker:DATA.audit?.historical35Version
             }));
             console.log('FIRST_OPEN',state);
             assert(!/reconectar/i.test(state.status),'First open asked to reconnect');
             assert.strictEqual(state.recoveryHidden,true,'Recovery panel visible on first open');
+            assert.strictEqual(state.build,'53','Live app is not V53');
+            assert.strictEqual(state.histCount,35,'Historical migration did not produce 35 results');
+            assert.strictEqual(state.total,35,'Unexpected result count in migration fixture');
+            assert.strictEqual(state.mar100,131.61,'March 2025 precise time mismatch');
+            assert.strictEqual(state.octFly,68.83,'October 2025 precise time mismatch');
+            assert.strictEqual(state.aug100,100.92,'August 2026 precise time mismatch');
+            assert.strictEqual(state.cat2025,'Mirim 2','2025 category mismatch');
+            assert.strictEqual(state.cat2026,'Petiz I','2026 category mismatch');
+            assert.strictEqual(state.marker,1,'Historical migration marker missing');
+            assert(uploaded,'Dropbox migration upload was not attempted');
+            assert.strictEqual(uploaded.results.filter(r=>String(r.date||'')<='2026-08-16').length,35,'Uploaded Dropbox history is not 35 results');
+            assert.strictEqual(uploaded.settings.categoryByYear['2025'],'Mirim 2');
+            assert.strictEqual(uploaded.settings.categoryByYear['2026'],'Petiz I');
+            await page.evaluate(()=>nav('evolution',{persist:false}));
+            await page.waitForTimeout(100);
+            const evo=await page.locator('#evolutionStats').innerText();
+            assert(evo.includes('Evolução esportiva observada'),'Category-aware evolution text missing');
+            assert(evo.includes('Mirim 2')&&evo.includes('Petiz I'),'Category transition missing from evolution analysis');
 
             await page.close();
             const page2 = await ctx.newPage();
