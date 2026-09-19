@@ -1,0 +1,3151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e2530">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VINISWIM">
+<title>VINISWIM · Lorenzo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2312384a'/%3E%3Cpath d='M16 16 L32 38 L48 16' stroke='%2361d4c4' stroke-width='7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M12 48 Q22 42 32 48 T52 48' stroke='%2361d4c4' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:oklch(97.5% 0.006 240);--panel:oklch(99% 0.002 240);--ink:oklch(23% 0.025 245);--muted:oklch(52% 0.02 245);--line:oklch(90% 0.012 240);
+  --nav:oklch(24% 0.05 235);--nav2:oklch(17% 0.04 240);--accent:oklch(64% 0.12 195);--accent2:oklch(58% 0.14 255);
+  --good:oklch(56% 0.12 155);--warn:oklch(68% 0.14 70);--bad:oklch(58% 0.18 25);
+  --radius:16px;--shadow:0 10px 32px oklch(30% 0.05 240 / 10%);
+}
+h1,h2,h3,h4,.brand strong,.auth-brand strong,.hero h2,.athlete-main h2,.card .v,.hero-stat b{font-family:'Space Grotesk',Inter,sans-serif;letter-spacing:-.01em}
+*{box-sizing:border-box} html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:radial-gradient(1100px circle at 8% -8%,oklch(90% 0.05 195 / 35%),transparent 60%),var(--bg)}
+button,input,select{font:inherit}.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+.sidebar{background:linear-gradient(180deg,var(--nav),var(--nav2));color:#fff;padding:20px 16px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:12px;padding:5px 8px 24px}.mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px oklch(50% 0.1 220 / 30%)}.brand strong{font-size:19px;letter-spacing:.06em}.brand small{display:block;color:#9fb0bd;margin-top:2px}
+.nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#becbd5;text-align:left;padding:12px 13px;border-radius:10px;cursor:pointer}.nav button.active,.nav button:hover{background:var(--nav2);color:#fff}.sidebar-foot{position:absolute;bottom:18px;left:16px;right:16px;font-size:12px;color:#80919f}
+main{min-width:0}.topbar{height:70px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:10}.topbar h1{font-size:18px;margin:0}.sync{display:flex;gap:8px;align-items:center}.pill{padding:7px 10px;border-radius:999px;background:#eef3f6;color:#4b5a67;font-size:12px}.pill.ok{background:#e8f5ef;color:var(--good)}.btn{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:9px;cursor:pointer}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}.btn.danger{color:var(--bad)}.content{padding:24px;max-width:1500px;margin:auto}
+.page{display:none}.page.active{display:block}.hero{background:linear-gradient(135deg,var(--nav) 0%,var(--accent2) 100%);color:white;padding:24px;border-radius:18px;display:grid;grid-template-columns:1.5fr .7fr;gap:24px;margin-bottom:20px}.hero h2{font-size:27px;margin:0 0 7px}.hero p{margin:0;color:#b7c5cf}.hero-stat{align-self:center;text-align:right}.hero-stat b{font-size:38px}.hero-stat span{display:block;color:#9fb1bf;font-size:12px}
+.grid{display:grid;gap:16px}.grid.cards{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow)}.card .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}.card .v{font-size:28px;font-weight:750;margin-top:7px}.card .s{font-size:12px;color:var(--muted);margin-top:5px}.section{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.section h3{margin:0;font-size:16px}.filters{display:flex;flex-wrap:wrap;gap:8px}.filters select,.filters input,.form input,.form select{border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff}
+table{border-collapse:collapse;width:100%}th,td{padding:10px 9px;border-bottom:1px solid #edf0f2;text-align:left;font-size:13px}th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#65727d}.mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.tag{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:700}.tag.official{background:#e8f5ef;color:var(--good)}.tag.manual{background:#fff3dd;color:var(--warn)}.tag.provisional{background:#eaf3ff;color:#2f6faa}.tag.unknown{background:#f1f3f5;color:#66717b}.best{font-weight:800;color:var(--good)}
+.chart-wrap{height:360px;position:relative}.chart-wrap canvas{width:100%;height:100%}.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:12px}.legend span:before{content:"";display:inline-block;width:18px;height:3px;background:currentColor;margin-right:6px;vertical-align:middle}
+.meet{display:grid;grid-template-columns:1fr auto;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}.meet:last-child{border-bottom:0}.meet h4{margin:0 0 4px}.meet p{margin:0;color:var(--muted);font-size:12px}.entry-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}.entry{padding:12px;border:1px solid var(--line);border-radius:10px}.entry b{display:block}.entry small{color:var(--muted)}
+.pred{display:grid;grid-template-columns:minmax(220px,1fr) 160px repeat(3,120px) 105px;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid var(--line)}.pred:last-child{border-bottom:0}.pred .range{text-align:center;padding:10px;border-radius:9px;background:#f6f8fa}.pred .range b{display:block}.confidence{font-size:11px;padding:6px 8px;border-radius:999px;text-align:center}.confidence.high{background:#e8f5ef;color:var(--good)}.confidence.medium{background:#fff3dd;color:var(--warn)}.confidence.low{background:#f1f3f5;color:#66717b}.actual-result-card{border:1px solid #b9dccc;background:#eef8f3;border-radius:10px;padding:9px 10px;text-align:center}.actual-result-card.provisional{border-style:dashed;background:#f3f8fd;border-color:#a9c9e7}.actual-result-card small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}.actual-result-card .actual-time{font:800 18px 'Space Grotesk',Inter,sans-serif;margin-top:2px}.actual-result-card .actual-delta{font-size:11px;font-weight:700;margin-top:4px}.actual-result-card .better{color:var(--good)}.actual-result-card .worse{color:var(--bad)}.actual-result-card .same{color:var(--muted)}.expect-vs-actual{display:block;margin-top:4px;font-size:10px;font-weight:800}.expect-vs-actual.better{color:var(--good)}.expect-vs-actual.worse{color:var(--bad)}.expect-vs-actual.same{color:var(--muted)}.meet-state{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:800;margin-left:8px}.meet-state.current{background:#e8f5ef;color:var(--good)}.meet-state.next{background:#eaf3ff;color:#2f6faa}
+.form{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.form .full{grid-column:1/-1}.notice{padding:12px 14px;border-left:4px solid var(--accent);background:#eef6fa;border-radius:8px;font-size:13px;color:#3e5565}.audit-row{display:grid;grid-template-columns:100px 1fr 180px;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:12px}.source-link{color:#2c6f98;text-decoration:none}.source-link:hover{text-decoration:underline}
+dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:min(760px,calc(100% - 30px));padding:0}dialog::backdrop{background:rgba(6,14,20,.55)}.modal-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.modal-body{padding:18px}.modal-foot{padding:14px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+.mobile-nav{display:none}
+@media(max-width:980px){
+  .app{grid-template-columns:1fr}.sidebar{display:none}.topbar{padding:0 14px}.content{padding:14px 14px 86px}.grid.cards{grid-template-columns:repeat(2,1fr)}.hero{grid-template-columns:1fr}.hero-stat{text-align:left}.entry-grid{grid-template-columns:repeat(2,1fr)}.form{grid-template-columns:1fr 1fr}.pred{grid-template-columns:1fr 1fr}.pred .title{grid-column:1/-1}.mobile-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);z-index:20;padding-bottom:env(safe-area-inset-bottom)}.mobile-nav button{border:0;background:#fff;padding:10px 4px;font-size:10px;color:#66717b}.mobile-nav button.active{color:var(--nav);font-weight:800}table{min-width:780px}.table-scroll{overflow:auto}}
+@media(max-width:600px){.grid.cards{grid-template-columns:1fr 1fr}.entry-grid{grid-template-columns:1fr}.form{grid-template-columns:1fr}.form .full{grid-column:auto}.card .v{font-size:23px}.hero h2{font-size:22px}}
+.alert-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.alert-option{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:12px;padding:13px 14px;background:#fff}
+.alert-option b{display:block;font-size:13px}.alert-option small{display:block;color:var(--muted);margin-top:3px}
+.switch{position:relative;width:46px;height:26px;flex:0 0 auto}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;inset:0;border-radius:999px;background:#c7d0d7;cursor:pointer;transition:.2s}.slider:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}.switch input:checked + .slider{background:var(--good)}.switch input:checked + .slider:before{transform:translateX(20px)}
+.alert-status{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}.statusbox{border:1px solid var(--line);border-radius:10px;padding:12px}.statusbox small{color:var(--muted);display:block}.statusbox b{display:block;margin-top:5px}
+.timeline{display:grid;gap:8px;margin-top:12px}.timeline-row{display:grid;grid-template-columns:100px 1fr 150px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.timeline-row:last-child{border-bottom:0}
+@media(max-width:700px){.alert-grid{grid-template-columns:1fr}.alert-status{grid-template-columns:1fr}.timeline-row{grid-template-columns:80px 1fr}.timeline-row .right{grid-column:2}}
+
+/* VINISWIM V2 — responsividade e entrada padronizada */
+.field-help{font-size:11px;color:var(--muted);margin-top:4px}
+.req:after{content:" *";color:var(--bad)}
+.inline-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.results-head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.swim-update-cluster{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.last-swim-update{font-size:11px;color:var(--muted);white-space:nowrap}
+.result-compare{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px;font-size:11px}
+.result-compare .result-time{font-family:'Space Grotesk',Inter,sans-serif;font-weight:800;font-size:16px;color:var(--ink)}
+.delta-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 7px;border-radius:999px;font-weight:700}
+.delta-pill.better{background:#e8f5ef;color:var(--good)}
+.delta-pill.worse{background:#fdeaea;color:var(--bad)}
+.delta-pill.same{background:#eef3f6;color:var(--muted)}
+.entry-result-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.pred-meet-title{font-weight:800;font-size:14px;margin:0 0 4px}
+.pred-meet-meta{font-size:11px;color:var(--muted);margin-bottom:12px}
+.row-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.chart-provisional-legend{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:11px}
+.chart-provisional-dot{width:9px;height:9px;border:2px solid currentColor;border-radius:50%;background:#fff;display:inline-block}
+.swimsystem-update-status{font-size:12px;color:var(--muted);margin:10px 0 2px;min-height:18px}
+.swimsystem-update-status.ok{color:var(--good)}
+.swimsystem-update-status.err{color:var(--bad)}
+.mobile-results{display:none}
+.result-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px}
+.result-card .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.result-card .time{font-size:22px;font-weight:800}
+.result-card .meta{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5}
+.result-card .actions{margin-top:10px;display:flex;justify-content:flex-end}
+.modal-sheet{max-height:min(88vh,820px);overflow:auto}
+.norm-preview{padding:10px 12px;border:1px dashed var(--line);border-radius:9px;background:#f7f9fb;font-size:13px}
+.norm-preview b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.import-box{display:grid;grid-template-columns:1fr auto;gap:8px}
+@media(max-width:980px){
+  dialog{width:min(96vw,760px);margin:auto}
+  .modal-body{padding:14px}
+  .modal-head,.modal-foot{position:sticky;background:#fff;z-index:2}
+  .modal-head{top:0}.modal-foot{bottom:0}
+}
+@media(max-width:700px){
+  .content{padding:10px 10px 82px}
+  .topbar{height:58px}
+  .topbar h1{font-size:16px}
+  .sync .pill{display:none}
+  .hero{padding:16px;border-radius:14px}
+  .hero h2{font-size:20px}
+  .grid.cards{grid-template-columns:1fr 1fr;gap:9px}
+  .card{padding:13px}
+  .card .v{font-size:21px}
+  .section{padding:13px;border-radius:12px}
+  .section-head{align-items:flex-start;flex-direction:column}
+  .filters{width:100%}
+  .filters select,.filters input{flex:1;min-width:0;width:100%}
+  #history .table-scroll{display:none}
+  .mobile-results{display:grid;gap:9px}
+  .entry-grid{grid-template-columns:1fr}
+  .pred{grid-template-columns:1fr 1fr}
+  .pred .title{grid-column:1/-1}
+  .pred .confidence{grid-column:1/-1}
+  .chart-wrap{height:300px}
+  .form{grid-template-columns:1fr}
+  .inline-2{grid-template-columns:1fr}
+  .import-box{grid-template-columns:1fr}
+  dialog{width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;border-radius:0}
+  dialog .modal-sheet{height:100%;max-height:none;display:flex;flex-direction:column}
+  dialog .modal-body{flex:1;overflow:auto}
+  .modal-foot{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+}
+@media(orientation:landscape) and (max-height:550px){
+  dialog{height:100vh}
+  .chart-wrap{height:230px}
+  .mobile-nav button{padding:7px 4px}
+}
+
+
+/* VINISWIM V3 — ajustes observados em desktop e iPhone */
+#resultModal{width:min(980px,calc(100vw - 40px));max-width:980px}
+#resultModal .modal-sheet{overflow:hidden}
+#resultModal .modal-body{overflow-x:hidden}
+#resultModal .form{
+  display:grid;
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:12px;
+  align-items:start
+}
+#resultModal .form > label{min-width:0}
+#resultModal .form > label:nth-of-type(1){grid-column:span 3}
+#resultModal .form > label:nth-of-type(2){grid-column:span 2}
+#resultModal .form > label:nth-of-type(3){grid-column:span 3}
+#resultModal .form > label:nth-of-type(4){grid-column:span 2}
+#resultModal .form > label:nth-of-type(5){grid-column:span 4}
+#resultModal .form > label:nth-of-type(6){grid-column:span 4}
+#resultModal .form > label:nth-of-type(7){grid-column:span 4}
+#resultModal .form > label:nth-of-type(8){grid-column:span 6}
+#resultModal .form > label:nth-of-type(9){grid-column:span 3}
+#resultModal .form > label:nth-of-type(10),
+#resultModal .form > label:nth-of-type(11){grid-column:span 6}
+#resultModal .form .full{grid-column:1/-1}
+#resultModal input,#resultModal select{width:100%;min-width:0}
+#resultModal .modal-foot{overflow:hidden}
+
+#history .section-head{align-items:center}
+#history .filters{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(170px,1fr));
+  gap:10px;
+  max-width:720px;
+}
+.best-mobile{display:none}
+
+@media(max-width:700px){
+  #resultModal{width:100vw;max-width:none;height:100dvh}
+  #resultModal .form{grid-template-columns:1fr}
+  #resultModal .form > label,
+  #resultModal .form > label:nth-of-type(n){grid-column:1}
+  #resultModal .form .full{grid-column:1}
+  #history .section-head{gap:12px}
+  #history .section-head .btn{width:100%}
+  #history .filters{grid-template-columns:1fr;max-width:none;width:100%}
+  #history .filters select{width:100%;min-width:0}
+  #dashboard .table-scroll{display:none}
+  .best-mobile{display:grid;gap:8px}
+  .best-mobile .result-card .top{align-items:center}
+  .best-mobile .result-card .meta{line-height:1.35}
+  .topbar .sync{gap:4px}
+  .topbar .sync .btn{padding:8px 10px;font-size:12px}
+}
+
+
+/* VINISWIM V4 — hero global, foto, idade/categoria e evolução multi-provas */
+.athlete-hero{
+  background:linear-gradient(135deg,var(--nav) 0%,var(--accent2) 100%);
+  color:#fff;border-radius:18px;padding:18px 22px;margin-bottom:18px;
+  display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center
+}
+.athlete-photo{
+  width:78px;height:78px;border-radius:16px;object-fit:cover;background:#fff;
+  border:2px solid rgba(255,255,255,.18)
+}
+.athlete-photo.placeholder{display:grid;place-items:center;color:#0d1724;font-weight:900;font-size:24px}
+.athlete-main h2{margin:0 0 5px;font-size:25px}.athlete-main p{margin:0;color:#b7c5cf}
+.athlete-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.athlete-chip{font-size:11px;padding:6px 8px;border-radius:999px;background:rgba(255,255,255,.10);color:#dbe6ed}
+.photo-preview{width:120px;height:120px;object-fit:cover;border-radius:14px;border:1px solid var(--line);background:#f3f5f7}
+.settings-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.settings-grid label{display:block}.settings-grid input,.settings-grid select{width:100%;margin-top:5px}
+.chart-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:11px;color:var(--muted)}
+.chart-legend span{display:inline-flex;align-items:center;gap:6px}
+.chart-legend i{display:inline-block;width:18px;height:3px;border-radius:3px}
+@media(max-width:700px){
+  .athlete-hero{grid-template-columns:64px 1fr;padding:14px;gap:12px}
+  .athlete-photo{width:64px;height:64px;border-radius:13px}
+  .athlete-main h2{font-size:18px}
+  .settings-grid{grid-template-columns:1fr}
+}
+
+
+/* VINISWIM V10 — layout estável, menu Ações e login */
+html{scrollbar-gutter:stable}
+.content{
+  width:100%;
+  max-width:1500px;
+  margin:0 auto;
+  padding:24px;
+}
+.page{
+  width:100%;
+  min-width:0;
+  margin:0;
+}
+.athlete-hero{
+  width:100%;
+  margin-left:0;
+  margin-right:0;
+}
+.page > .section,
+.page > .hero,
+.page > .grid{
+  width:100%;
+  margin-left:0;
+  margin-right:0;
+}
+.topbar-inner{
+  width:100%;
+  max-width:1500px;
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+.topbar{padding:0 24px}
+.topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+
+/* Ações */
+.actions-menu{position:relative}
+.actions-trigger{display:flex;align-items:center;gap:7px}
+.actions-caret{font-size:11px;color:var(--muted)}
+.actions-dropdown{
+  position:absolute;right:0;top:calc(100% + 7px);
+  width:220px;background:#fff;border:1px solid var(--line);
+  border-radius:12px;box-shadow:0 18px 45px rgba(13,23,36,.16);
+  padding:7px;z-index:80;display:none
+}
+.actions-dropdown.open{display:block}
+.actions-dropdown .menu-note{
+  padding:7px 9px 4px;font-size:9px;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--muted);font-weight:800
+}
+.actions-dropdown .sep{height:1px;background:var(--line);margin:5px 2px}
+.actions-dropdown button{
+  width:100%;border:0;background:transparent;text-align:left;
+  padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--ink);font-size:12px
+}
+.actions-dropdown button:hover{background:#f1f5f7}
+.actions-dropdown button.danger{color:var(--bad)}
+
+/* Login */
+.auth-gate{
+  position:fixed;inset:0;z-index:9999;background:#f4f6f8;
+  display:grid;place-items:center;padding:20px
+}
+.auth-gate[hidden]{display:none!important}
+.auth-card{
+  width:min(430px,100%);background:#fff;border:1px solid var(--line);
+  border-radius:18px;box-shadow:0 24px 70px rgba(13,23,36,.16);padding:24px
+}
+.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.auth-mark{
+  width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
+  display:grid;place-items:center;box-shadow:0 4px 14px oklch(50% 0.1 220 / 30%)
+}
+.auth-brand strong{display:block;font-size:19px;letter-spacing:.06em}
+.auth-brand span{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.auth-card h2{margin:0 0 7px;font-size:22px}
+.auth-sub{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.45}
+.auth-form{display:grid;gap:12px}
+.auth-form label{font-size:12px;font-weight:700}
+.auth-form input{
+  width:100%;margin-top:5px;border:1px solid var(--line);
+  border-radius:9px;padding:11px 12px
+}
+.auth-error{min-height:18px;color:var(--bad);font-size:12px}
+.auth-submit{
+  border:0;background:var(--nav);color:#fff;border-radius:9px;
+  padding:11px 14px;font-weight:700;cursor:pointer
+}
+.auth-note{
+  margin-top:12px;padding:10px 11px;border-radius:9px;background:#f4f7f9;
+  color:var(--muted);font-size:11px;line-height:1.45
+}
+body.auth-locked .app{visibility:hidden}
+body.auth-locked{overflow:hidden}
+
+@media(max-width:980px){
+  .content{padding:14px 14px 86px}
+  .topbar{padding:0 14px}
+  .topbar-inner{max-width:none}
+}
+@media(max-width:700px){
+  .content{padding:10px 10px 82px}
+  .topbar{padding:0 10px}
+  .actions-trigger .actions-text{display:none}
+  .actions-dropdown{position:fixed;right:10px;top:62px;width:min(260px,calc(100vw - 20px))}
+}
+
+
+/* VINISWIM V12 — ações na sidebar e integrações mais espaçosas */
+.sidebar-actions{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.10)}
+.sidebar-actions-trigger{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  border:0;background:transparent;color:#becbd5;text-align:left;
+  padding:12px 13px;border-radius:10px;cursor:pointer;font:inherit
+}
+.sidebar-actions-trigger:hover,.sidebar-actions-trigger.open{background:var(--nav2);color:#fff}
+.sidebar-actions-menu{display:none;padding:5px 0 0}
+.sidebar-actions-menu.open{display:grid;gap:4px}
+.sidebar-actions-menu button{
+  border:0;background:transparent;color:#becbd5;text-align:left;
+  padding:10px 13px 10px 26px;border-radius:8px;cursor:pointer;font-size:12px
+}
+.sidebar-actions-menu button:hover{background:var(--nav2);color:#fff}
+.sidebar-actions-menu button.danger{color:#f2a3a3}
+.sidebar-actions-menu button.danger:hover{color:#fff;background:#5b1d24}
+
+/* integrações */
+#settings .section:nth-of-type(2) .form{
+  display:grid;
+  grid-template-columns:minmax(220px,.7fr) minmax(0,1.3fr);
+  gap:14px 18px;
+  align-items:end
+}
+#settings .section:nth-of-type(2) .form label{
+  display:grid;
+  gap:6px;
+  min-width:0
+}
+#settings .section:nth-of-type(2) .form input{
+  width:100%;
+  min-width:0;
+  padding:10px 12px
+}
+#settings .section:nth-of-type(2) .form .full{grid-column:1/-1}
+@media(max-width:980px){
+  .sidebar-actions{display:none}
+}
+@media(max-width:700px){
+  #settings .section:nth-of-type(2) .form{grid-template-columns:1fr}
+  #settings .section:nth-of-type(2) .form .full{grid-column:1}
+}
+
+
+/* VINISWIM V13 — sidebar móvel por hamburger */
+.mobile-hamburger{
+  display:none;
+  width:38px;height:38px;border:1px solid var(--line);background:#fff;
+  border-radius:9px;padding:8px;cursor:pointer;flex:0 0 auto
+}
+.mobile-hamburger span{
+  display:block;height:2px;background:var(--ink);border-radius:2px;margin:4px 0;
+  transition:.2s ease
+}
+.sidebar-backdrop{display:none}
+
+@media(max-width:980px){
+  .mobile-hamburger{display:block}
+  .sidebar{
+    display:block;
+    position:fixed;left:0;top:0;bottom:0;
+    width:min(300px,84vw);height:100dvh;
+    z-index:120;
+    transform:translateX(-102%);
+    transition:transform .22s ease;
+    box-shadow:18px 0 45px rgba(6,14,20,.20);
+    overflow-y:auto;
+    padding-bottom:28px
+  }
+  body.sidebar-open .sidebar{transform:translateX(0)}
+  .sidebar-backdrop{
+    display:block;position:fixed;inset:0;background:rgba(6,14,20,.46);
+    z-index:110;opacity:0;pointer-events:none;transition:opacity .22s ease
+  }
+  body.sidebar-open .sidebar-backdrop{opacity:1;pointer-events:auto}
+  body.sidebar-open{overflow:hidden}
+
+  /* ações também aparecem dentro da sidebar no celular */
+  .sidebar-actions{display:block!important}
+
+  /* sem barra inferior duplicada */
+  .mobile-nav{display:none!important}
+
+  /* topbar continua alinhada */
+  .topbar-left{min-width:0}
+  .topbar h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+
+
+/* VINISWIM V14 — Dropbox e comandos somente em Ações */
+.sidebar-sync-status{
+  margin:4px 10px 7px;padding:8px 10px;border-radius:8px;
+  background:rgba(255,255,255,.07);color:#9fb1bf;font-size:10px;
+  line-height:1.35
+}
+.sidebar-sync-status.ok{color:#a9dec7;background:rgba(35,122,87,.15)}
+.sidebar-sync-status.err{color:#f0b0b0;background:rgba(161,61,61,.15)}
+.topbar-inner{justify-content:flex-start}
+
+
+/* VINISWIM V16 — refinamento visual */
+.sidebar-copyright{
+  position:absolute;left:16px;right:16px;bottom:18px;
+  padding-top:10px;border-top:1px solid rgba(255,255,255,.08);
+  color:#7895a3;font-size:8.5px;line-height:1.5;font-weight:500
+}
+.sidebar-foot{position:static}
+.nav button{
+  display:flex;align-items:center;gap:10px;
+  min-height:44px;transition:background .18s ease,color .18s ease,transform .18s ease
+}
+.nav button:hover{transform:translateX(2px)}
+.nav-icon,.menu-icon,.section-title-icon{
+  width:18px;height:18px;display:inline-grid;place-items:center;flex:0 0 18px
+}
+.nav-icon svg,.menu-icon svg,.section-title-icon svg,.kpi-card-icon svg{
+  width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round
+}
+.actions-label{display:inline-flex;align-items:center;gap:10px}
+.sidebar-actions-menu button{
+  display:flex;align-items:center;gap:10px
+}
+.menu-icon{width:16px;height:16px;flex-basis:16px}
+.section-title{display:flex;align-items:center;gap:9px}
+.section-title-icon{
+  width:30px;height:30px;flex-basis:30px;border-radius:9px;
+  background:color-mix(in oklch,var(--accent) 13%,white);
+  color:var(--accent2);padding:7px
+}
+
+/* fields */
+.form input,.form select,.settings-grid input,.settings-grid select,.filters input,.filters select{
+  min-height:42px;border:1px solid color-mix(in oklch,var(--line) 82%,var(--accent) 18%);
+  border-radius:11px;padding:10px 12px;background:#fff;
+  transition:border-color .18s ease,box-shadow .18s ease,background .18s ease
+}
+.form input:hover,.form select:hover,.settings-grid input:hover,.settings-grid select:hover,.filters input:hover,.filters select:hover{
+  border-color:color-mix(in oklch,var(--accent) 45%,var(--line))
+}
+.form input:focus,.form select:focus,.settings-grid input:focus,.settings-grid select:focus,.filters input:focus,.filters select:focus{
+  outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in oklch,var(--accent) 14%,transparent)
+}
+.settings-grid label,.form label{
+  color:var(--ink);font-size:12px;font-weight:650
+}
+.field-help{font-weight:400;line-height:1.45}
+input[type="file"]{
+  padding:7px;background:#f8fbfc
+}
+input[type="file"]::file-selector-button{
+  border:0;border-radius:8px;background:var(--nav);color:#fff;
+  padding:7px 10px;margin-right:10px;cursor:pointer
+}
+
+/* buttons */
+.btn,.auth-submit{
+  min-height:40px;border-radius:10px;font-weight:650;
+  transition:transform .16s ease,box-shadow .16s ease,background .16s ease,border-color .16s ease
+}
+.btn:hover,.auth-submit:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(20,48,62,.10)}
+.btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent}
+.btn.primary:hover{filter:brightness(.98)}
+
+/* cards */
+.card,.section,.entry,.result-card,.statusbox{
+  border-color:color-mix(in oklch,var(--line) 88%,var(--accent) 12%);
+}
+.card,.section{
+  box-shadow:0 8px 28px oklch(30% 0.05 240 / 7%);
+}
+.kpi-card{
+  position:relative;overflow:hidden;padding-right:72px;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease
+}
+.kpi-card:hover{
+  transform:translateY(-2px);
+  border-color:color-mix(in oklch,var(--accent) 28%,var(--line));
+  box-shadow:0 14px 34px oklch(30% 0.05 240 / 11%)
+}
+.kpi-card:after{
+  content:"";position:absolute;left:0;right:0;top:0;height:3px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2))
+}
+.kpi-card-icon{
+  position:absolute;right:18px;top:50%;transform:translateY(-50%);
+  width:42px;height:42px;border-radius:12px;padding:10px;
+  display:grid;place-items:center;color:var(--accent2);
+  background:color-mix(in oklch,var(--accent) 12%,white)
+}
+.kpi-card-icon svg{width:22px;height:22px}
+.card .k{font-weight:800}
+.card .v{letter-spacing:-.035em}
+
+/* tables */
+table thead th{background:#fbfcfd}
+.table-scroll{border-radius:12px}
+tbody tr{transition:background .14s ease}
+tbody tr:hover{background:#f8fbfc}
+
+/* athlete hero */
+.athlete-hero{
+  box-shadow:0 18px 44px oklch(23% 0.06 240 / 16%);
+  border:1px solid rgba(255,255,255,.09)
+}
+.athlete-photo{
+  box-shadow:0 6px 18px rgba(0,0,0,.18)
+}
+.athlete-chip{
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(4px)
+}
+
+/* notices/tags */
+.notice{border-left-width:3px}
+.tag{letter-spacing:.035em}
+
+/* login */
+.auth-card{border-top:3px solid var(--accent)}
+.auth-mark{box-shadow:0 10px 25px oklch(50% 0.1 220 / 26%)}
+
+@media(max-width:980px){
+  .sidebar-copyright{position:static;margin:18px 10px 0}
+}
+@media(max-width:700px){
+  .kpi-card{padding-right:58px}
+  .kpi-card-icon{right:12px;width:38px;height:38px;padding:9px}
+  .section-title-icon{width:28px;height:28px;flex-basis:28px}
+}
+
+
+/* VINISWIM V17 — Ações e nota legal no rodapé da sidebar, padrão NEXO */
+.sidebar{
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+}
+.sidebar .brand{flex:0 0 auto}
+.sidebar .nav{flex:0 0 auto}
+
+.sidebar-actions{
+  margin-top:auto!important;
+  padding-top:12px!important;
+  padding-bottom:10px;
+  border-top:1px solid rgba(255,255,255,.09)!important;
+  border-bottom:1px solid rgba(255,255,255,.09);
+}
+.sidebar-actions-trigger{
+  min-height:42px;
+  padding:10px 10px!important;
+}
+.sidebar-actions-menu{padding-top:4px}
+
+.sidebar-copyright{
+  position:static!important;
+  left:auto!important;
+  right:auto!important;
+  bottom:auto!important;
+  margin:0 10px!important;
+  padding:10px 0 0!important;
+  border-top:0!important;
+  color:#7895a3!important;
+  font-size:8.5px!important;
+  line-height:1.45!important;
+  flex:0 0 auto;
+}
+.sidebar-foot{
+  position:static!important;
+  bottom:auto!important;
+  left:auto!important;
+  right:auto!important;
+}
+
+@media(max-width:980px){
+  .sidebar{
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  .sidebar-actions{margin-top:auto!important}
+  .sidebar-copyright{
+    display:block!important;
+    margin:0 10px 8px!important;
+  }
+}
+
+
+/* VINISWIM V18 — visualizar senha */
+.password-field{
+  position:relative;
+  display:flex;
+  align-items:center;
+}
+.password-field input{
+  width:100%;
+  padding-right:46px!important;
+}
+.password-toggle{
+  position:absolute;
+  right:8px;
+  top:50%;
+  transform:translateY(-50%);
+  width:32px;
+  height:32px;
+  display:grid;
+  place-items:center;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  cursor:pointer;
+  border-radius:8px;
+}
+.password-toggle:hover{
+  background:#eef4f6;
+  color:var(--ink);
+}
+.password-toggle svg{
+  width:18px;
+  height:18px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.password-toggle.active{
+  color:var(--accent2);
+}
+
+
+/* VINISWIM V22 — mobile drawer/hamburger no padrão NEXO */
+.mobile-hamburger{
+  appearance:none;
+  display:none;
+  width:42px;
+  height:42px;
+  min-width:42px;
+  min-height:42px;
+  border:1px solid var(--line);
+  background:#fff;
+  color:var(--ink);
+  border-radius:11px;
+  padding:0;
+  place-items:center;
+  cursor:pointer;
+  flex:0 0 42px;
+  box-shadow:0 1px 2px rgba(20,24,20,.04);
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.mobile-hamburger span{
+  width:18px;
+  height:2px;
+  margin:0;
+  background:currentColor;
+  border-radius:3px;
+  display:block;
+  transition:transform .18s ease,opacity .18s ease;
+}
+.mobile-hamburger{
+  grid-template-rows:repeat(3,2px);
+  gap:4px;
+  align-content:center;
+  justify-content:center;
+}
+.mobile-hamburger[aria-expanded="true"] span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.mobile-hamburger[aria-expanded="true"] span:nth-child(2){opacity:0}
+.mobile-hamburger[aria-expanded="true"] span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+
+@media(max-width:900px){
+  html{overflow-y:auto;scrollbar-gutter:auto}
+  .app{display:block!important;height:auto!important;min-height:100dvh!important;overflow:visible!important}
+
+  .topbar{
+    position:sticky!important;
+    top:0!important;
+    z-index:75!important;
+    min-height:calc(64px + env(safe-area-inset-top))!important;
+    padding:
+      calc(11px + env(safe-area-inset-top))
+      max(14px,env(safe-area-inset-right))
+      11px
+      max(14px,env(safe-area-inset-left))!important;
+    display:flex!important;
+    align-items:center!important;
+    background:rgba(255,255,255,.97)!important;
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    box-shadow:0 1px 0 var(--line);
+  }
+  .topbar-inner{
+    width:100%!important;
+    min-height:42px;
+    display:flex!important;
+    align-items:center!important;
+  }
+  .topbar-left{
+    width:100%;
+    min-width:0;
+    display:flex!important;
+    align-items:center!important;
+    gap:11px!important;
+  }
+  .topbar h1{
+    margin:0!important;
+    font-size:17px!important;
+    line-height:1.2!important;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .mobile-hamburger{display:grid!important}
+
+  .sidebar{
+    display:flex!important;
+    position:fixed!important;
+    z-index:110!important;
+    left:0!important;
+    top:0!important;
+    bottom:0!important;
+    width:min(84vw,320px)!important;
+    max-width:320px!important;
+    height:100dvh!important;
+    transform:translateX(-102%)!important;
+    transition:transform .22s cubic-bezier(.2,.8,.2,1)!important;
+    flex-direction:column!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    padding:
+      calc(18px + env(safe-area-inset-top))
+      12px
+      calc(16px + env(safe-area-inset-bottom))!important;
+    margin:0!important;
+    border-radius:0!important;
+    box-shadow:18px 0 44px rgba(8,18,13,.22);
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  body.sidebar-open .sidebar{transform:translateX(0)!important}
+  .sidebar-backdrop{
+    display:block!important;
+    position:fixed!important;
+    inset:0!important;
+    z-index:108!important;
+    background:rgba(12,20,17,.42)!important;
+    backdrop-filter:blur(2px);
+    -webkit-backdrop-filter:blur(2px);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease;
+  }
+  body.sidebar-open .sidebar-backdrop{
+    opacity:1!important;
+    pointer-events:auto!important;
+  }
+  body.sidebar-open{
+    overflow:hidden!important;
+    touch-action:none;
+  }
+}
+@media(max-width:480px){
+  .topbar{
+    padding-left:max(10px,env(safe-area-inset-left))!important;
+    padding-right:max(10px,env(safe-area-inset-right))!important;
+  }
+  .mobile-hamburger{
+    width:42px!important;
+    height:42px!important;
+    min-width:42px!important;
+    min-height:42px!important;
+  }
+}
+
+/* VINISWIM V23 — Auditoria responsiva */
+@media(max-width:700px){
+  #audit .section{padding:14px 12px}
+  #audit .notice{
+    font-size:12px;
+    line-height:1.45;
+    padding:12px;
+    margin-bottom:8px;
+  }
+  #audit #sourceList{
+    display:grid;
+    gap:10px;
+    margin-top:10px;
+  }
+  #audit .audit-row{
+    display:grid!important;
+    grid-template-columns:1fr auto!important;
+    grid-template-areas:
+      "tag link"
+      "content content"!important;
+    gap:8px 10px!important;
+    padding:12px!important;
+    border:1px solid var(--line)!important;
+    border-radius:12px!important;
+    background:#fff;
+    box-shadow:0 6px 18px rgba(18,50,70,.05);
+    font-size:12px!important;
+  }
+  #audit .audit-row > div:nth-child(1){
+    grid-area:tag;
+    align-self:start;
+  }
+  #audit .audit-row > div:nth-child(2){
+    grid-area:content;
+    min-width:0;
+  }
+  #audit .audit-row > div:nth-child(3){
+    grid-area:link;
+    align-self:start;
+    justify-self:end;
+  }
+  #audit .audit-row b{
+    display:block;
+    font-size:13px;
+    line-height:1.3;
+    margin-bottom:4px;
+  }
+  #audit .audit-row .source-link{
+    display:inline-flex;
+    align-items:center;
+    white-space:nowrap;
+    font-size:11px;
+    font-weight:700;
+  }
+  #audit .audit-row [style*="margin-top:3px"]{
+    line-height:1.45;
+    word-break:normal;
+    overflow-wrap:anywhere;
+  }
+}
+
+
+/* Tutorial */
+.tutorial-dialog{width:min(820px,calc(100% - 30px))}
+.tutorial-body{display:grid;gap:12px}
+.tutorial-step{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr);
+  gap:12px;
+  padding:13px 14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+}
+.tutorial-num{
+  width:30px;height:30px;border-radius:9px;
+  display:grid;place-items:center;
+  background:color-mix(in oklch,var(--accent) 14%,white);
+  color:var(--accent2);font-weight:800;
+}
+.tutorial-step h4{margin:1px 0 6px;font-size:14px}
+.tutorial-step p{margin:0 0 6px;color:var(--muted);font-size:12px;line-height:1.5}
+.tutorial-step p:last-child{margin-bottom:0}
+.tutorial-tip{
+  padding:13px 14px;border-radius:10px;
+  background:#eef6fa;border-left:3px solid var(--accent);
+  font-size:12px;line-height:1.5;color:#345266;
+}
+@media(max-width:700px){
+  .tutorial-dialog{width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;border-radius:0}
+  .tutorial-dialog .modal-sheet{height:100%;max-height:none;display:flex;flex-direction:column}
+  .tutorial-dialog .modal-body{flex:1;overflow:auto;padding:14px 12px}
+  .tutorial-step{grid-template-columns:30px minmax(0,1fr);gap:9px;padding:11px}
+}
+
+
+/* VINISWIM V24 — evita zoom automático do iPhone ao focar campos */
+@media(max-width:900px){
+  input, select, textarea, button{
+    font-size:16px!important;
+  }
+  .auth-form input,
+  .auth-form select,
+  .auth-form textarea{
+    font-size:16px!important;
+    line-height:1.25!important;
+    min-height:44px;
+  }
+}
+
+@media print{
+  .mobile-hamburger,.sidebar-backdrop{display:none!important}
+  body.sidebar-open{overflow:visible!important}
+}
+
+@media print{.sidebar,.topbar,.mobile-nav,.no-print{display:none!important}.app{display:block}.content{padding:0}.page{display:block!important;break-after:page}.page:last-child{break-after:auto}.section,.card,.hero{box-shadow:none;break-inside:avoid}}
+@media(max-width:700px){.results-head-actions{width:100%;display:grid;grid-template-columns:1fr}.results-head-actions .btn{width:100%}.swim-update-cluster{display:grid;grid-template-columns:1fr;width:100%;gap:5px}.last-swim-update{text-align:center;white-space:normal}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="viniswimLogo" viewBox="0 0 64 64"><path d="M16 15 L32 39 L48 15" stroke="currentColor" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 48 Q22 42 32 48 T52 48" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round" opacity=".9"/></symbol></svg>
+
+
+<div class="app">
+  <aside class="sidebar" id="mainSidebar">
+    <div class="brand"><div class="mark"><svg width="24" height="24" viewBox="0 0 64 64"><use href="#viniswimLogo"/></svg></div><div><strong>VINISWIM</strong><small>performance tracker</small></div></div>
+    <div class="nav">
+      <button data-page="dashboard" class="active"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h8V3H3v10Zm10 8h8V11h-8v10ZM3 21h8v-6H3v6Zm10-12h8V3h-8v6Z"/></svg></span><span>Visão Geral</span></button>
+      <button data-page="history"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultados</span></button>
+      <button data-page="evolution"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m4 13 5-5 4 3 6-7"/></svg></span><span>Evolução</span></button>
+      <button data-page="meets"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v3M18 3v3M4 8h16"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 12h4M13 12h4M7 16h4"/></svg></span><span>Campeonatos</span></button>
+      <button data-page="predictions"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/><path d="m18 6 3-3"/></svg></span><span>Expectativas</span></button>
+      <button data-page="alerts"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></span><span>Alertas</span></button>
+      <button data-page="audit"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h3v16H5V5h3l1-2Z"/><path d="m8 13 2 2 5-5M8 9h3"/></svg></span><span>Auditoria</span></button>
+      <button data-page="settings"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1-2.8-2.8.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1L7.1 4l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.8 2.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.1v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg></span><span>Configurações</span></button>
+    </div>
+    <div class="sidebar-actions no-print">
+      <button class="sidebar-actions-trigger" id="sidebarActionsBtn" type="button" aria-expanded="false">
+        <span class="actions-label"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M8 14v6"/></svg></span><span>Ações</span></span><span class="menu-caret">⌄</span>
+      </button>
+      <div class="sidebar-actions-menu" id="sidebarActionsMenu">
+        <div class="sidebar-sync-status" id="sidebarSyncStatus">Dropbox · verificando</div>
+        <button type="button" id="actionSave"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l2 2v16H5V3Z"/><path d="M8 3v6h8V3M8 21v-8h8v8"/></svg></span>Salvar</button>
+        <button type="button" id="actionDropbox"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6 12 3l5 3-5 3-5-3Zm0 6 5-3 5 3-5 3-5-3Zm0 6 5-3 5 3-5 3-5-3Z"/></svg></span>Reconectar Dropbox</button>
+        <button type="button" id="actionTutorial"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.4 2.4 0 0 1 4.5 1.2c0 1.8-2.3 2-2.3 3.8M12 17h.01"/></svg></span>Como usar o VINISWIM</button>
+        <button type="button" id="actionPrint"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7"/></svg></span>Imprimir / PDF</button>
+      </div>
+    </div>
+    <div class="sidebar-foot sidebar-copyright">© 2026 VINISWIM V<span id="footerBuild">—</span> — Performance Tracker.<br>Todos os direitos reservados.</div>
+  </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <main>
+    
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="topbar-left">
+          <button class="mobile-hamburger no-print" id="mobileSidebarBtn" type="button" aria-label="Abrir menu" aria-controls="mainSidebar" aria-expanded="false">
+            <span></span><span></span><span></span>
+          </button>
+          <h1 id="pageTitle">Visão Geral</h1>
+        </div>
+      </div>
+    </div>
+    <div class="content">
+    <div class="athlete-hero" id="globalAthleteHero">
+      <div id="athletePhotoWrap"><div class="athlete-photo placeholder">VS</div></div>
+      <div class="athlete-main">
+        <h2 id="heroAthleteName">Atleta</h2>
+        <p id="heroAthleteSub">Conecte ao Dropbox para carregar os dados</p>
+        <div class="athlete-meta">
+          <span class="athlete-chip" id="heroAge">Idade: —</span>
+          <span class="athlete-chip" id="heroCategory">Categoria: —</span>
+        </div>
+      </div>
+    </div>
+
+      <section id="dashboard" class="page active">
+        <div id="dropboxRecoveryPanel" class="section" hidden style="border:2px solid #2f80ed;background:#f7fbff">
+          <div class="section-head"><h3 class="section-title">Dropbox desconectado</h3></div>
+          <div class="notice" style="margin-bottom:12px">A base do VINISWIM não foi carregada neste aparelho.</div>
+          <button class="btn primary" type="button" id="dashboardDropboxConnect" style="width:100%;min-height:52px;font-weight:800">Reconectar Dropbox</button>
+        </div>
+        <div class="grid cards" id="summaryCards"></div>
+        <div class="section"><div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v3M18 3v3M4 8h16"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 12h4M13 12h4M7 16h4"/></svg></span><span>Próximo campeonato</span></h3></div><div id="nextMeet"></div></div>
+        <div class="section"><div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m4 13 5-5 4 3 6-7"/></svg></span><span>Melhores marcas confirmadas</span></h3></div><div class="table-scroll"><table><thead><tr><th>Prova</th><th>Melhor</th><th>Piscina</th><th>Data</th><th>Local</th></tr></thead><tbody id="bestTable"></tbody></table></div><div id="bestMobile" class="best-mobile"></div></div>
+      </section>
+
+      <section id="history" class="page">
+        <div class="section">
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultados</span></h3><div class="results-head-actions no-print"><div class="swim-update-cluster"><button class="btn" id="updateSwimSystemBtn" onclick="updateFromSwimSystem()">↻ Atualizar SwimSystem</button><span id="lastSwimSystemUpdate" class="last-swim-update">Última atualização: —</span></div><button class="btn primary" onclick="openResultModal()">+ Novo resultado</button></div></div>
+          <div class="filters"><select id="fEvent"><option value="">Todas as provas</option></select><select id="fPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Piscina não confirmada</option></select><select id="fSource"><option value="">Todas as origens</option><option value="official">Oficial SwimSystem</option><option value="provisional">SwimSystem parcial</option><option value="manual">Manual confirmado</option></select></div>
+          <div id="swimSystemUpdateStatus" class="swimsystem-update-status"></div>
+          <div class="table-scroll"><table><thead><tr><th>Data</th><th>Categoria</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody id="historyTable"></tbody></table></div><div id="mobileHistory" class="mobile-results"></div>
+        </div>
+      </section>
+
+      <section id="evolution" class="page">
+        <div class="section">
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m4 13 5-5 4 3 6-7"/></svg></span><span>Evolução</span></h3><div class="filters"><select id="chartEvent"></select><select id="chartPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Não confirmada</option></select></div></div>
+          <div class="chart-wrap"><canvas id="chart"></canvas></div><div id="chartLegend" class="chart-legend"></div><div id="evolutionStats" class="notice"></div>
+        </div>
+      </section>
+
+      <section id="meets" class="page">
+        <div class="section">
+  <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v3M18 3v3M4 8h16"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 12h4M13 12h4M7 16h4"/></svg></span><span>Campeonatos</span></h3><button class="btn primary no-print" onclick="openMeetModal()">+ Novo campeonato</button></div>
+  <div class="notice" style="margin-bottom:14px">
+    <b>SwimSystem:</b> a importação automática usa um conector externo para evitar bloqueios CORS do navegador. Cole a URL oficial e o VINISWIM consulta o atleta pelo registro 422692 quando o conector estiver configurado.
+  </div>
+  <div class="import-box no-print" style="margin-bottom:16px">
+    <input id="swimSystemImportUrl" placeholder="https://www.swimsystem.app/meets/sw/...">
+    <button class="btn" onclick="importFromSwimSystem()">Importar do SwimSystem</button>
+  </div>
+  <div id="swimImportStatus" style="margin-bottom:12px"></div>
+  <div id="meetList"></div>
+</div>
+      </section>
+
+      <section id="predictions" class="page">
+        <div class="section"><div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/><path d="m18 6 3-3"/></svg></span><span>Expectativas de tempo</span></h3></div><div class="notice">Estimativas calculadas somente com resultados confirmados. Quando não houver dados suficientes, o sistema mostra baixa confiança em vez de inventar precisão.</div><div id="predictionList" style="margin-top:12px"></div></div>
+      </section>
+
+
+      <section id="alerts" class="page">
+        <div class="section">
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></span><span>Alertas do VINISWIM</span></h3><button class="btn primary no-print" id="enableNotificationsBtn" onclick="enableNotifications()">Ativar notificações neste aparelho</button></div>
+          <div class="notice">Alertas padrão: <b>2h, 1h, 30min, 20min, 10min e 5min antes da prova</b>, além de aviso quando o resultado oficial for publicado. Os avisos de resultado só são gravados no histórico após sua confirmação.</div>
+          <div class="alert-status">
+            <div class="statusbox"><small>Permissão do aparelho</small><b id="notifPermission">—</b></div>
+            <div class="statusbox"><small>Service Worker</small><b id="swStatus">—</b></div>
+            <div class="statusbox"><small>Push em segundo plano</small><b id="pushStatus">—</b></div>
+          </div>
+          <div class="alert-grid" id="alertOptions"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></span><span>Próximos avisos</span></h3><button class="btn no-print" onclick="testNotification()">Testar notificação</button></div>
+          <div id="nextAlerts" class="timeline"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultado oficial</span></h3></div>
+          <div class="notice">
+            Quando o monitor externo detectar um resultado novo no SwimSystem, os aparelhos cadastrados recebem a notificação.
+            O VINISWIM <b>importa automaticamente</b> o resultado para a base e salva no Dropbox.
+            Resultados ainda parciais ficam identificados como <b>SwimSystem parcial</b> e só entram nos cálculos de evolução quando forem oficializados.
+          </div>
+          <div id="pendingOfficialResults" style="margin-top:12px"></div>
+        </div>
+      </section>
+
+      <section id="audit" class="page">
+        <div class="section"><div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h3v16H5V5h3l1-2Z"/><path d="m8 13 2 2 5-5M8 9h3"/></svg></span><span>Auditoria da base</span></h3></div><div id="auditSummary" class="notice"></div><div id="sourceList"></div></div>
+      </section>
+
+      
+      <section id="settings" class="page">
+        <div class="section">
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h8V3H3v10Zm10 8h8V11h-8v10ZM3 21h8v-6H3v6Zm10-12h8V3h-8v6Z"/></svg></span><span>Atleta</span></h3></div>
+          <div class="settings-grid">
+            <label>Nome do atleta<input id="setAthleteName" placeholder="Nome completo do atleta"><div class="field-help">Este nome aparece automaticamente no hero de todas as abas.</div></label>
+            <label>Equipe<input id="setTeam" placeholder="Ex.: Clube Curitibano"><div class="field-help">A equipe aparece automaticamente no hero de todas as abas.</div></label>
+            <label>Registro SwimSystem<input id="setReg"></label>
+            <label>Data de nascimento<input id="setBirthDate" type="date"></label>
+            <label>Categoria
+              <select id="setCategory">
+                <option value="">Escolha</option>
+                <option>Pré-Mirim</option>
+                <option>Mirim I</option><option>Mirim II</option>
+                <option>Petiz I</option><option>Petiz II</option>
+                <option>Infantil I</option><option>Infantil II</option>
+                <option>Juvenil I</option><option>Juvenil II</option>
+                <option>Júnior I</option><option>Júnior II</option>
+                <option>Sênior</option>
+              </select>
+            </label>
+            <label>Foto do atleta
+              <input id="setPhoto" type="file" accept="image/*">
+              <div class="field-help">A foto fica salva na base do VINISWIM no Dropbox.</div>
+            </label>
+          </div>
+          <div style="margin-top:12px"><img id="photoPreview" class="photo-preview" alt="Prévia da foto"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1-2.8-2.8.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1L7.1 4l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.8 2.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.1v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg></span><span>Integrações</span></h3></div>
+          <div class="form">
+            <label>Arquivo Dropbox<input id="setFile" value="/lorenzo-dados.json"></label>
+            <label class="full">URL da competição<input id="setMeetUrl"></label>
+            <label class="full">Servidor Push / conector SwimSystem<input id="setPushUrl" placeholder="https://seu-monitor.exemplo.com"></label>
+          </div>
+          <div style="margin-top:12px"><button class="btn" type="button" id="settingsDropboxConnect">Reconectar Dropbox</button></div>
+          
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<dialog id="tutorialModal" class="tutorial-dialog">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <div>
+        <b>Como usar o VINISWIM</b>
+        <div class="field-help">Guia rápido para campeonatos, balizamentos, resultados e histórico.</div>
+      </div>
+      <button class="btn" type="button" onclick="tutorialModal.close()">Fechar</button>
+    </div>
+    <div class="modal-body tutorial-body">
+      <div class="tutorial-step">
+        <div class="tutorial-num">1</div>
+        <div>
+          <h4>Antes de uma competição</h4>
+          <p>Entre em <b>Campeonatos</b> e cadastre o campeonato. Informe nome, datas, local, cidade, piscina e a URL oficial do SwimSystem quando houver.</p>
+          <p>Depois inclua as provas do Vini com <b>data, horário previsto, balizamento, série e raia</b>. Esses dados alimentam a Visão Geral, Expectativas e os alertas de proximidade.</p>
+        </div>
+      </div>
+
+      <div class="tutorial-step">
+        <div class="tutorial-num">2</div>
+        <div>
+          <h4>Quando sair o balizamento</h4>
+          <p>Atualize o campeonato existente. Não crie um resultado. O <b>balizamento é uma referência pré-prova</b>, não um tempo realizado.</p>
+          <p>Se o SwimSystem estiver conectado futuramente pelo monitor, o VINISWIM poderá trazer série, raia, horário e balizamento automaticamente para sua confirmação.</p>
+        </div>
+      </div>
+
+      <div class="tutorial-step">
+        <div class="tutorial-num">3</div>
+        <div>
+          <h4>Depois que o Vini nadar</h4>
+          <p>Normalmente você não precisa digitar o resultado: use <b>Resultados → Atualizar SwimSystem</b> ou aguarde a sincronização automática. Use <b>+ Novo resultado</b> apenas quando o resultado não existir no SwimSystem ou para provas antigas.</p>
+          <p>O VINISWIM normaliza o tempo. Você pode digitar, por exemplo, <b>1:45,58</b>, <b>1'45"58</b> ou <b>105,58</b>; a exibição fica padronizada.</p>
+          <p>Depois use <b>Ações → Salvar</b> para gravar a base no Dropbox.</p>
+        </div>
+      </div>
+
+      <div class="tutorial-step">
+        <div class="tutorial-num">4</div>
+        <div>
+          <h4>Resultados oficiais publicados</h4>
+          <p>Quando ativarmos o monitor automático, ele verificará o SwimSystem. Ao encontrar um novo resultado, o iPhone receberá uma notificação.</p>
+          <p>O VINISWIM importa o resultado automaticamente para <b>Resultados</b>. Se ainda estiver parcial, ele fica identificado como tal e não entra nos cálculos oficiais; quando o SwimSystem oficializar, o registro é atualizado automaticamente.</p>
+        </div>
+      </div>
+
+      <div class="tutorial-step">
+        <div class="tutorial-num">5</div>
+        <div>
+          <h4>Provas antigas que ainda não estão na base</h4>
+          <p>Se você tiver o resultado correto, use <b>Resultados → + Novo resultado</b> e cadastre manualmente. Se a competição antiga ainda não existir, cadastre primeiro em <b>Campeonatos</b>.</p>
+          <p>Quando piscina, local ou outra informação não estiver confirmada, deixe como <b>Não confirmada</b>. Não complete por suposição.</p>
+        </div>
+      </div>
+
+      <div class="tutorial-step">
+        <div class="tutorial-num">6</div>
+        <div>
+          <h4>Como interpretar as abas</h4>
+          <p><b>Visão Geral:</b> próximo campeonato e melhores marcas. <b>Evolução:</b> gráficos por prova e piscina. <b>Expectativas:</b> projeção baseada no histórico confirmado. <b>Auditoria:</b> mostra a origem dos dados e o que ainda precisa ser conferido.</p>
+        </div>
+      </div>
+
+      <div class="tutorial-tip">
+        <b>Regra principal:</b> balizamento fica no campeonato; tempo realizado fica em Resultados. Se uma informação não estiver confirmada, não invente — deixe pendente para conferência.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn primary" type="button" onclick="tutorialModal.close()">Entendi</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="resultModal">
+  <div class="modal-sheet">
+    <div class="modal-head"><b>Novo resultado</b><button class="btn" onclick="resultModal.close()">Fechar</button></div>
+    <div class="modal-body">
+      <div class="form">
+        <label class="req">Data<input id="rDate" type="date"></label>
+
+        <label class="req">Distância
+          <select id="rDistance">
+            <option value="">Escolha</option>
+            <option>25</option><option>50</option><option>100</option><option>200</option>
+            <option>400</option><option>800</option><option>1500</option>
+          </select>
+        </label>
+
+        <label class="req">Estilo
+          <select id="rStroke">
+            <option value="">Escolha</option>
+            <option>Livre</option><option>Costas</option><option>Peito</option>
+            <option>Borboleta</option><option>Medley</option>
+          </select>
+        </label>
+
+        <label class="req">Piscina
+          <select id="rPool">
+            <option value="">Não confirmada</option>
+            <option value="25">25 m</option>
+            <option value="50">50 m</option>
+          </select>
+        </label>
+
+        <label class="req">Tempo
+          <input id="rTime" inputmode="decimal" autocomplete="off" placeholder="Ex.: 1:45,58 ou 42,63">
+          <div class="field-help">Aceita 1:45,58 · 1'45&quot;58 · 105,58 · 42.63</div>
+        </label>
+
+        <label>Local
+          <select id="rVenueSelect"><option value="">Escolha ou cadastre</option></select>
+        </label>
+
+        <label>Cidade
+          <select id="rCitySelect">
+            <option value="">Escolha</option>
+            <option>Curitiba</option>
+            <option>Colombo</option>
+            <option value="__other">Outra...</option>
+          </select>
+        </label>
+
+        <label>Competição
+          <select id="rMeetSelect"><option value="">Escolha uma competição</option></select>
+        </label>
+
+        <label>Origem
+          <select id="rStatus">
+            <option value="manual">Manual confirmado</option>
+            <option value="official">Oficial SwimSystem</option>
+          </select>
+        </label>
+
+        <label id="rVenueOtherWrap" style="display:none">Novo local<input id="rVenueOther" placeholder="Nome oficial do local"></label>
+        <label id="rCityOtherWrap" style="display:none">Outra cidade<input id="rCityOther" placeholder="Cidade"></label>
+
+        <div class="full norm-preview" id="resultPreview">Preencha distância, estilo e tempo para visualizar o padrão.</div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn" onclick="resultModal.close()">Cancelar</button><button class="btn primary" onclick="saveResult()">Salvar</button></div>
+  </div>
+</dialog>
+
+<dialog id="meetModal">
+  <div class="modal-head"><b>Novo campeonato</b><button class="btn" onclick="meetModal.close()">Fechar</button></div>
+  <div class="modal-body"><div class="form">
+    <label>Nome<input id="mName"></label><label>Início<input id="mStart" type="date"></label><label>Fim<input id="mEnd" type="date"></label><label>Piscina<select id="mPool"><option value="">Não informada</option><option value="25">25 m</option><option value="50">50 m</option></select></label>
+    <label>Local<input id="mVenue"></label><label>Cidade<input id="mCity"></label><label class="full">URL SwimSystem<input id="mUrl"></label>
+  </div></div>
+  <div class="modal-foot"><button class="btn" onclick="meetModal.close()">Cancelar</button><button class="btn primary" onclick="saveMeet()">Salvar</button></div>
+</dialog>
+
+<script id="seedData" type="application/json">{
+  "schemaVersion": 2,
+  "app": "VINISWIM",
+  "athlete": {
+    "name": "Lorenzo Azevedo FORTES",
+    "registration": "399680",
+    "birthYear": 2015,
+    "club": "Clube Curitibano",
+    "team": "Clube Curitibano",
+    "category": "Petiz I"
+  },
+  "sources": [
+    {
+      "id": "sw-2026-09",
+      "type": "official_swimsystem",
+      "title": "Campeonato Paranaense de Verão (Mirim/Petiz)",
+      "url": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
+      "dateStart": "2026-09-18",
+      "dateEnd": "2026-09-20",
+      "city": "Colombo",
+      "venue": "Santa Mônica Clube de Campo",
+      "poolMeters": 50,
+      "note": "Competição oficial SwimSystem · Piscina longa 50 m."
+    },
+    {
+      "id": "swimsystem-auto",
+      "title": "SwimSystem · sincronização automática",
+      "url": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
+      "kind": "official"
+    }
+  ],
+  "results": [
+    {
+      "id": "399680|m-202609|100 Livre|1'14\"56",
+      "date": "2026-09-18",
+      "event": "100 Livre",
+      "timeSeconds": 74.56,
+      "time": "1'14\"56",
+      "poolMeters": 50,
+      "venue": "Santa Mônica Clube de Campo",
+      "city": "Colombo",
+      "meet": "Campeonato Paranaense de Verão (Mirim/Petiz)",
+      "meetId": "m-202609",
+      "sourceId": "swimsystem-auto",
+      "sourceUrl": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
+      "seed": "1'13\"87",
+      "series": 8,
+      "lane": 2,
+      "status": "official",
+      "category": "Petiz I"
+    },
+    {
+      "id": "399680|m-202609|400 Livre|6'09\"12",
+      "date": "2026-09-18",
+      "event": "400 Livre",
+      "timeSeconds": 369.12,
+      "time": "6'09\"12",
+      "poolMeters": 50,
+      "venue": "Santa Mônica Clube de Campo",
+      "city": "Colombo",
+      "meet": "Campeonato Paranaense de Verão (Mirim/Petiz)",
+      "meetId": "m-202609",
+      "sourceId": "swimsystem-auto",
+      "sourceUrl": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
+      "seed": "NT",
+      "series": 2,
+      "lane": 2,
+      "status": "official",
+      "category": "Petiz I"
+    }
+  ],
+  "meets": [
+    {
+      "id": "m-202609",
+      "name": "Campeonato Paranaense de Verão (Mirim/Petiz)",
+      "dateStart": "2026-09-18",
+      "dateEnd": "2026-09-20",
+      "city": "Colombo",
+      "venue": "Santa Mônica Clube de Campo",
+      "poolMeters": 50,
+      "sourceId": "sw-2026-09",
+      "entries": [
+        {
+          "date": "2026-09-18",
+          "event": "100 Livre",
+          "seedSeconds": 73.87,
+          "seed": "1'13\"87",
+          "series": 8,
+          "lane": 2,
+          "scheduled": "10:14"
+        },
+        {
+          "date": "2026-09-18",
+          "event": "400 Livre",
+          "seedSeconds": null,
+          "seed": "NT",
+          "series": 2,
+          "lane": 2,
+          "scheduled": "16:21"
+        },
+        {
+          "date": "2026-09-18",
+          "event": "50 Costas",
+          "seedSeconds": 41.89,
+          "seed": "41\"89",
+          "series": 6,
+          "lane": 1,
+          "scheduled": "17:46"
+        },
+        {
+          "date": "2026-09-19",
+          "event": "200 Livre",
+          "seedSeconds": 165.54,
+          "seed": "2'45\"54",
+          "series": 7,
+          "lane": 6,
+          "scheduled": "09:53"
+        },
+        {
+          "date": "2026-09-19",
+          "event": "50 Livre",
+          "seedSeconds": 32.85,
+          "seed": "32\"85",
+          "series": 8,
+          "lane": 7,
+          "scheduled": "17:00"
+        },
+        {
+          "date": "2026-09-20",
+          "event": "100 Costas",
+          "seedSeconds": null,
+          "seed": "NT",
+          "series": 3,
+          "lane": 8,
+          "scheduled": "11:24"
+        }
+      ]
+    }
+  ],
+  "manualPending": [],
+  "pendingOfficialResults": [],
+  "settings": {
+    "athleteRegistration": "399680",
+    "athleteName": "Lorenzo Azevedo FORTES",
+    "team": "Clube Curitibano",
+    "birthDate": "",
+    "category": "Petiz I",
+    "categoryByYear": {
+      "2025": "Mirim 2",
+      "2026": "Petiz I"
+    },
+    "swimSystemMeetUrl": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
+    "pushServerUrl": "https://viniswim-monitor.onrender.com",
+    "onlyConfirmedForAnalytics": true,
+    "alerts": {
+      "m120": true,
+      "m60": true,
+      "m30": true,
+      "m20": true,
+      "m10": true,
+      "m5": true,
+      "resultPublished": true,
+      "personalBest": true
+    }
+  },
+  "audit": {
+    "createdAt": "2026-09-19",
+    "basis": "Base individual independente. Sem dados do Vinícius.",
+    "categoryAnalysis": "Evolução esportiva observada deve ser analisada separadamente da mudança de faixa etária/categoria."
+  }
+}</script>
+<script>
+const VINISWIM_BUILD='53-LORENZO-1';
+document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
+const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
+const DROPBOX_REDIRECT=location.origin+location.pathname;
+const DBX_REFRESH='viniswim_lorenzo_dbx_refresh_v1', DBX_ACCESS='viniswim_lorenzo_dbx_access_v1', DBX_ACCESS_EXPIRES='viniswim_lorenzo_dbx_access_expires_v1', DBX_PKCE='viniswim_lorenzo_dbx_pkce';
+const LOCAL_DATA_CACHE='viniswim_lorenzo_local_data_v1';
+function readLocalData(){
+  try{
+    const d=JSON.parse(localStorage.getItem(LOCAL_DATA_CACHE)||'null');
+    return d&&d.app==='VINISWIM'?d:null;
+  }catch(e){return null}
+}
+function cacheLocalData(){
+  try{if(DATA&&DATA.app==='VINISWIM')localStorage.setItem(LOCAL_DATA_CACHE,JSON.stringify(DATA))}catch(e){}
+}
+let DATA=readLocalData()||JSON.parse(document.getElementById('seedData').textContent);
+let dropboxReady=false, dropboxRev='', saveTimer=null;
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function fmtDate(s){if(!s)return '—';const [y,m,d]=s.split('-');return `${d}/${m}/${y}`}
+function resultDateLabel(r={}){
+  if(r.datePrecision==='competition-range' && r.dateEnd && r.dateEnd!==r.date)return fmtDate(r.date)+' a '+fmtDate(r.dateEnd);
+  return fmtDate(r.date);
+}
+function categoryForDate(date){
+  const year=String(date||'').slice(0,4);
+  return DATA.settings?.categoryByYear?.[year] || DATA.settings?.category || DATA.athlete?.category || '—';
+}
+function resultCategory(r={}){return r.category||categoryForDate(r.date)}
+
+function fmtTime(sec){if(sec==null||!isFinite(sec))return 'NT';sec=Number(sec);if(sec<60)return sec.toFixed(2).replace('.', '\"').replace(/(\d+)\"(\d+)/,'$1\"$2');let m=Math.floor(sec/60),s=sec-m*60;return `${m}'${s.toFixed(2).padStart(5,'0').replace('.', '\"')}`}
+function parseTime(v){
+  v=String(v||'').trim().replace(',', '.').replace(/[”″]/g,'"').replace(/[’′]/g,"'");
+  if(!v)return NaN;
+
+  // 1'52"98  -> 112.98 s
+  let m=v.match(/^(\d+)'(\d{1,2})"(\d{1,2})$/);
+  if(m)return Number(m[1])*60+Number(m[2])+Number(m[3])/100;
+
+  // 1'52" / 1'52.98 / 1:52.98
+  m=v.match(/^(\d+)'(\d{1,2})(?:"|\.)(\d{1,2})?$/);
+  if(m)return Number(m[1])*60+Number(m[2])+(m[3]?Number(m[3])/100:0);
+
+  m=v.match(/^(\d+):(\d{1,2})(?:\.(\d{1,2}))?$/);
+  if(m)return Number(m[1])*60+Number(m[2])+(m[3]?Number(m[3])/100:0);
+
+  // 44"68 / 44.68
+  m=v.match(/^(\d{1,3})"(\d{1,2})$/);
+  if(m)return Number(m[1])+Number(m[2])/100;
+
+  m=v.match(/^(\d{1,3})(?:\.(\d{1,2}))?$/);
+  if(m)return Number(m[1])+(m[2]?Number(m[2])/100:0);
+
+  return NaN;
+}
+function poolLabel(v){return v===25?'25 m':v===50?'50 m':'Não confirmada'}
+function canonicalVenue(r={}){
+  const city=String(r.city||'').trim().toLowerCase();
+  const venue=String(r.venue||'').trim();
+  if(city==='colombo' || /santa\s*m[oô]nica/i.test(venue))return 'Santa Mônica Clube de Campo';
+  if(city==='curitiba' || /clube\s*curitibano/i.test(venue))return 'Clube Curitibano';
+  return venue||r.city||'—';
+}
+function eventKey(v=''){return String(v||'').replace(/\b(\d{2,4})\s*m\b/i,'$1').replace(/\s+/g,' ').trim().toLowerCase()}
+function resultForEntry(meet,entry){
+  const key=eventKey(entry.event);
+  const candidates=(DATA.results||[]).filter(r=>{
+    if(eventKey(r.event)!==key)return false;
+    if(entry.date && r.date && entry.date!==r.date)return false;
+    if(r.meetId && meet.id && r.meetId===meet.id)return true;
+    if(r.meet && meet.name && r.meet===meet.name)return true;
+    // fallback seguro para resultado sincronizado atual: mesma data + prova
+    return !!(entry.date && r.date===entry.date);
+  }).sort((a,b)=>{
+    const sa=a.status==='official'?0:a.status==='provisional'?1:2;
+    const sb=b.status==='official'?0:b.status==='provisional'?1:2;
+    return sa-sb;
+  });
+  return candidates[0]||null;
+}
+function meetHasPendingEntries(meet){
+  const entries=meet?.entries||[];
+  if(!entries.length)return true;
+  return entries.some(e=>!resultForEntry(meet,e));
+}
+function activeMeet(){
+  const today=new Date().toISOString().slice(0,10);
+  const ordered=[...(DATA.meets||[])].sort((a,b)=>String(a.dateStart||'').localeCompare(String(b.dateStart||'')));
+  const current=ordered.find(m=>String(m.dateStart||'')<=today && String(m.dateEnd||'')>=today && meetHasPendingEntries(m));
+  if(current)return current;
+  const nextUnfinished=ordered.find(m=>String(m.dateEnd||'')>=today && meetHasPendingEntries(m));
+  if(nextUnfinished)return nextUnfinished;
+  return ordered.find(m=>String(m.dateStart||'')>today)||null;
+}
+function meetState(meet){
+  const a=activeMeet();
+  if(!a||!meet)return '';
+  if(a.id===meet.id)return '<span class="meet-state current">ATIVO</span>';
+  const today=new Date().toISOString().slice(0,10);
+  if(String(meet.dateStart||'')>today)return '<span class="meet-state next">PRÓXIMO</span>';
+  return '';
+}
+function actualResultCard(entry,result){
+  if(!result)return '<div class="actual-result-card" style="opacity:.45"><small>Resultado</small><div class="actual-time">—</div></div>';
+  const x=comparisonFor(entry,result);
+  const dir=x?.dir||'same';
+  const icon=dir==='better'?'↓':dir==='worse'?'↑':'=';
+  const delta=x?.delta==null?'':(x.delta>0?'+':'')+x.delta.toFixed(2)+'s';
+  const pct=x?.pct==null?'':(x.pct>0?'+':'')+x.pct.toFixed(2)+'%';
+  return '<div class="actual-result-card '+(result.status==='provisional'?'provisional':'')+'"><small>'+(result.status==='official'?'Resultado oficial':'Resultado provisório')+'</small><div class="actual-time">'+(result.time||fmtTime(result.timeSeconds))+'</div><div class="actual-delta '+dir+'">'+icon+' '+delta+(pct?' · '+pct:'')+'</div></div>';
+}
+function comparisonFor(entry,result){
+  if(!result)return null;
+  const seed=parseTime(entry?.seed||result.seed||result.entryTime);
+  const actual=Number(result.timeSeconds);
+  if(!Number.isFinite(actual))return null;
+  if(!Number.isFinite(seed)||seed<=0)return {actual,seed:null,delta:null,pct:null,dir:'same'};
+  const delta=actual-seed;
+  const pct=(seed-actual)/seed*100;
+  return {actual,seed,delta,pct,dir:delta<-.005?'better':delta>.005?'worse':'same'};
+}
+function compareMarkup(entry,result,{compact=false}={}){
+  if(!result)return '';
+  const x=comparisonFor(entry,result);
+  if(!x)return '';
+  const icon=x.dir==='better'?'↓':x.dir==='worse'?'↑':'=';
+  const delta=x.delta==null?'':(x.delta>0?'+':'')+x.delta.toFixed(2)+'s';
+  const pct=x.pct==null?'':(x.pct>0?'+':'')+x.pct.toFixed(2)+'%';
+  const seed=x.seed==null?'':`<span>Baliz. ${fmtTime(x.seed)}</span>`;
+  return `<div class="result-compare"><span class="entry-result-label">Resultado</span><span class="result-time">${result.time||fmtTime(result.timeSeconds)}</span>${seed}<span class="delta-pill ${x.dir}">${icon} ${delta}${pct?' · '+pct:''}</span></div>`;
+}
+function normalizeKnownVenues(){
+  let changed=false;
+  for(const r of DATA.results||[]){
+    const v=canonicalVenue(r);
+    if(v!=='—' && r.venue!==v){r.venue=v;changed=true}
+  }
+  return changed;
+}
+const HISTORICAL35_ROWS=[["2025-03-22","2025-03-23","competition-range","Mirim 2","Regional","Torneio Regional da 1ª Região","Santa Mônica Clube de Campo","Colombo",25,"100 Livre",131.61,"2'11\"61","manual","hist-202503"],["2025-03-22","2025-03-23","competition-range","Mirim 2","Regional","Torneio Regional da 1ª Região","Santa Mônica Clube de Campo","Colombo",25,"200 Livre",276.44,"4'36\"44","manual","hist-202503"],["2025-03-22","2025-03-23","competition-range","Mirim 2","Regional","Torneio Regional da 1ª Região","Santa Mônica Clube de Campo","Colombo",25,"50 Costas",57.52,"57\"52","manual","hist-202503"],["2025-03-22","2025-03-23","competition-range","Mirim 2","Regional","Torneio Regional da 1ª Região","Santa Mônica Clube de Campo","Colombo",25,"50 Livre",57.63,"57\"63","manual","hist-202503"],["2025-04-05","2025-04-05","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"50 Livre",53.09,"53\"09","official","sw-39519"],["2025-04-05","2025-04-05","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"50 Costas",58.78,"58\"78","official","sw-39519"],["2025-04-06","2025-04-06","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"50 Peito",75.22,"1'15\"22","official","sw-39519"],["2025-04-06","2025-04-06","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"100 Medley",135.79,"2'15\"79","official","sw-39519"],["2025-07-04","2025-07-04","exact","Mirim 2","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"100 Livre",112.82,"1'52\"82","official","sw-39523"],["2025-07-04","2025-07-04","exact","Mirim 2","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"200 Livre",251.29,"4'11\"29","official","sw-39523"],["2025-07-05","2025-07-05","exact","Mirim 2","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"50 Costas",56.73,"56\"73","official","sw-39523"],["2025-07-05","2025-07-05","exact","Mirim 2","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"50 Borboleta",59.68,"59\"68","official","sw-39523"],["2025-07-06","2025-07-06","exact","Mirim 2","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"100 Medley",128.44,"2'08\"44","official","sw-39523"],["2025-09-13","2025-09-13","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",50,"50 Livre",48.9,"48\"90","official","sw-39532"],["2025-09-13","2025-09-13","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",50,"200 Livre",241.8,"4'01\"80","official","sw-39532"],["2025-09-14","2025-09-14","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",50,"50 Costas",58.43,"58\"43","official","sw-39532"],["2025-09-14","2025-09-14","exact","Mirim 2","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",50,"50 Borboleta",65.71,"1'05\"71","official","sw-39532"],["2025-10-11","2025-10-12","competition-range","Mirim 2","Estadual","Campeonato Paranaense de Verão","Clube Curitibano","Curitiba",50,"100 Livre",115.1,"1'55\"10","official","sw-39533"],["2025-10-11","2025-10-12","competition-range","Mirim 2","Estadual","Campeonato Paranaense de Verão","Clube Curitibano","Curitiba",50,"200 Livre",230.75,"3'50\"75","official","sw-39533"],["2025-10-11","2025-10-12","competition-range","Mirim 2","Estadual","Campeonato Paranaense de Verão","Clube Curitibano","Curitiba",50,"50 Costas",55.9,"55\"90","official","sw-39533"],["2025-10-11","2025-10-12","competition-range","Mirim 2","Estadual","Campeonato Paranaense de Verão","Clube Curitibano","Curitiba",50,"50 Borboleta",68.83,"1'08\"83","official","sw-39533"],["2025-11-07","2025-11-07","exact","Mirim 2","Sul-Brasileiro","Campeonato Sul-Brasileiro Mirim & Petiz","Clube Curitibano","Curitiba",50,"100 Livre",112.98,"1'52\"98","official","sw-40366"],["2025-11-07","2025-11-07","exact","Mirim 2","Sul-Brasileiro","Campeonato Sul-Brasileiro Mirim & Petiz","Clube Curitibano","Curitiba",50,"50 Costas",56.98,"56\"98","official","sw-40366"],["2025-11-08","2025-11-08","exact","Mirim 2","Sul-Brasileiro","Campeonato Sul-Brasileiro Mirim & Petiz","Clube Curitibano","Curitiba",50,"200 Livre",227.56,"3'47\"56","official","sw-40366"],["2026-03-06","2026-03-06","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"100 Livre",105.58,"1'45\"58","official","sw-40595"],["2026-03-07","2026-03-07","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"50 Costas",54.68,"54\"68","official","sw-40595"],["2026-03-08","2026-03-08","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"100 Costas",115.91,"1'55\"91","official","sw-40595"],["2026-04-17","2026-04-17","exact","Petiz I","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"100 Livre",105.58,"1'45\"58","official","sw-40602"],["2026-04-18","2026-04-18","exact","Petiz I","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"50 Costas",51.92,"51\"92","official","sw-40602"],["2026-04-18","2026-04-18","exact","Petiz I","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"100 Costas",115.75,"1'55\"75","official","sw-40602"],["2026-04-19","2026-04-19","exact","Petiz I","Estadual","Campeonato Paranaense de Inverno","Santa Mônica Clube de Campo","Colombo",25,"50 Livre",44.68,"44\"68","official","sw-40602"],["2026-08-15","2026-08-15","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"100 Costas",106.97,"1'46\"97","manual","hist-202608"],["2026-08-15","2026-08-15","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"50 Livre",42.63,"42\"63","manual","hist-202608"],["2026-08-16","2026-08-16","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"50 Costas",52.94,"52\"94","manual","hist-202608"],["2026-08-16","2026-08-16","exact","Petiz I","Regional","Torneio Regional da 1ª Região","Clube Curitibano","Curitiba",25,"100 Livre",100.92,"1'40\"92","manual","hist-202608"]];
+function ensureHistoricalSources(){
+  const src=[
+    {id:'hist-202503',title:'Torneio Regional da 1ª Região',dateStart:'2025-03-22',dateEnd:'2025-03-23',city:'Colombo',venue:'Santa Mônica Clube de Campo',poolMeters:25,kind:'confirmed-history',note:'Histórico confirmado pelo usuário; centésimos corroborados por tempos de inscrição em relatórios oficiais posteriores.'},
+    {id:'sw-39533',title:'Campeonato Paranaense de Verão',url:'https://swimsystem.swimtimebrasil.com/39533/ProgressionDetails.pdf',dateStart:'2025-10-11',dateEnd:'2025-10-12',city:'Curitiba',venue:'Clube Curitibano',poolMeters:50,kind:'official'},
+    {id:'hist-202608',title:'Torneio Regional da 1ª Região',dateStart:'2026-08-15',dateEnd:'2026-08-16',city:'Curitiba',venue:'Clube Curitibano',poolMeters:25,kind:'confirmed-history',note:'Startlist oficial confirma piscina e competição; resultados confirmados no histórico do atleta.'}
+  ];
+  DATA.sources=DATA.sources||[];
+  for(const s of src){
+    const x=DATA.sources.find(z=>z.id===s.id);
+    if(x)Object.assign(x,s); else DATA.sources.push(s);
+  }
+  const patch={
+    'sw-39519':{title:'Torneio Regional da 1ª Região',poolMeters:25,venue:'Clube Curitibano'},
+    'sw-39523':{title:'Campeonato Paranaense de Inverno',poolMeters:25,venue:'Santa Mônica Clube de Campo'},
+    'sw-39532':{title:'Torneio Regional da 1ª Região',poolMeters:50,venue:'Clube Curitibano'},
+    'sw-40366':{title:'Campeonato Sul-Brasileiro Mirim & Petiz',poolMeters:50,venue:'Clube Curitibano'},
+    'sw-40595':{title:'Torneio Regional da 1ª Região',poolMeters:25,venue:'Clube Curitibano'},
+    'sw-40602':{title:'Campeonato Paranaense de Inverno',poolMeters:25,venue:'Santa Mônica Clube de Campo'}
+  };
+  for(const [id,p] of Object.entries(patch)){
+    const x=DATA.sources.find(z=>z.id===id);
+    if(x)Object.assign(x,p);
+  }
+}
+function applyHistorical35Migration(){
+  // Instância independente: nunca importar o histórico do Vinícius.
+  DATA.settings=DATA.settings||{};
+  DATA.settings.categoryByYear=DATA.settings.categoryByYear||{'2025':'Mirim 2','2026':'Petiz I'};
+  return false;
+}
+function sourceById(id){return DATA.sources.find(x=>x.id===id)||{}}
+function eventList(){return [...new Set(DATA.results.map(r=>r.event))].sort((a,b)=>{let na=parseInt(a),nb=parseInt(b);return na-nb||a.localeCompare(b)})}
+function confirmed(){return DATA.results.filter(r=>r.status==='official'||r.status==='manual')}
+function bestFor(event,pool){let a=confirmed().filter(r=>r.event===event&&(pool==null||r.poolMeters===pool));return a.sort((x,y)=>x.timeSeconds-y.timeSeconds)[0]}
+function officialCount(){return DATA.results.filter(r=>r.status==='official').length}
+
+const NAV_PAGES=['dashboard','history','evolution','meets','predictions','alerts','audit','settings'];
+function pageFromHash(){
+  const h=String(location.hash||'').replace(/^#/,'').toLowerCase();
+  const aliases={results:'history',resultado:'history',resultados:'history',history:'history',meets:'meets',campeonatos:'meets',predictions:'predictions',expectativas:'predictions',alerts:'alerts',alertas:'alerts',audit:'audit',auditoria:'audit',settings:'settings',configuracoes:'settings',evolution:'evolution',evolucao:'evolution',dashboard:'dashboard'};
+  return aliases[h]||null;
+}
+function nav(page,{persist=true,updateHash=false}={}){
+  if(!NAV_PAGES.includes(page))page='dashboard';
+  closeMobileSidebar();
+  $$('.page').forEach(x=>x.classList.toggle('active',x.id===page));
+  $$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
+  const names={dashboard:'Visão Geral',history:'Resultados',evolution:'Evolução',meets:'Campeonatos',predictions:'Expectativas',alerts:'Alertas',audit:'Auditoria',settings:'Configurações'};
+  $('#pageTitle').textContent=names[page]||'VINISWIM';
+  if(updateHash)history.replaceState(null,'','#'+page);
+  if(page==='evolution')setTimeout(drawChart,30);
+  window.scrollTo({top:0,left:0,behavior:'auto'});
+}
+function restoreNav(){
+  localStorage.removeItem('viniswim_last_page');
+  if(location.hash)history.replaceState(null,'',location.pathname+location.search);
+  nav('dashboard',{persist:false,updateHash:false});
+}
+$$('[data-page]').forEach(b=>b.onclick=()=>nav(b.dataset.page,{persist:true,updateHash:false}));
+
+
+
+function liveAthleteSettingsPreview(){
+  DATA.settings=DATA.settings||{};
+  const name=$('#setAthleteName')?.value?.trim();
+  const team=$('#setTeam')?.value?.trim();
+  const reg=$('#setReg')?.value?.trim();
+  const birth=$('#setBirthDate')?.value||'';
+  const category=$('#setCategory')?.value||'';
+  if(name!==undefined)DATA.settings.athleteName=name;
+  if(team!==undefined)DATA.settings.team=team;
+  if(reg!==undefined)DATA.settings.athleteRegistration=reg;
+  DATA.settings.birthDate=birth;
+  DATA.settings.category=category;
+  DATA.settings.categoryByYear=DATA.settings.categoryByYear||{};
+  if(category)DATA.settings.categoryByYear[String(new Date().getFullYear())]=category;
+  renderAthleteHero();
+  renderLastSwimSync();
+}
+document.addEventListener('input',e=>{
+  if(['setAthleteName','setTeam','setReg','setBirthDate'].includes(e.target.id))liveAthleteSettingsPreview();
+});
+document.addEventListener('change',e=>{
+  if(['setCategory','setBirthDate'].includes(e.target.id))liveAthleteSettingsPreview();
+});
+
+function calcAge(birthDate){
+  if(!birthDate)return null;
+  const b=new Date(birthDate+'T00:00:00'), n=new Date();
+  if(isNaN(b))return null;
+  let age=n.getFullYear()-b.getFullYear();
+  const m=n.getMonth()-b.getMonth();
+  if(m<0||(m===0&&n.getDate()<b.getDate()))age--;
+  return age;
+}
+function renderAthleteHero(){
+  const a=DATA.athlete||{}, s=DATA.settings||{};
+  const name=String(s.athleteName||a.name||'').trim();
+  const team=String(s.team||a.team||s.club||a.club||'').trim();
+  const reg=String(s.athleteRegistration||a.registration||'').trim();
+  const birth=s.birthDate||a.birthDate||'';
+  const category=String(s.category||a.category||'').trim();
+  const age=calcAge(birth);
+  $('#heroAthleteName').textContent=name||'Atleta';
+  $('#heroAthleteSub').textContent=(team||reg)
+    ? [team,reg?`registro ${reg}`:''].filter(Boolean).join(' · ')
+    : (dropboxReady?'Dados do atleta ainda não preenchidos':'Conecte ao Dropbox para carregar os dados');
+  $('#heroAge').textContent=`Idade: ${age==null?'—':age+' anos'}`;
+  $('#heroCategory').textContent=`Categoria: ${category||'—'}`;
+  const wrap=$('#athletePhotoWrap');
+  const photo=s.photoDataUrl||a.photoDataUrl||'';
+  const initials=name ? name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase() : 'VS';
+  wrap.innerHTML=photo?`<img class="athlete-photo" src="${photo}" alt="${name||'Atleta'}">`:`<div class="athlete-photo placeholder">${initials}</div>`;
+}
+async function handlePhotoUpload(file){
+  if(!file)return;
+  if(!file.type.startsWith('image/')){alert('Escolha um arquivo de imagem.');return}
+  if(file.size>3*1024*1024){alert('Use uma imagem de até 3 MB.');return}
+  const dataUrl=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)});
+  DATA.settings=DATA.settings||{};
+  DATA.settings.photoDataUrl=dataUrl;
+  queueSave();
+  
+  $('#photoPreview').src=dataUrl;
+  renderAthleteHero();
+}
+document.addEventListener('change',e=>{if(e.target.id==='setPhoto')handlePhotoUpload(e.target.files?.[0])});
+
+function render(){
+  normalizeKnownVenues();
+  renderDropboxRecovery();
+  renderCards(); renderBest(); renderHistory(); renderMeets(); renderPredictions(); renderAlerts(); renderAudit(); fillFilters(); populateResultSelectors(); renderAthleteHero(); drawChart();
+  $('#setAthleteName').value=DATA.settings?.athleteName||DATA.athlete?.name||'';
+  $('#setTeam').value=DATA.settings?.team||DATA.athlete?.team||DATA.settings?.club||DATA.athlete?.club||'';
+  $('#setReg').value=DATA.settings?.athleteRegistration||DATA.athlete?.registration||'';
+  $('#setBirthDate').value=DATA.settings?.birthDate||DATA.athlete?.birthDate||'';
+  $('#setCategory').value=DATA.settings?.category||DATA.athlete?.category||'';
+  $('#setMeetUrl').value=DATA.settings?.swimSystemMeetUrl||'';
+  $('#setPushUrl').value=DATA.settings?.pushServerUrl||'';
+  const pp=$('#photoPreview'); if(pp){const ph=DATA.settings?.photoDataUrl||DATA.athlete?.photoDataUrl||'';pp.src=ph||'';}
+  renderAthleteHero();
+}
+
+function metricIcon(name){
+  const icons={
+    history:'<svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
+    official:'<svg viewBox="0 0 24 24"><path d="m12 3 2.4 2.1 3.2-.2.8 3.1 2.7 1.8-1.3 3 1.3 3-2.7 1.8-.8 3.1-3.2-.2L12 21l-2.4-2.1-3.2.2-.8-3.1-2.7-1.8 1.3-3-1.3-3L5.6 8l.8-3.1 3.2.2L12 3Z"/><path d="m8.5 12 2.2 2.2 4.8-4.8"/></svg>',
+    pool:'<svg viewBox="0 0 24 24"><path d="M2 17c2-2 4 2 6 0s4 2 6 0 4 2 8 0M2 21c2-2 4 2 6 0s4 2 6 0 4 2 8 0"/><path d="M6 14V7a3 3 0 0 1 6 0M12 14V7a3 3 0 0 1 6 0"/></svg>',
+    calendar:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M6 3v4M18 3v4M3 10h18M8 14h3M13 14h3"/></svg>'
+  };
+  return icons[name]||icons.history;
+}
+
+function renderCards(){
+  let events=eventList(), latest=[...confirmed()].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  let poolsKnown=confirmed().filter(r=>r.poolMeters!=null).length;
+  let next=activeMeet();
+  let cards=[
+    ['PROVAS COM HISTÓRICO',events.length,'resultados confirmados','history'],
+    ['RESULTADOS OFICIAIS',officialCount(),'SwimSystem','official'],
+    ['PISCINA CONFIRMADA',poolsKnown,`${confirmed().length-poolsKnown} aguardam conferência`,'pool'],
+    ['CAMPEONATO ATIVO',next?fmtDate(next.dateStart):'—',next?next.name:'Nenhum cadastrado','calendar']
+  ];
+  $('#summaryCards').innerHTML=cards.map(c=>`<div class="card kpi-card"><div class="kpi-card-icon">${metricIcon(c[3])}</div><div class="k">${c[0]}</div><div class="v">${c[1]}</div><div class="s">${c[2]}</div></div>`).join('');
+  if(next){
+    $('#nextMeet').innerHTML=`<div class="meet modern-meet"><div><h4>${next.name}${meetState(next)}</h4><p>${fmtDate(next.dateStart)} a ${fmtDate(next.dateEnd)} · ${next.venue||next.city||'local não informado'} · ${poolLabel(next.poolMeters)}</p><div class="entry-grid">${(next.entries||[]).map(e=>{const rr=resultForEntry(next,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)} · ${e.scheduled||'—'}</small><div class="mono" style="font-size:20px;margin-top:7px">${e.seed||'NT'}</div><small>Série ${e.series??'—'} · Raia ${e.lane??'—'}</small>${compareMarkup(e,rr)}</div>`}).join('')}</div></div></div>`
+  } else $('#nextMeet').innerHTML='<span class="muted">Nenhum campeonato futuro cadastrado.</span>';
+}
+function renderBest(){
+  // "Melhores marcas confirmadas" = uma única melhor marca confirmada por prova.
+  // A piscina é informação da marca exibida, não cria uma segunda "melhor marca".
+  const rows=eventList()
+    .map(ev=>bestFor(ev))
+    .filter(Boolean);
+
+  $('#bestTable').innerHTML=rows.map(r=>`<tr><td>${r.event}</td><td class="mono best">${r.time}</td><td>${poolLabel(r.poolMeters)}</td><td>${resultDateLabel(r)}</td><td>${canonicalVenue(r)}</td></tr>`).join('');
+  const bm=$('#bestMobile');
+  if(bm)bm.innerHTML=rows.map(r=>`<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${poolLabel(r.poolMeters)} · ${resultDateLabel(r)}</div></div><div class="time mono best">${r.time}</div></div><div class="meta">${canonicalVenue(r)}</div></div>`).join('');
+}
+function fillFilters(){
+  const events=eventList();
+  const f=$('#fEvent'), ce=$('#chartEvent');
+  let fv=f.value, cv=ce.value;
+  f.innerHTML='<option value="">Todas as provas</option>'+events.map(x=>`<option>${x}</option>`).join('');
+  ce.innerHTML='<option value="__all">Todos os estilos</option>'+events.map(x=>`<option>${x}</option>`).join('');
+  if(events.includes(fv))f.value=fv;if(cv==='__all'||events.includes(cv))ce.value=cv;else ce.value='__all';
+}
+
+function canonicalText(v){
+  return String(v||'').trim().replace(/\s+/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
+}
+function normalizeTimeInput(v){
+  let raw=String(v||'').trim();
+  if(!raw)return {ok:false};
+  raw=raw.replace(/\s+/g,'').replace(/[”″]/g,'"').replace(/[’′]/g,"'").replace(/,/g,'.');
+  let sec=NaN;
+  if(/^\d+:\d{1,2}(\.\d+)?$/.test(raw)){
+    let [m,s]=raw.split(':'); sec=Number(m)*60+Number(s);
+  }else if(/^\d+'\d{1,2}("?\d{0,2})?$/.test(raw) || raw.includes("'")){
+    let a=raw.replace(/"/g,'').split("'"); sec=Number(a[0])*60+Number(a[1]);
+  }else if(/^\d+(\.\d+)?$/.test(raw)){
+    sec=Number(raw);
+  }else{
+    let nums=raw.match(/\d+/g)||[];
+    if(nums.length===3) sec=Number(nums[0])*60+Number(nums[1])+Number(nums[2])/100;
+    else if(nums.length===2) sec=Number(nums[0])+Number(nums[1])/100;
+  }
+  if(!Number.isFinite(sec)||sec<=0)return {ok:false};
+  return {ok:true,seconds:Math.round(sec*100)/100,display:fmtTime(Math.round(sec*100)/100)};
+}
+function populateResultSelectors(){
+  const venues=[...new Set([
+    ...(DATA.results||[]).map(r=>r.venue).filter(Boolean),
+    ...(DATA.meets||[]).map(m=>m.venue).filter(Boolean)
+  ])].sort();
+  const rv=$('#rVenueSelect'); if(rv){
+    rv.innerHTML='<option value="">Escolha ou cadastre</option>'+venues.map(v=>`<option>${v}</option>`).join('')+'<option value="__other">Outro...</option>';
+  }
+  const meets=[...DATA.meets].sort((a,b)=>b.dateStart.localeCompare(a.dateStart));
+  const rm=$('#rMeetSelect'); if(rm){
+    rm.innerHTML='<option value="">Escolha uma competição</option>'+meets.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  }
+}
+function selectedVenue(){
+  let v=$('#rVenueSelect')?.value||'';
+  if(v==='__other')v=canonicalText($('#rVenueOther')?.value||'');
+  return v||null;
+}
+function selectedCity(){
+  let v=$('#rCitySelect')?.value||'';
+  if(v==='__other')v=canonicalText($('#rCityOther')?.value||'');
+  return v||null;
+}
+function syncResultPreview(){
+  let d=$('#rDistance')?.value||'', st=$('#rStroke')?.value||'', t=normalizeTimeInput($('#rTime')?.value||'');
+  let ev=d&&st?`${d} ${st}`:'—';
+  $('#resultPreview').innerHTML=t.ok?`Será salvo como <b>${ev}</b> · tempo <b>${t.display}</b> · piscina <b>${poolLabel($('#rPool')?.value?Number($('#rPool').value):null)}</b>.`:'Preencha distância, estilo e um tempo válido para visualizar o padrão.';
+}
+document.addEventListener('change',e=>{
+  if(e.target.id==='rVenueSelect')$('#rVenueOtherWrap').style.display=e.target.value==='__other'?'block':'none';
+  if(e.target.id==='rCitySelect')$('#rCityOtherWrap').style.display=e.target.value==='__other'?'block':'none';
+  if(e.target.id==='rMeetSelect' && e.target.value){
+    const m=DATA.meets.find(x=>x.id===e.target.value);
+    if(m){
+      if(m.poolMeters)$('#rPool').value=String(m.poolMeters);
+      if(m.city){
+        let opt=[...$('#rCitySelect').options].find(o=>o.value===m.city||o.text===m.city);
+        if(opt)$('#rCitySelect').value=opt.value;
+        else{$('#rCitySelect').value='__other';$('#rCityOther').value=m.city;$('#rCityOtherWrap').style.display='block'}
+      }
+      if(m.venue){
+        let opt=[...$('#rVenueSelect').options].find(o=>o.value===m.venue||o.text===m.venue);
+        if(opt)$('#rVenueSelect').value=opt.value;
+        else{$('#rVenueSelect').value='__other';$('#rVenueOther').value=m.venue;$('#rVenueOtherWrap').style.display='block'}
+      }
+    }
+  }
+  if(['rDistance','rStroke','rPool','rTime','rMeetSelect'].includes(e.target.id))syncResultPreview();
+});
+document.addEventListener('input',e=>{if(e.target.id==='rTime')syncResultPreview()});
+
+function resultStatusLabel(status){
+  if(status==='official')return 'OFICIAL SWIMSYSTEM';
+  if(status==='provisional')return 'SWIMSYSTEM PARCIAL';
+  return 'MANUAL';
+}
+function renderHistory(){
+  let ev=$('#fEvent')?.value||'', pool=$('#fPool')?.value||'', src=$('#fSource')?.value||'';
+  let a=[...(DATA.results||[])].filter(r=>(!ev||r.event===ev)&&(!src||r.status===src)&&(!pool||(pool==='unknown'?r.poolMeters==null:String(r.poolMeters)===pool))).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(a.event||'').localeCompare(String(b.event||'')));
+  $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<tr><td>${resultDateLabel(r)}</td><td><b>${resultCategory(r)}</b></td><td>${r.event}</td><td class="mono"><b>${r.time||fmtTime(r.timeSeconds)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||s.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusLabel(r.status)}</span></td><td><div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div></td></tr>`}).join('');
+  const mh=$('#mobileHistory');
+  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${r.time||fmtTime(r.timeSeconds)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div><div class="actions"><span class="tag ${r.status}">${resultStatusLabel(r.status)}</span><button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button></div></div>`}).join('');
+}
+['fEvent','fPool','fSource'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)renderHistory()}));
+
+function renderMeets(){
+  const today=new Date().toISOString().slice(0,10);
+  const a=activeMeet();
+  const ordered=[...DATA.meets].sort((x,y)=>{
+    if(a && x.id===a.id)return -1;
+    if(a && y.id===a.id)return 1;
+    const xf=String(x.dateEnd||'')>=today?0:1, yf=String(y.dateEnd||'')>=today?0:1;
+    return xf-yf || String(x.dateStart||'').localeCompare(String(y.dateStart||''));
+  });
+  $('#meetList').innerHTML=ordered.map(m=>`<div class="meet"><div><h4>${m.name}${meetState(m)}</h4><p>${fmtDate(m.dateStart)} a ${fmtDate(m.dateEnd)} · ${m.venue||m.city||'—'} · ${poolLabel(m.poolMeters)}</p>${m.entries?.length?`<div class="entry-grid">${m.entries.map(e=>{const rr=resultForEntry(m,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)}</small><div class="mono" style="font-size:19px;margin-top:5px">${e.seed||'NT'}</div><small>S${e.series??'—'} / R${e.lane??'—'} · ${e.scheduled||'—'}</small>${compareMarkup(e,rr)}</div>`}).join('')}</div>`:''}</div><div>${m.sourceId?'<span class="tag official">OFICIAL</span>':'<span class="tag manual">MANUAL</span>'}</div></div>`).join('');
+}
+function regress(points){
+  if(points.length<2)return null;
+  let t0=new Date(points[0].date).getTime(), xs=points.map(p=>(new Date(p.date).getTime()-t0)/86400000), ys=points.map(p=>p.timeSeconds);
+  let n=xs.length,sx=xs.reduce((a,b)=>a+b,0),sy=ys.reduce((a,b)=>a+b,0),sxx=xs.reduce((a,b)=>a+b*b,0),sxy=xs.reduce((a,b,i)=>a+b*ys[i],0);
+  let den=n*sxx-sx*sx;if(!den)return null;return {a:(sy*(sxx)-sx*sxy)/den,b:(n*sxy-sx*sy)/den,t0};
+}
+function estimate(event,pool,targetDate){
+  // Expectativa sempre usa apenas resultados anteriores à data da prova-alvo.
+  // Assim, depois que a prova termina, o resultado oficial não contamina a
+  // expectativa que existia antes da largada.
+  const priorConfirmed=confirmed().filter(r=>!targetDate||String(r.date||'')<String(targetDate));
+  let pts=priorConfirmed.filter(r=>r.event===event&&(pool==null||r.poolMeters===pool)).sort((a,b)=>a.date.localeCompare(b.date));
+  let exact=pts;
+  if(exact.length<2 && pool!=null) exact=priorConfirmed.filter(r=>r.event===event).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!exact.length)return null;
+  let recent=exact.slice(-4), best=Math.min(...recent.map(p=>p.timeSeconds)), latest=recent[recent.length-1].timeSeconds;
+  let reg=regress(recent), pred=latest;
+  if(reg){let days=(new Date(targetDate).getTime()-reg.t0)/86400000;pred=reg.a+reg.b*days}
+  pred=Math.max(pred,best*0.95);
+  let spread=exact.length>=4?0.018:exact.length>=3?0.025:0.035;
+  let aggressive=Math.min(pred*(1-spread/2),best*0.995), conservative=Math.max(pred*(1+spread),latest*0.995);
+  let conf=exact.length>=4?'high':exact.length>=3?'medium':'low';
+  return {prob:pred,aggressive,conservative,conf,n:exact.length,best,latest};
+}
+function expectationVsActual(label,expected,result){
+  if(!Number.isFinite(expected))return '<div class="range"><small>'+label+'</small><b class="mono">—</b></div>';
+  const actual=Number(result?.timeSeconds);
+  if(!Number.isFinite(actual))return '<div class="range"><small>'+label+'</small><b class="mono">'+fmtTime(expected)+'</b></div>';
+  const delta=actual-expected;
+  const dir=delta<-.005?'better':delta>.005?'worse':'same';
+  const icon=dir==='better'?'↓':dir==='worse'?'↑':'=';
+  const txt=(delta>0?'+':'')+delta.toFixed(2)+'s';
+  return '<div class="range"><small>'+label+'</small><b class="mono">'+fmtTime(expected)+'</b><span class="expect-vs-actual '+dir+'">'+icon+' oficial '+txt+'</span></div>';
+}
+function renderPredictions(){
+  const future=activeMeet();
+  if(!future){$('#predictionList').innerHTML='<p>Nenhum campeonato ativo ou futuro cadastrado.</p>';return}
+  const head=`<div class="pred-meet-title">${future.name}${meetState(future)}</div><div class="pred-meet-meta">${fmtDate(future.dateStart)} a ${fmtDate(future.dateEnd)} · ${future.venue||future.city||'—'} · ${poolLabel(future.poolMeters)}</div>`;
+  $('#predictionList').innerHTML=head+(future.entries||[]).map(e=>{
+    const rr=resultForEntry(future,e);
+    const est=estimate(e.event,future.poolMeters,e.date);
+    if(rr){
+      const expectationMeta=est
+        ? `Expectativa pré-prova · ${est.n} resultado(s) anteriores utilizados`
+        : 'Expectativa pré-prova indisponível';
+      return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · prova realizada</small><small style="display:block;color:var(--muted);margin-top:3px">${expectationMeta}</small></div>${actualResultCard(e,rr)}${expectationVsActual('Expectativa conservadora',est?.conservative,rr)}${expectationVsActual('Expectativa provável',est?.prob,rr)}${expectationVsActual('Expectativa agressiva',est?.aggressive,rr)}<div class="confidence ${rr.status==='official'?'high':'medium'}">${rr.status==='official'?'OFICIAL':'PROVISÓRIO'}</div></div>`;
+    }
+    if(!est)return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · Sem histórico suficiente</small></div>${actualResultCard(e,null)}<div></div><div></div><div></div><div class="confidence low">BAIXA</div></div>`;
+    return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · ${est.n} resultado(s) anteriores utilizados</small></div>${actualResultCard(e,null)}<div class="range"><small>Conservadora</small><b class="mono">${fmtTime(est.conservative)}</b></div><div class="range"><small>Provável</small><b class="mono">${fmtTime(est.prob)}</b></div><div class="range"><small>Agressiva</small><b class="mono">${fmtTime(est.aggressive)}</b></div><div class="confidence ${est.conf}">${est.conf==='high'?'ALTA':est.conf==='medium'?'MÉDIA':'BAIXA'}</div></div>`;
+  }).join('');
+}
+function renderAudit(){
+  let official=DATA.results.filter(r=>r.status==='official').length, manual=DATA.results.filter(r=>r.status==='manual').length, unknownPool=DATA.results.filter(r=>r.poolMeters==null).length;
+  $('#auditSummary').innerHTML=`<b>${official}</b> resultados oficiais SwimSystem · <b>${manual}</b> manuais confirmados · <b>${unknownPool}</b> registros oficiais com piscina ainda não confirmada na fonte consultada. Esses campos permanecem vazios até conferência.`;
+  $('#sourceList').innerHTML=DATA.sources.map(s=>`<div class="audit-row"><div><span class="tag official">OFICIAL</span></div><div><b>${s.title}</b><div style="color:var(--muted);margin-top:3px">${s.city||'—'} · ${fmtDate(s.dateStart)}${s.dateEnd&&s.dateEnd!==s.dateStart?' a '+fmtDate(s.dateEnd):''} · ${poolLabel(s.poolMeters)}</div><div style="color:var(--muted);margin-top:3px">${s.note||''}</div></div><div><a class="source-link" href="${s.url}" target="_blank">Abrir fonte ↗</a></div></div>`).join('');
+}
+function drawChart(){
+  let c=$('#chart'); if(!c||!c.offsetWidth)return;
+  let ev=$('#chartEvent')?.value||'__all', p=$('#chartPool')?.value||'';
+  const filterPool=r=>(!p||(p==='unknown'?r.poolMeters==null:String(r.poolMeters)===p));
+  let all=[...(DATA.results||[])].filter(r=>(r.status==='official'||r.status==='manual'||r.status==='provisional')&&filterPool(r)).sort((a,b)=>a.date.localeCompare(b.date));
+  const dpr=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;c.width=w*dpr;c.height=h*dpr;
+  let ctx=c.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
+  const legend=$('#chartLegend'); if(legend)legend.innerHTML='';
+  if(!all.length){ctx.fillStyle='#6c7783';ctx.fillText('Sem dados para este filtro.',20,30);return}
+
+  const pad={l:62,r:22,t:28,b:58};
+  const palette=['#2d78a5','#8a5aa8','#2f8f5b','#c47b24','#b84b4b','#4d6fb6','#8b6a3d','#5d7b83','#a35f7d','#6878a8'];
+  const groups=ev==='__all'
+    ? eventList().map(name=>({name,pts:all.filter(r=>r.event===name)})).filter(g=>g.pts.length)
+    : [{name:ev,pts:all.filter(r=>r.event===ev)}];
+  if(!groups.length){ctx.fillStyle='#6c7783';ctx.fillText('Sem dados para este filtro.',20,30);return}
+
+  let ptsAll=groups.flatMap(g=>g.pts);
+  let min=Math.min(...ptsAll.map(x=>x.timeSeconds)),max=Math.max(...ptsAll.map(x=>x.timeSeconds));
+  if(min===max){min*=.97;max*=1.03}else{let mm=(max-min)*.12;min-=mm;max+=mm}
+  const dates=[...new Set(ptsAll.map(p=>p.date))].sort();
+  const xDate=d=>pad.l+(w-pad.l-pad.r)*(dates.length===1?.5:dates.indexOf(d)/(dates.length-1));
+  // Evolução visual: tempo menor fica mais abaixo; piora (tempo maior) sobe.
+  const y=v=>pad.t+(h-pad.t-pad.b)*(max-v)/(max-min);
+
+  ctx.strokeStyle='#dfe5ea';ctx.lineWidth=1;ctx.font='11px system-ui';ctx.fillStyle='#6c7783';ctx.textAlign='left';
+  for(let i=0;i<5;i++){let yy=pad.t+(h-pad.t-pad.b)*i/4;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();let val=max-(max-min)*i/4;ctx.fillText(fmtTime(val),6,yy+4)}
+  dates.forEach((d,i)=>{if(dates.length>6 && i%Math.ceil(dates.length/6)!==0 && i!==dates.length-1)return;ctx.textAlign='center';ctx.fillStyle='#6c7783';ctx.fillText(d.slice(5,7)+'/'+d.slice(2,4),xDate(d),h-24)});
+  // Mudanças de categoria são contexto visual, sem atribuir causalidade ao crescimento.
+  let prevCat=null;
+  dates.forEach((d,i)=>{
+    const cats=[...new Set(ptsAll.filter(p=>p.date===d).map(resultCategory))];
+    const cat=cats[0]||null;
+    if(cat && prevCat && cat!==prevCat){
+      const xx=xDate(d);
+      ctx.save();ctx.strokeStyle='#87939f';ctx.setLineDash([5,5]);ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.moveTo(xx,pad.t);ctx.lineTo(xx,h-pad.b);ctx.stroke();
+      ctx.setLineDash([]);ctx.fillStyle='#596673';ctx.font='10px system-ui';ctx.textAlign='left';
+      ctx.fillText(cat,Math.min(xx+5,w-pad.r-55),pad.t+11);ctx.restore();
+    }
+    if(cat)prevCat=cat;
+  });
+
+  groups.forEach((g,gi)=>{
+    const color=palette[gi%palette.length];
+    const badColor=getComputedStyle(document.documentElement).getPropertyValue('--bad').trim()||'#c94747';
+    ctx.lineWidth=2.3;
+    for(let i=1;i<g.pts.length;i++){
+      const a=g.pts[i-1],b=g.pts[i];
+      ctx.strokeStyle=b.timeSeconds>a.timeSeconds?badColor:color;
+      ctx.beginPath();
+      ctx.moveTo(xDate(a.date),y(a.timeSeconds));
+      ctx.lineTo(xDate(b.date),y(b.timeSeconds));
+      ctx.stroke();
+    }
+    g.pts.forEach(pt=>{
+      let xx=xDate(pt.date),yy=y(pt.timeSeconds);
+      ctx.beginPath();ctx.arc(xx,yy,4.5,0,Math.PI*2);
+      if(pt.status==='provisional'){
+        ctx.fillStyle='#fff';ctx.fill();
+        ctx.strokeStyle=color;ctx.lineWidth=2;ctx.stroke();
+      }else{
+        ctx.fillStyle=color;ctx.fill();
+      }
+      if(ev!=='__all'){
+        ctx.fillStyle='#12202d';ctx.textAlign='center';
+        ctx.fillText(pt.time+(pt.status==='provisional'?' *':''),xx,yy-9);
+      }
+    });
+    if(legend)legend.innerHTML+=`<span><i style="background:${color}"></i>${g.name}</span>${g.pts.some((p,i)=>i>0&&p.timeSeconds>g.pts[i-1].timeSeconds)?'<span><i style="background:var(--bad)"></i>Piora de tempo</span>':''}`;
+
+  });
+
+  if(legend && ptsAll.some(p=>p.status==='provisional')){
+    legend.innerHTML+=`<span class="chart-provisional-legend"><i class="chart-provisional-dot"></i>Provisório SwimSystem</span>`;
+  }
+  ctx.textAlign='left';
+  if(ev==='__all'){
+    const cats=[...new Set(ptsAll.map(resultCategory))];
+    $('#evolutionStats').innerHTML=`<b>Evolução esportiva observada</b> · ${groups.length} prova(s) · ${ptsAll.length} resultado(s)${p?` · ${p==='unknown'?'piscina não confirmada':p+' m'}`:''}. Categorias no período: <b>${cats.join(' → ')}</b>. As mudanças de categoria aparecem como contexto no gráfico; não são tratadas como causa automática da melhora ou piora.`;
+  }else{
+    let pts=groups[0].pts;
+    let confirmedPts=pts.filter(p=>p.status==='official'||p.status==='manual');
+    let basis=confirmedPts.length?confirmedPts:pts;
+    let first=basis[0],last=basis[basis.length-1],delta=last.timeSeconds-first.timeSeconds,pct=first.timeSeconds?(-delta/first.timeSeconds*100):0,best=Math.min(...basis.map(p=>p.timeSeconds));
+    const provisional=pts.filter(p=>p.status==='provisional').sort((a,b)=>a.date.localeCompare(b.date)).at(-1);
+    const cats=[...new Set(basis.map(resultCategory))];
+    const lastCat=resultCategory(last);
+    const catPts=basis.filter(x=>resultCategory(x)===lastCat);
+    const cf=catPts[0],cl=catPts[catPts.length-1],cd=cl.timeSeconds-cf.timeSeconds,cp=cf.timeSeconds?(-cd/cf.timeSeconds*100):0;
+    const catText=catPts.length>1?` · dentro de <b>${lastCat}</b>: ${cf.time} → ${cl.time}, ${cd<0?'ganho '+(-cd).toFixed(2)+' s ('+cp.toFixed(1)+'%)':cd>0?'aumento '+cd.toFixed(2)+' s':'sem variação'}`:` · categoria atual do histórico: <b>${lastCat}</b>`;
+    $('#evolutionStats').innerHTML=`<b>Evolução esportiva observada — ${ev}</b> · ${basis.length} resultado(s) · primeiro ${first.time} → último ${last.time} · melhor <b>${fmtTime(best)}</b>${catText}${cats.length>1?` · transição <b>${cats.join(' → ')}</b> considerada como contexto de faixa etária`:''}. A mudança de categoria não é usada como explicação causal automática.${provisional?` Provisório SwimSystem: <b>${provisional.time}</b>.`:''}`;
+  }
+}
+document.addEventListener('change',e=>{if(['chartEvent','chartPool'].includes(e.target.id))drawChart()});window.addEventListener('resize',()=>setTimeout(drawChart,50));
+
+let editingResultId=null;
+function splitEventName(event=''){
+  const m=String(event).match(/^(\d+)\s+(.+)$/);
+  return m?{distance:m[1],stroke:m[2]}:{distance:'',stroke:''};
+}
+function openResultModal(id=null){
+  populateResultSelectors();
+  editingResultId=id||null;
+  ['rDate','rDistance','rStroke','rTime','rPool','rVenueSelect','rCitySelect','rMeetSelect'].forEach(x=>{let el=$('#'+x);if(el)el.value=''});
+  $('#rStatus').value='manual';
+  $('#rVenueOtherWrap').style.display='none';$('#rCityOtherWrap').style.display='none';
+  $('#rVenueOther').value='';$('#rCityOther').value='';
+
+  if(id){
+    const r=DATA.results.find(x=>x.id===id);
+    if(!r)return;
+    const p=splitEventName(r.event);
+    $('#rDate').value=r.date||'';
+    $('#rDistance').value=p.distance;
+    $('#rStroke').value=p.stroke;
+    $('#rTime').value=r.time||fmtTime(r.timeSeconds);
+    $('#rPool').value=r.poolMeters||'';
+    $('#rStatus').value=r.status||'manual';
+    if(r.meetId)$('#rMeetSelect').value=r.meetId;
+    if(r.city){
+      let o=[...$('#rCitySelect').options].find(x=>x.value===r.city||x.text===r.city);
+      if(o)$('#rCitySelect').value=o.value; else{$('#rCitySelect').value='__other';$('#rCityOther').value=r.city;$('#rCityOtherWrap').style.display='block'}
+    }
+    if(r.venue){
+      let o=[...$('#rVenueSelect').options].find(x=>x.value===r.venue||x.text===r.venue);
+      if(o)$('#rVenueSelect').value=o.value; else{$('#rVenueSelect').value='__other';$('#rVenueOther').value=r.venue;$('#rVenueOtherWrap').style.display='block'}
+    }
+  }
+  syncResultPreview();
+  resultModal.showModal();
+}
+function openMeetModal(){meetModal.showModal()}
+function saveResult(){
+  const date=$('#rDate').value, distance=$('#rDistance').value, stroke=$('#rStroke').value;
+  const nt=normalizeTimeInput($('#rTime').value);
+  if(!date||!distance||!stroke||!nt.ok){alert('Informe data, distância, estilo e tempo válidos.');return}
+  const event=`${distance} ${stroke}`;
+  const meetId=$('#rMeetSelect').value||null;
+  const meetObj=meetId?DATA.meets.find(m=>m.id===meetId):null;
+  const status=$('#rStatus').value;
+  const payload={
+    date,event,distance:Number(distance),stroke,
+    timeSeconds:nt.seconds,time:nt.display,
+    city:selectedCity(),venue:selectedVenue(),
+    poolMeters:$('#rPool').value?Number($('#rPool').value):null,
+    meet:meetObj?.name||null,meetId,status
+  };
+  if(editingResultId){
+    const r=DATA.results.find(x=>x.id===editingResultId);
+    if(r)Object.assign(r,payload,{editedAt:new Date().toISOString()});
+  }else{
+    DATA.results.push({id:'manual-'+Date.now(),place:null,aqua:null,sourceId:null,...payload});
+  }
+  editingResultId=null;
+  resultModal.close();render();queueSave();
+}
+function deleteResult(id){
+  const r=DATA.results.find(x=>x.id===id);
+  if(!r)return;
+  if(confirm(`Excluir ${r.event} · ${r.time||fmtTime(r.timeSeconds)} de ${resultDateLabel(r)}?\n\nA exclusão vale para a base local/Dropbox. Se o resultado continuar publicado no SwimSystem, uma sincronização futura poderá encontrá-lo novamente.`)){
+    DATA.results=DATA.results.filter(x=>x.id!==id);
+    render();queueSave();
+  }
+}
+function saveMeet(){
+  if(!$('#mName').value||!$('#mStart').value){alert('Informe nome e data inicial.');return}
+  DATA.meets.push({id:'manual-meet-'+Date.now(),name:$('#mName').value.trim(),dateStart:$('#mStart').value,dateEnd:$('#mEnd').value||$('#mStart').value,city:$('#mCity').value.trim()||null,venue:$('#mVenue').value.trim()||null,poolMeters:$('#mPool').value?Number($('#mPool').value):null,sourceId:null,sourceUrl:$('#mUrl').value.trim()||null,entries:[]});
+  meetModal.close();render();queueSave();
+}
+function saveSettings(){
+  collectSettingsFromForm();
+  renderAthleteHero();
+  renderAlerts();
+  queueSave();
+}
+function exportJson(){let b=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='viniswim-dados.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+
+
+const ALERT_DEFS=[
+  {key:'m120',label:'2 horas antes',minutes:120},
+  {key:'m60',label:'1 hora antes',minutes:60},
+  {key:'m30',label:'30 minutos antes',minutes:30},
+  {key:'m20',label:'20 minutos antes',minutes:20},
+  {key:'m10',label:'10 minutos antes',minutes:10},
+  {key:'m5',label:'5 minutos antes',minutes:5}
+];
+function ensureAlertSettings(){
+  DATA.settings=DATA.settings||{};
+  if(!DATA.settings.alerts)DATA.settings.alerts={m120:true,m60:true,m30:true,m20:true,m10:true,m5:true,resultPublished:true,personalBest:true};
+  for(const a of ALERT_DEFS) if(DATA.settings.alerts[a.key]===undefined) DATA.settings.alerts[a.key]=true;
+  if(DATA.settings.alerts.resultPublished===undefined)DATA.settings.alerts.resultPublished=true;
+  if(DATA.settings.alerts.personalBest===undefined)DATA.settings.alerts.personalBest=true;
+  DATA.pendingOfficialResults=DATA.pendingOfficialResults||[];
+}
+function alertLabel(key){
+  let a=ALERT_DEFS.find(x=>x.key===key);return a?a.label:key;
+}
+function renderAlerts(){
+  setTimeout(()=>syncPendingResultsFromServer(),50);
+  ensureAlertSettings();
+  if(!$('#alertOptions'))return;
+  const opts=[
+    ...ALERT_DEFS.map(a=>({key:a.key,title:a.label,desc:`Avisar ${a.label.toLowerCase()} do horário previsto da prova.`})),
+    {key:'resultPublished',title:'Resultado publicado',desc:'Avisar assim que o resultado oficial for encontrado no SwimSystem.'},
+    {key:'personalBest',title:'Recorde pessoal',desc:'Destacar quando o resultado confirmado superar a melhor marca da mesma piscina.'}
+  ];
+  $('#alertOptions').innerHTML=opts.map(o=>`<div class="alert-option"><div><b>${o.title}</b><small>${o.desc}</small></div><label class="switch"><input type="checkbox" ${DATA.settings.alerts[o.key]?'checked':''} onchange="toggleAlert('${o.key}',this.checked)"><span class="slider"></span></label></div>`).join('');
+  updateNotificationStatus();
+  renderNextAlerts();
+  renderPendingOfficialResults();
+}
+function toggleAlert(key,val){
+  ensureAlertSettings();DATA.settings.alerts[key]=!!val;queueSave();renderNextAlerts();syncPushSubscription().catch(()=>{});
+}
+async function clearLegacyAppCaches(){
+  try{
+    if('caches' in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.filter(k=>k!=='viniswim-v53').map(k=>caches.delete(k)));
+    }
+  }catch(e){console.warn('Cache cleanup',e)}
+}
+
+let swReloading=false;
+async function registerSW(){
+  if(!('serviceWorker' in navigator))return null;
+  try{
+    const reg=await navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'});
+    await reg.update().catch(()=>{});
+    if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
+    reg.addEventListener('updatefound',()=>{
+      const nw=reg.installing;
+      if(!nw)return;
+      nw.addEventListener('statechange',()=>{
+        if(nw.state==='installed'&&navigator.serviceWorker.controller){
+          nw.postMessage({type:'SKIP_WAITING'});
+        }
+      });
+    });
+    return reg;
+  }catch(e){console.warn('SW',e);return null}
+}
+
+navigator.serviceWorker?.addEventListener('controllerchange',()=>{
+  if(swReloading)return;
+  swReloading=true;
+  location.reload();
+});
+
+setInterval(async()=>{
+  try{
+    const reg=await navigator.serviceWorker?.getRegistration();
+    if(reg)await reg.update();
+  }catch(e){}
+},60000);
+async function updateNotificationStatus(){
+  if(!$('#notifPermission'))return;
+  $('#notifPermission').textContent=('Notification' in window)?Notification.permission:'não suportado';
+  let reg=null;
+  try{reg=await navigator.serviceWorker?.getRegistration()}catch(e){}
+  $('#swStatus').textContent=reg?'ativo':'não instalado';
+  const pushUrl=DATA.settings?.pushServerUrl||'';
+  $('#pushStatus').textContent=pushUrl?'configurado':'aguardando servidor';
+  if($('#enableNotificationsBtn'))$('#enableNotificationsBtn').textContent=Notification.permission==='granted'?'Notificações ativas':'Ativar notificações neste aparelho';
+}
+function getFutureEntries(){
+  let out=[];
+  (DATA.meets||[]).forEach(m=>(m.entries||[]).forEach(e=>{
+    if(!e.date||!e.scheduled)return;
+    let dt=new Date(`${e.date}T${e.scheduled}:00`);
+    if(isNaN(dt)||dt.getTime()<Date.now()-3600000)return;
+    out.push({meet:m,entry:e,date:dt});
+  }));
+  return out.sort((a,b)=>a.date-b.date);
+}
+function renderNextAlerts(){
+  if(!$('#nextAlerts'))return;
+  let all=[];
+  for(const x of getFutureEntries()){
+    for(const a of ALERT_DEFS){
+      if(!DATA.settings.alerts[a.key])continue;
+      let when=new Date(x.date.getTime()-a.minutes*60000);
+      if(when.getTime()<Date.now())continue;
+      all.push({when,x,a});
+    }
+  }
+  all.sort((a,b)=>a.when-b.when);all=all.slice(0,12);
+  $('#nextAlerts').innerHTML=all.length?all.map(z=>`<div class="timeline-row"><div class="mono">${z.when.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div><div><b>${z.x.entry.event}</b><small style="display:block;color:var(--muted)">${z.x.meet.name} · prova prevista ${z.x.entry.scheduled}</small></div><div class="right"><span class="tag official">${z.a.label.toUpperCase()}</span></div></div>`).join(''):'<span style="color:var(--muted)">Nenhum aviso futuro calculável com os horários atualmente cadastrados.</span>';
+}
+async function enableNotifications(){
+  ensureAlertSettings();
+  if(!('Notification' in window)){alert('Este navegador não suporta notificações web.');return}
+  let perm=Notification.permission;
+  if(perm!=='granted')perm=await Notification.requestPermission();
+  if(perm!=='granted'){updateNotificationStatus();return}
+  await registerSW();
+  await syncPushSubscription();
+  updateNotificationStatus();
+  testNotification();
+}
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4),base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+function knownResultSignatures(){
+  const registration=String(DATA.settings?.athleteRegistration||DATA.athlete?.registration||'');
+  return (DATA.results||[])
+    .filter(r=>r && r.event && r.time && r.date)
+    .map(r=>[
+      registration,
+      String(r.date||''),
+      normalizeSwimEventName(r.event||''),
+      String(r.time||fmtTime(r.timeSeconds)||'')
+    ].join('|'));
+}
+async function syncPushSubscription(){
+  ensureAlertSettings();
+  if(Notification.permission!=='granted'||!('serviceWorker' in navigator))return;
+  const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
+  if(!base)return;
+  const reg=await navigator.serviceWorker.ready;
+  let sub=await reg.pushManager.getSubscription();
+  if(!sub){
+    let cfg=await fetch(base+'/config').then(r=>{if(!r.ok)throw new Error('Servidor Push não respondeu.');return r.json()});
+    if(!cfg.publicKey)throw new Error('Servidor Push sem chave pública.');
+    sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(cfg.publicKey)});
+  }
+  let payload={
+    subscription:sub.toJSON(),
+    athlete:{name:DATA.athlete?.name,registration:DATA.settings?.athleteRegistration||DATA.athlete?.registration},
+    alerts:DATA.settings.alerts,
+    meets:(DATA.meets||[]).filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)),
+    swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||'',
+    timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo',
+    appUrl:location.origin+location.pathname,
+    knownResults:knownResultSignatures()
+  };
+  await fetch(base+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(r=>{if(!r.ok)throw new Error('Não foi possível registrar o aparelho no servidor Push.')});
+  if($('#pushStatus'))$('#pushStatus').textContent='ativo';
+}
+async function testNotification(){
+  if(Notification.permission!=='granted'){alert('Ative as notificações primeiro.');return}
+  const reg=await navigator.serviceWorker.ready;
+  await reg.showNotification('VINISWIM — teste de alerta',{body:'Notificações ativas neste aparelho.',icon:'./icon-192.png',badge:'./icon-192.png',tag:'viniswim-test',data:{url:'./#alerts'}});
+}
+
+let swimSyncRunning=false;
+let lastSwimSyncAt=0;
+
+function swimResultSlotKey(r){
+  return [r.meetId||r.meet||'',r.event||'',r.date||''].join('|');
+}
+function normalizeSwimEventName(v=''){
+  return String(v||'').replace(/\b(\d{2,4})\s*m\b/i,'$1').replace(/\s+/g,' ').trim();
+}
+function formatSyncStamp(iso){
+  if(!iso)return 'Última atualização: —';
+  const d=new Date(iso);
+  if(isNaN(d))return 'Última atualização: —';
+  return 'Última atualização: '+d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function renderLastSwimSync(){
+  const el=$('#lastSwimSystemUpdate');
+  if(!el)return;
+  const completed=DATA.settings?.lastSwimSystemSyncAt;
+  const attempted=DATA.settings?.lastSwimSystemSyncAttemptAt;
+  if(completed)el.textContent=formatSyncStamp(completed);
+  else if(attempted)el.textContent='Última tentativa: '+new Date(attempted).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  else el.textContent='Última atualização: —';
+}
+function inferServerResultDate(x){
+  if(x.date)return x.date;
+  const meet=(DATA.meets||[]).find(m=>(x.meetId&&m.id===x.meetId)||(x.meet&&m.name===x.meet));
+  if(!meet)return null;
+  const ev=String(x.event||'').toLowerCase();
+  const entry=(meet.entries||[]).find(e=>String(e.event||'').toLowerCase()===ev)
+    || (meet.entries||[]).find(e=>ev.includes(String(e.event||'').toLowerCase())||String(e.event||'').toLowerCase().includes(ev));
+  return entry?.date||meet.dateStart||null;
+}
+function ensureAutoSource(x){
+  const id='swimsystem-auto';
+  if(!DATA.sources.find(s=>s.id===id)){
+    DATA.sources.push({id,title:'SwimSystem · sincronização automática',url:x.sourceUrl||DATA.settings?.swimSystemMeetUrl||'',kind:'official'});
+  }
+  return id;
+}
+function normalizeServerResult(x){
+  const seconds=Number.isFinite(Number(x.timeSeconds))?Number(x.timeSeconds):parseTime(x.time);
+  const status=x.status==='official'?'official':'provisional';
+  return {
+    id:x._rid||('swim-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)),
+    _rid:x._rid||null,
+    date:inferServerResultDate(x),
+    event:normalizeSwimEventName(x.event||'Prova'),
+    timeSeconds:seconds,
+    time:x.time||fmtTime(seconds),
+    poolMeters:Number(x.poolMeters||x.pool)||null,
+    venue:x.venue||null,
+    city:x.city||null,
+    meet:x.meet||null,
+    meetId:x.meetId||null,
+    sourceId:ensureAutoSource(x),
+    sourceUrl:x.sourceUrl||null,
+    seed:x.seed||x.entryTime||null,
+    series:x.series??null,
+    lane:x.lane??null,
+    status,
+    publishedAt:x.publishedAt||new Date().toISOString(),
+    importedAt:new Date().toISOString()
+  };
+}
+async function ackServerResults(base,registration,rids){
+  if(!rids.length)return;
+  await fetch(base+'/pending-results/ack',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({registration,rids})
+  }).catch(()=>{});
+}
+function setSwimUpdateStatus(text,state=''){
+  const el=$('#swimSystemUpdateStatus');
+  if(!el)return;
+  el.textContent=text||'';
+  el.className='swimsystem-update-status'+(state?' '+state:'');
+}
+async function fetchJsonWithTimeout(url,options={},timeoutMs=25000){
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),timeoutMs);
+  try{
+    const r=await fetch(url,{...options,signal:ctrl.signal,cache:'no-store'});
+    let body=null;
+    try{body=await r.json()}catch(e){}
+    return {ok:r.ok,status:r.status,body};
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+async function wakeMonitor(base,{manual=false}={}){
+  const tries=[20000,45000,65000];
+  for(let i=0;i<tries.length;i++){
+    try{
+      if(manual)setSwimUpdateStatus(i===0?'Acordando monitor...':'Monitor iniciando... aguarde.');
+      const r=await fetchJsonWithTimeout(base+'/health',{},tries[i]);
+      if(r.ok)return true;
+    }catch(e){
+      const aborted=e?.name==='AbortError' || /aborted/i.test(String(e?.message||e));
+      if(!aborted)throw e;
+    }
+  }
+  return false;
+}
+
+async function applyIncomingSwimResults(base,registration,incoming,{manual=false}={}){
+  if(!Array.isArray(incoming)||!incoming.length)return {changed:false,count:0};
+
+  const snapshot=JSON.stringify(DATA);
+  const ack=[];
+  let changed=false, imported=0, updated=0;
+
+  for(const x of incoming){
+    const local=normalizeServerResult(x);
+    const slot=swimResultSlotKey(local);
+    let existing=(DATA.results||[]).find(y=>swimResultSlotKey(y)===slot && y.status!=='manual');
+
+    if(existing){
+      const before=JSON.stringify(existing);
+      Object.assign(existing,local,{id:existing.id||local.id});
+      if(before!==JSON.stringify(existing)){changed=true;updated++}
+    }else{
+      DATA.results.push(local);
+      changed=true;
+      imported++;
+    }
+    if(x._rid)ack.push(x._rid);
+  }
+
+  render();
+  renderLastSwimSync();
+
+  if(dropboxReady){
+    try{
+      await dbxUpload();
+    }catch(e){
+      DATA=JSON.parse(snapshot);
+      render();
+      renderLastSwimSync();
+      throw e;
+    }
+    await ackServerResults(base,registration,ack);
+  }
+
+  DATA.pendingOfficialResults=[];
+  renderPendingOfficialResults();
+
+  const total=imported+updated;
+  if(manual){
+    setSwimUpdateStatus(
+      total
+        ? `Atualizado · ${imported} novo(s), ${updated} atualizado(s).`
+        : 'Atualizado · base já estava em dia.',
+      'ok'
+    );
+  }
+  return {changed,count:total,imported,updated};
+}
+
+async function pollResultSync(base,registration,{manual=false}={}){
+  const started=Date.now();
+  let lastDetected=0;
+  while(Date.now()-started<85000){
+    let status;
+    try{
+      status=await fetchJsonWithTimeout(
+        base+'/sync-status?registration='+encodeURIComponent(registration),
+        {},
+        15000
+      );
+    }catch(e){
+      const aborted=e?.name==='AbortError' || /aborted/i.test(String(e?.message||e));
+      if(aborted){
+        if(manual)setSwimUpdateStatus('Monitor processando... aguardando resposta.');
+        await new Promise(r=>setTimeout(r,2500));
+        continue;
+      }
+      throw e;
+    }
+
+    if(status.ok){
+      const incoming=Array.isArray(status.body?.results)?status.body.results:[];
+      lastDetected=Number(status.body?.detected||0);
+
+      if(incoming.length){
+        DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+        renderLastSwimSync();
+        return await applyIncomingSwimResults(base,registration,incoming,{manual});
+      }
+
+      if(status.body?.error){
+        throw new Error(status.body.error);
+      }
+
+      if(status.body?.running===false){
+        DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+        renderLastSwimSync();
+        if(manual)setSwimUpdateStatus(
+          lastDetected
+            ? 'Consulta concluída · resultados detectados já estavam na base.'
+            : 'Consulta concluída · nenhum resultado novo encontrado.',
+          'ok'
+        );
+        return {changed:false,count:0};
+      }
+
+      if(manual)setSwimUpdateStatus('Monitor consultando o SwimSystem em segundo plano...');
+    }
+
+    await new Promise(r=>setTimeout(r,2500));
+  }
+
+  if(manual)setSwimUpdateStatus('Consulta continua no servidor. O VINISWIM verificará novamente automaticamente.','ok');
+  return {changed:false,count:0,pending:true};
+}
+
+async function syncPendingResultsFromServer(opts={}){
+  const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
+  const registration=DATA.settings?.athleteRegistration||DATA.athlete?.registration||'';
+  const manual=!!opts.manual;
+
+  if(!base){
+    if(manual)setSwimUpdateStatus('Servidor Push / SwimSystem não configurado.','err');
+    return {changed:false,count:0,error:new Error('Servidor não configurado')};
+  }
+  if(!registration){
+    if(manual)setSwimUpdateStatus('Registro SwimSystem do atleta não configurado.','err');
+    return {changed:false,count:0,error:new Error('Registro não configurado')};
+  }
+  if(swimSyncRunning){
+    if(manual)setSwimUpdateStatus('Já existe uma atualização em andamento.');
+    return {changed:false,count:0,busy:true};
+  }
+
+  swimSyncRunning=true;
+  DATA.settings=DATA.settings||{};
+  DATA.settings.lastSwimSystemSyncAttemptAt=new Date().toISOString();
+  renderLastSwimSync();
+
+  try{
+    // Em plano gratuito o Render pode estar dormindo. Acorda primeiro para evitar AbortError no iPhone.
+    if(manual){
+      const awake=await wakeMonitor(base,{manual:true});
+      if(!awake){
+        setSwimUpdateStatus('O monitor ainda está iniciando. Tente novamente em alguns segundos.','ok');
+        return {changed:false,count:0,pending:true};
+      }
+    }
+
+    // 1) Sempre importa imediatamente qualquer resultado que o monitor já detectou.
+    if(manual)setSwimUpdateStatus('Verificando resultados já detectados...');
+    let pending;
+    try{
+      pending=await fetchJsonWithTimeout(
+        base+'/pending-results?registration='+encodeURIComponent(registration),
+        {},
+        manual?25000:8000
+      );
+    }catch(e){
+      const aborted=e?.name==='AbortError' || /aborted/i.test(String(e?.message||e));
+      if(!aborted)throw e;
+      if(!manual)return {changed:false,count:0,pending:true};
+      setSwimUpdateStatus('Monitor respondeu lentamente; iniciando consulta mesmo assim...');
+      pending={ok:false,status:0,body:null};
+    }
+    if(pending.ok && Array.isArray(pending.body?.results) && pending.body.results.length){
+      DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+      renderLastSwimSync();
+      return await applyIncomingSwimResults(base,registration,pending.body.results,{manual});
+    }
+
+    // Auto-sync leve: não dispara nova varredura.
+    if(!manual){
+      return {changed:false,count:0};
+    }
+
+    // 2) Dispara varredura no servidor e recebe resposta imediata.
+    setSwimUpdateStatus('Iniciando consulta ao SwimSystem...');
+    let trigger;
+    try{
+      trigger=await fetchJsonWithTimeout(base+'/sync-results',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+        registration,
+        athlete:{
+          name:DATA.athlete?.name||DATA.settings?.athleteName||'',
+          registration,
+          category:DATA.settings?.category||DATA.athlete?.category||''
+        },
+        meets:(DATA.meets||[]).filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)),
+        swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||'',
+        timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo',
+        appUrl:location.origin+location.pathname,
+        knownResults:knownResultSignatures()
+      })
+      },25000);
+    }catch(e){
+      const aborted=e?.name==='AbortError' || /aborted/i.test(String(e?.message||e));
+      if(!aborted)throw e;
+      setSwimUpdateStatus('Servidor iniciando consulta... tentando novamente.');
+      await new Promise(r=>setTimeout(r,2500));
+      trigger=await fetchJsonWithTimeout(base+'/sync-results',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+        registration,
+        athlete:{
+          name:DATA.athlete?.name||DATA.settings?.athleteName||'',
+          registration,
+          category:DATA.settings?.category||DATA.athlete?.category||''
+        },
+        meets:(DATA.meets||[]).filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)),
+        swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||'',
+        timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo',
+        appUrl:location.origin+location.pathname,
+        knownResults:knownResultSignatures()
+      })
+      },30000);
+    }
+
+    if(!trigger.ok){
+      throw new Error('Monitor retornou HTTP '+trigger.status+' ao iniciar a consulta.');
+    }
+
+    // Se já veio algo pendente na resposta do disparo, importa na hora.
+    if(Array.isArray(trigger.body?.results) && trigger.body.results.length){
+      DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+      renderLastSwimSync();
+      const applied=await applyIncomingSwimResults(base,registration,trigger.body.results,{manual:true});
+      // Depois continua apenas para pegar eventual mudança parcial -> oficial da mesma varredura.
+      if(trigger.body?.running!==false){
+        pollResultSync(base,registration,{manual:false}).catch(e=>console.warn('background poll',e));
+      }
+      return applied;
+    }
+
+    // 3) A varredura acontece no Render; o app só acompanha o status.
+    return await pollResultSync(base,registration,{manual:true});
+  }catch(e){
+    console.warn('result sync',e);
+    const aborted=e?.name==='AbortError' || /aborted/i.test(String(e?.message||e));
+    if(manual){
+      setSwimUpdateStatus(
+        aborted
+          ? 'O monitor está demorando para responder. A sincronização continuará automaticamente.'
+          : 'Falha ao atualizar: '+(e.message||e),
+        aborted?'ok':'err'
+      );
+    }
+    return {changed:false,count:0,error:e};
+  }finally{
+    swimSyncRunning=false;
+  }
+}
+async function updateFromSwimSystem(){
+  const btn=$('#updateSwimSystemBtn');
+  if(btn){btn.disabled=true;btn.textContent='Atualizando...'}
+  try{await syncPendingResultsFromServer({manual:true})}
+  finally{if(btn){btn.disabled=false;btn.textContent='↻ Atualizar SwimSystem'}}
+}
+
+function renderPendingOfficialResults(){
+  if(!$('#pendingOfficialResults'))return;
+  let a=DATA.pendingOfficialResults||[];
+  $('#pendingOfficialResults').innerHTML=a.length?a.map((r,i)=>`<div class="card" style="margin-bottom:10px"><div class="k">RESULTADO ENCONTRADO · SINCRONIZAÇÃO PENDENTE</div><div class="v mono" style="font-size:23px">${r.event||'Prova'} · ${r.time||fmtTime(r.timeSeconds)}</div><div class="s">${r.meet||''} ${r.publishedAt?'· publicado '+new Date(r.publishedAt).toLocaleString('pt-BR'):''}</div><div style="margin-top:10px;display:flex;gap:8px"><button class="btn primary" onclick="confirmOfficialResult(${i})">Confirmar e importar</button><button class="btn" onclick="discardOfficialResult(${i})">Descartar</button></div></div>`).join(''):'<span style="color:var(--muted)">Nenhum resultado oficial aguardando confirmação.</span>';
+}
+function confirmOfficialResult(i){
+  let r=DATA.pendingOfficialResults[i];if(!r)return;
+  r.id=r.id||'official-'+Date.now();r.status='official';
+  DATA.results.push(r);DATA.pendingOfficialResults.splice(i,1);render();queueSave(true);
+}
+function discardOfficialResult(i){DATA.pendingOfficialResults.splice(i,1);renderPendingOfficialResults();queueSave()}
+function checkForegroundReminders(){
+  if(Notification.permission!=='granted')return;
+  ensureAlertSettings();
+  let sent=JSON.parse(localStorage.getItem('viniswim_alerts_sent_v1')||'{}'),now=Date.now();
+  for(const x of getFutureEntries()){
+    for(const a of ALERT_DEFS){
+      if(!DATA.settings.alerts[a.key])continue;
+      let target=x.date.getTime()-a.minutes*60000,key=`${x.meet.id}|${x.entry.date}|${x.entry.event}|${a.key}`;
+      if(!sent[key] && now>=target && now<target+75000){
+        navigator.serviceWorker.ready.then(reg=>reg.showNotification(`VINISWIM — ${x.entry.event} em ${a.label.replace(' antes','')}`,{
+          body:`${x.entry.event} · Série ${x.entry.series??'—'} · Raia ${x.entry.lane??'—'} · ${x.entry.scheduled}`,
+          icon:'./icon-192.png',badge:'./icon-192.png',tag:key,data:{url:'./#meets'}
+        }));
+        sent[key]=now;
+      }
+    }
+  }
+  localStorage.setItem('viniswim_alerts_sent_v1',JSON.stringify(sent));
+}
+setInterval(checkForegroundReminders,30000);
+setInterval(()=>{if(!document.hidden)syncPendingResultsFromServer({auto:true});},60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkForegroundReminders();syncPendingResultsFromServer({auto:true});}});
+
+
+async function importFromSwimSystem(){
+  const url=($('#swimSystemImportUrl')?.value||'').trim();
+  const status=$('#swimImportStatus');
+  if(!url){status.innerHTML='<span class="tag manual">INFORME A URL</span>';return}
+  if(!/^https:\/\/(www\.)?swimsystem\.app\/meets\/sw\//i.test(url)){
+    status.innerHTML='<span class="tag manual">URL SWIMSYSTEM INVÁLIDA</span>';return;
+  }
+  const base=(DATA.settings?.pushServerUrl||'').replace(/\/$/,'');
+  if(!base){
+    status.innerHTML='<div class="notice"><b>Conector ainda não configurado.</b> O navegador não consulta o SwimSystem diretamente com confiabilidade por causa de CORS. Configure o servidor/conector na aba Configurações; a interface de importação já está pronta.</div>';
+    return;
+  }
+  status.innerHTML='<span class="pill">Consultando SwimSystem...</span>';
+  try{
+    const r=await fetch(base+'/swimsystem/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,registration:DATA.settings?.athleteRegistration||DATA.athlete?.registration})});
+    if(!r.ok)throw new Error('O conector não conseguiu consultar o SwimSystem.');
+    const d=await r.json();
+    if(!d.meet)throw new Error('Competição não reconhecida pelo conector.');
+    const exists=DATA.meets.find(m=>m.sourceUrl===url||m.id===d.meet.id);
+    if(exists){
+      Object.assign(exists,d.meet);
+    }else DATA.meets.push(d.meet);
+    if(d.source && !DATA.sources.find(s=>s.id===d.source.id))DATA.sources.push(d.source);
+    DATA.settings.swimSystemMeetUrl=url;
+    render();queueSave(true);
+    status.innerHTML=`<div class="notice"><b>Importação concluída.</b> ${d.meet.entries?.length||0} prova(s) do Vini encontrada(s). Revise antes de usar.</div>`;
+  }catch(e){
+    status.innerHTML=`<div class="notice" style="border-left-color:var(--bad)"><b>Falha na importação:</b> ${e.message}</div>`;
+  }
+}
+
+
+/* ===== VINISWIM AUTH + ACTIONS ===== */
+
+
+
+const AUTH_SESSION_KEY='viniswim_auth_session_v1';
+
+
+function initPasswordToggles(){
+  const bind=(inputId,buttonId)=>{
+    const input=$('#'+inputId),button=$('#'+buttonId);
+    if(!input||!button)return;
+    button.onclick=()=>{
+      const showing=input.type==='text';
+      input.type=showing?'password':'text';
+      button.classList.toggle('active',!showing);
+      button.setAttribute('aria-label',showing?'Mostrar senha':'Ocultar senha');
+      button.setAttribute('title',showing?'Mostrar senha':'Ocultar senha');
+    };
+  };
+  bind('authPassword','authPasswordToggle');
+  bind('authConfirm','authConfirmToggle');
+}
+
+function randomHex(bytes=16){
+  const a=new Uint8Array(bytes);crypto.getRandomValues(a);
+  return [...a].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+async function hashPassword(password,salt){
+  const bytes=new TextEncoder().encode(String(salt||'')+'|'+String(password||''));
+  const digest=await crypto.subtle.digest('SHA-256',bytes);
+  return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function authConfigured(){
+  const a=DATA.auth||{};
+  return !!(a.login&&a.salt&&a.hash);
+}
+function lockApp(){
+  sessionStorage.removeItem(AUTH_SESSION_KEY);
+  
+  const gate=$('#authGate');if(gate)gate.hidden=false;
+}
+function unlockApp(){
+  sessionStorage.setItem(AUTH_SESSION_KEY,'1');
+  const gate=$('#authGate');if(gate)gate.hidden=true;
+  document.body.classList.remove('auth-locked');
+  
+}
+function showAuthGate(){
+  const first=!authConfigured();
+  
+  $('#authGate').hidden=false;
+  $('#authTitle').textContent=first?'Primeiro acesso':'Entrar';
+  $('#authSubtitle').textContent=first
+    ?'Crie o login e a senha do VINISWIM. Eles serão gravados com segurança na base do Dropbox.'
+    :'Informe seu login e senha para entrar.';
+  $('#authConfirmWrap').hidden=!first;
+  $('#authConfirm').required=first;
+  $('#authPassword').setAttribute('autocomplete',first?'new-password':'current-password');
+  $('#authSubmit').textContent=first?'Criar acesso':'Entrar';
+  $('#authNote').textContent=first
+    ?'A senha não é salva em texto. O VINISWIM grava somente um hash com salt na base privada do Dropbox.'
+    :'Após o login, o VINISWIM abre sempre na Visão Geral.';
+  $('#authError').textContent='';
+  $('#authPassword').value='';
+  $('#authConfirm').value='';
+  if(!first)$('#authLogin').value=DATA.auth?.login||'';
+  setTimeout(()=>$('#authLogin')?.focus(),50);
+}
+async function initAuth(){
+  if(sessionStorage.getItem(AUTH_SESSION_KEY)==='1'&&authConfigured()){
+    unlockApp();return;
+  }
+  showAuthGate();
+}
+async function submitAuth(e){
+  e.preventDefault();
+  const first=!authConfigured();
+  const login=$('#authLogin').value.trim();
+  const password=$('#authPassword').value;
+  $('#authError').textContent='';
+  if(!login||!password){$('#authError').textContent='Informe login e senha.';return}
+  if(first){
+    if(password.length<4){$('#authError').textContent='A senha deve ter pelo menos 4 caracteres.';return}
+    if(password!==$('#authConfirm').value){$('#authError').textContent='As senhas não conferem.';return}
+    const salt=randomHex(16), hash=await hashPassword(password,salt);
+    DATA.auth={login,salt,hash,createdAt:new Date().toISOString()};
+    try{
+      if(dropboxReady)await dbxUpload();
+      else throw new Error('Dropbox ainda não está conectado.');
+      unlockApp();
+    }catch(err){
+      DATA.auth=null;
+      $('#authError').textContent=err.message||'Não foi possível gravar o acesso.';
+    }
+    return;
+  }
+  if(login!==DATA.auth.login){$('#authError').textContent='Login ou senha inválidos.';return}
+  const hash=await hashPassword(password,DATA.auth.salt);
+  if(hash!==DATA.auth.hash){$('#authError').textContent='Login ou senha inválidos.';return}
+  unlockApp();
+}
+function logoutApp(){
+  closeActionsMenu();
+}
+
+function openMobileSidebar(){
+  const mq=window.matchMedia('(max-width: 900px)');
+  if(!mq.matches)return;
+  document.body.classList.add('sidebar-open');
+  $('#mobileSidebarBtn')?.setAttribute('aria-expanded','true');
+  $('#mobileSidebarBtn')?.setAttribute('aria-label','Fechar menu');
+}
+function closeMobileSidebar(){
+  document.body.classList.remove('sidebar-open');
+  $('#mobileSidebarBtn')?.setAttribute('aria-expanded','false');
+  $('#mobileSidebarBtn')?.setAttribute('aria-label','Abrir menu');
+}
+function toggleMobileSidebar(){
+  document.body.classList.contains('sidebar-open') ? closeMobileSidebar() : openMobileSidebar();
+}
+document.addEventListener('click',e=>{
+  const hb=e.target.closest('#mobileSidebarBtn');
+  if(hb){
+    e.preventDefault();
+    e.stopPropagation();
+    toggleMobileSidebar();
+  }
+});
+
+function initMobileSidebar(){
+  const btn=$('#mobileSidebarBtn'), backdrop=$('#sidebarBackdrop');
+  const mq=window.matchMedia('(max-width: 900px)');
+  // clique do hambúrguer tratado por delegação global para maior robustez
+  if(backdrop)backdrop.addEventListener('click',closeMobileSidebar);
+
+  $$('.sidebar [data-page]').forEach(b=>{
+    b.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
+  });
+  $('#actionSave')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
+  $('#actionTutorial')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
+  $('#actionPrint')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
+  $('#actionDropbox')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&document.body.classList.contains('sidebar-open'))closeMobileSidebar();
+  });
+  const handleMq=()=>{if(!mq.matches)closeMobileSidebar()};
+  if(mq.addEventListener)mq.addEventListener('change',handleMq);else mq.addListener(handleMq);
+  window.addEventListener('pageshow',closeMobileSidebar);
+}
+
+function openActionsMenu(){
+  const m=$('#sidebarActionsMenu');if(!m)return;
+  const open=!m.classList.contains('open');
+  m.classList.toggle('open',open);
+  $('#sidebarActionsBtn')?.classList.toggle('open',open);
+  $('#sidebarActionsBtn')?.setAttribute('aria-expanded',open?'true':'false');
+}
+function closeActionsMenu(){
+  $('#sidebarActionsMenu')?.classList.remove('open');
+  $('#sidebarActionsBtn')?.classList.remove('open');
+  $('#sidebarActionsBtn')?.setAttribute('aria-expanded','false');
+}
+
+function collectSettingsFromForm(){
+  DATA.settings=DATA.settings||{};
+  DATA.athlete=DATA.athlete||{};
+
+  const athleteName=$('#setAthleteName');
+  const team=$('#setTeam');
+  const reg=$('#setReg');
+  const birth=$('#setBirthDate');
+  const category=$('#setCategory');
+  const meetUrl=$('#setMeetUrl');
+  const pushUrl=$('#setPushUrl');
+
+  if(athleteName) DATA.settings.athleteName=athleteName.value.trim();
+  if(team) DATA.settings.team=team.value.trim();
+  if(reg) DATA.settings.athleteRegistration=reg.value.trim();
+  if(birth) DATA.settings.birthDate=birth.value;
+  if(category){
+    DATA.settings.category=category.value;
+    DATA.settings.categoryByYear=DATA.settings.categoryByYear||{};
+    if(category.value)DATA.settings.categoryByYear[String(new Date().getFullYear())]=category.value;
+  }
+  if(meetUrl) DATA.settings.swimSystemMeetUrl=meetUrl.value.trim();
+  if(pushUrl) DATA.settings.pushServerUrl=pushUrl.value.trim();
+
+  DATA.athlete.name=DATA.settings.athleteName||DATA.athlete.name||'';
+  DATA.athlete.team=DATA.settings.team||DATA.athlete.team||DATA.athlete.club||'';
+  DATA.athlete.registration=DATA.settings.athleteRegistration||DATA.athlete.registration||'';
+  DATA.athlete.birthDate=DATA.settings.birthDate||null;
+  DATA.athlete.category=DATA.settings.category||null;
+}
+
+async function actionSaveNow(){
+  closeActionsMenu();
+  if(!dropboxReady){cacheLocalData();connectDropbox();return}
+  try{
+    collectSettingsFromForm();
+    renderAthleteHero();
+    await dbxUpload();
+    alert('Dados salvos no Dropbox.');
+  }catch(e){
+    setDropboxStatus('Dropbox · erro ao salvar','err');
+    alert(e.message||'Não foi possível salvar no Dropbox.');
+  }
+}
+
+function initActionsMenu(){
+  $('#sidebarActionsBtn').onclick=openActionsMenu;
+  $('#actionSave').onclick=actionSaveNow;
+  $('#actionDropbox')?.addEventListener('click',()=>{closeActionsMenu();connectDropbox()});
+  $('#settingsDropboxConnect')?.addEventListener('click',connectDropbox);
+  $('#actionTutorial').onclick=()=>{closeActionsMenu();tutorialModal.showModal()};
+  $('#actionPrint').onclick=()=>{closeActionsMenu();window.print()};
+  document.addEventListener('click',e=>{
+    if(!e.target.closest('.sidebar-actions'))closeActionsMenu();
+  });
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeActionsMenu()});
+}
+document.addEventListener('submit',e=>{if(e.target.id==='authForm')submitAuth(e)});
+
+function dbxB64(bytes){return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+async function dbxSha(s){return new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))}
+function verifier(){let b=new Uint8Array(64);crypto.getRandomValues(b);return dbxB64(b)}
+async function connectDropbox(){
+  let v=verifier();sessionStorage.setItem(DBX_PKCE,v);let challenge=dbxB64(await dbxSha(v));
+  let u=new URL('https://www.dropbox.com/oauth2/authorize');u.searchParams.set('client_id',DROPBOX_APP_KEY);u.searchParams.set('response_type','code');u.searchParams.set('redirect_uri',DROPBOX_REDIRECT);u.searchParams.set('code_challenge',challenge);u.searchParams.set('code_challenge_method','S256');u.searchParams.set('token_access_type','offline');u.searchParams.set('scope','files.content.read files.content.write');location.href=u.toString();
+}
+async function exchange(code){
+  const v=sessionStorage.getItem(DBX_PKCE);
+  if(!v)throw new Error('Autorização expirada.');
+  const body=new URLSearchParams({
+    code,
+    grant_type:'authorization_code',
+    client_id:DROPBOX_APP_KEY,
+    redirect_uri:DROPBOX_REDIRECT,
+    code_verifier:v
+  });
+  const r=await fetch('https://api.dropboxapi.com/oauth2/token',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body
+  });
+  const d=await r.json();
+  if(!r.ok)throw new Error(d.error_description||'Falha Dropbox');
+
+  // Persistir a autorização no aparelho. Antes o access token ficava apenas
+  // em sessionStorage e desaparecia ao fechar o PWA.
+  localStorage.setItem(DBX_ACCESS,d.access_token);
+  localStorage.setItem(DBX_ACCESS_EXPIRES,String(Date.now()+(Number(d.expires_in||14400)*1000)));
+  if(d.refresh_token)localStorage.setItem(DBX_REFRESH,d.refresh_token);
+
+  sessionStorage.removeItem(DBX_PKCE);
+  history.replaceState({},document.title,DROPBOX_REDIRECT);
+  return d.access_token;
+}
+
+async function token(){
+  const access=localStorage.getItem(DBX_ACCESS)||'';
+  const expiresAt=Number(localStorage.getItem(DBX_ACCESS_EXPIRES)||0);
+
+  // Reutiliza o token persistido enquanto válido. Isso evita reautorizar
+  // o Dropbox em toda abertura do VINISWIM.
+  if(access && (!expiresAt || expiresAt>Date.now()+60000))return access;
+
+  const rfr=localStorage.getItem(DBX_REFRESH);
+  if(!rfr){
+    // Compatibilidade com versões antigas: se ainda existe um access token
+    // sem refresh token, usa-o até o Dropbox recusá-lo.
+    if(access && !expiresAt)return access;
+    return '';
+  }
+
+  try{
+    const body=new URLSearchParams({
+      refresh_token:rfr,
+      grant_type:'refresh_token',
+      client_id:DROPBOX_APP_KEY
+    });
+    const r=await fetch('https://api.dropboxapi.com/oauth2/token',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body
+    });
+    let d={};
+    try{d=await r.json()}catch(e){}
+
+    if(!r.ok){
+      const detail=JSON.stringify(d||{});
+      // Só exige nova autorização quando o próprio Dropbox confirma
+      // revogação/invalid_grant. Falhas temporárias não apagam credenciais.
+      if(r.status===400 && /invalid_grant|invalid_refresh_token|expired_access_token/i.test(detail)){
+        localStorage.removeItem(DBX_ACCESS);
+        localStorage.removeItem(DBX_ACCESS_EXPIRES);
+        localStorage.removeItem(DBX_REFRESH);
+        return '';
+      }
+      // Em falha transitória, preserva a autorização. Se o access token ainda
+      // existir, deixa a chamada seguinte decidir pela resposta do Dropbox.
+      return access||'';
+    }
+
+    if(d.access_token){
+      localStorage.setItem(DBX_ACCESS,d.access_token);
+      localStorage.setItem(DBX_ACCESS_EXPIRES,String(Date.now()+(Number(d.expires_in||14400)*1000)));
+    }
+    if(d.refresh_token)localStorage.setItem(DBX_REFRESH,d.refresh_token);
+    return d.access_token||access||'';
+  }catch(e){
+    // Sem rede / timeout: não destrói a sessão persistente.
+    return access||'';
+  }
+}
+function dataFile(){return ($('#setFile')?.value||'/lorenzo-dados.json').trim()||'/lorenzo-dados.json'}
+async function dbxDownload(){
+  let t=await token();
+  if(!t)return null;
+
+  const doDownload=tok=>fetch('https://content.dropboxapi.com/2/files/download',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+tok,'Dropbox-API-Arg':JSON.stringify({path:dataFile()})}
+  });
+
+  let r=await doDownload(t);
+
+  // Se o access token persistido expirou antes do relógio local perceber,
+  // força apenas a renovação silenciosa; não manda o usuário ao OAuth.
+  if(r.status===401 && localStorage.getItem(DBX_REFRESH)){
+    localStorage.removeItem(DBX_ACCESS);
+    localStorage.removeItem(DBX_ACCESS_EXPIRES);
+    t=await token();
+    if(t)r=await doDownload(t);
+  }
+
+  if(r.status===409)return null;
+  if(!r.ok)throw new Error('Falha ao baixar base do Dropbox.');
+  let api=JSON.parse(r.headers.get('Dropbox-API-Result')||'{}');
+  dropboxRev=api.rev||'';
+  const data=await r.json();
+  if(data&&data.app==='VINISWIM'){DATA=data;cacheLocalData()}
+  return data;
+}
+async function dbxUpload(){
+  const t=await token();
+  if(!t)throw new Error('Dropbox não conectado.');
+  setDropboxStatus('Dropbox · salvando');
+  const r=await fetch('https://content.dropboxapi.com/2/files/upload',{
+    method:'POST',
+    headers:{
+      'Authorization':'Bearer '+t,
+      'Dropbox-API-Arg':JSON.stringify({path:dataFile(),mode:'overwrite',autorename:false,mute:true}),
+      'Content-Type':'application/octet-stream'
+    },
+    body:JSON.stringify(DATA,null,2)
+  });
+  if(!r.ok){
+    let detail='';
+    try{detail=await r.text()}catch(e){}
+    setDropboxStatus('Dropbox · erro ao salvar','err');
+    throw new Error('Falha ao salvar no Dropbox'+(detail?': '+detail:''));
+  }
+  cacheLocalData();
+  setDropboxStatus('Dropbox · sincronizado','ok');
+  return true;
+}
+function queueSave(){
+  cacheLocalData();
+  if(dropboxReady)setDropboxStatus('Dropbox · alterações não salvas');
+}
+
+function setDropboxStatus(text,state=''){
+  const s=$('#sidebarSyncStatus');
+  if(s){
+    s.textContent=text;
+    s.className='sidebar-sync-status'+(state?' '+state:'');
+  }
+}
+function renderDropboxRecovery(){
+  try{
+    const panel=$('#dropboxRecoveryPanel');
+    if(panel)panel.hidden=!!dropboxReady;
+    const b=$('#dashboardDropboxConnect');
+    if(b)b.onclick=connectDropbox;
+    const s=$('#settingsDropboxConnect');
+    if(s)s.onclick=connectDropbox;
+  }catch(e){console.warn('Dropbox recovery UI',e)}
+}
+
+async function bootstrapDropbox(){
+  try{
+    const q=new URLSearchParams(location.search);
+    if(q.get('error'))throw new Error(q.get('error_description')||q.get('error'));
+    if(q.get('code')){
+      setDropboxStatus('Dropbox · autorizando');
+      await exchange(q.get('code'));
+    }
+    const t=await token();
+    if(!t){
+      dropboxReady=false;
+      const hasCached=!!readLocalData();
+      setDropboxStatus(hasCached?'Dropbox · offline':'Dropbox · reconectar',hasCached?'':'err');
+      document.body.classList.remove('auth-locked');
+      render();
+      // Só mostra "Reconectar Dropbox" quando realmente não existe
+      // autorização persistente nem base local.
+      const panel=$('#dropboxRecoveryPanel');
+      if(panel)panel.hidden=hasCached;
+      nav('dashboard',{persist:false,updateHash:false});
+      return;
+    }
+    setDropboxStatus('Dropbox · carregando');
+    const remote=await dbxDownload();
+    if(remote&&remote.app==='VINISWIM'){
+      DATA=remote;
+      const migrated=applyHistorical35Migration();
+      cacheLocalData();
+      if(migrated){
+        dropboxReady=true;
+        await dbxUpload();
+      }
+    }else{
+      DATA=JSON.parse(document.getElementById('seedData').textContent);
+      dropboxReady=true;
+      await dbxUpload();
+    }
+    dropboxReady=true;
+    setDropboxStatus('Dropbox · sincronizado','ok');
+    renderDropboxRecovery();
+    document.body.classList.remove('auth-locked');
+    cacheLocalData();
+    render();
+    nav('dashboard',{persist:false,updateHash:false});
+    if('Notification' in window && Notification.permission==='granted'){
+      syncPushSubscription().catch(e=>console.warn('push auto-register',e));
+    }
+    setTimeout(()=>syncPendingResultsFromServer({auto:true}),1200);
+  }catch(e){
+    dropboxReady=false;
+    console.error('VINISWIM Dropbox bootstrap',e);
+    const hasCached=!!readLocalData();
+    const hasCredential=!!(localStorage.getItem(DBX_ACCESS)||localStorage.getItem(DBX_REFRESH));
+    // Falha de rede/API na abertura não é motivo para pedir OAuth novamente.
+    // Com base local ou credencial persistida, o app abre normalmente e tenta
+    // sincronizar de novo na próxima oportunidade.
+    setDropboxStatus((hasCached||hasCredential)?'Dropbox · offline':'Dropbox · reconectar',(hasCached||hasCredential)?'':'err');
+    document.body.classList.remove('auth-locked');
+    render();
+    const panel=$('#dropboxRecoveryPanel');
+    if(panel)panel.hidden=!!(hasCached||hasCredential);
+    nav('dashboard',{persist:false,updateHash:false});
+  }
+}
+function logoutDropbox(){
+  localStorage.removeItem(DBX_ACCESS);
+  localStorage.removeItem(DBX_ACCESS_EXPIRES);
+  localStorage.removeItem(DBX_REFRESH);
+  sessionStorage.removeItem(DBX_PKCE);
+  dropboxReady=false;
+  setDropboxStatus('Dropbox · não conectado','err');
+}
+
+ensureAlertSettings();
+applyHistorical35Migration();
+document.body.classList.remove('auth-locked');
+render();
+renderDropboxRecovery();
+nav('dashboard',{persist:false,updateHash:false});
+initActionsMenu();
+initMobileSidebar();
+registerSW().then(()=>updateNotificationStatus());
+bootstrapDropbox();
+checkForegroundReminders();
+</script>
+</body>
+</html>
