@@ -1605,7 +1605,7 @@ function ensureLorenzoIdentityAndCurrentResults(){
     {id:'lor-20260919-200livre',date:'2026-09-19',category:'Petiz I',competitionType:'Estadual',meet:'Campeonato Paranaense de Verão (Mirim/Petiz)',meetId:'m-202609',venue:'Santa Mônica Clube de Campo',city:'Colombo',poolMeters:50,event:'200 Livre',timeSeconds:166.54,time:'2\'46"54',seed:'2\'45"54',series:7,lane:6,status:'official',sourceId:'swimsystem-auto',sourceUrl:'https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0/results?e=32ad25f4-1cfb-476a-8019-8afff3772117'}
   ];
   DATA.results=DATA.results||[];
-  const key=r=>[r.date,cleanEventKey(r.event||''),Math.round(Number(r.timeSeconds||parseTime(r.time)||0)*100)].join('|');
+  const key=r=>[r.date,eventKey(r.event||''),Math.round(Number(r.timeSeconds||parseTime(r.time)||0)*100)].join('|');
   const seen=new Set(DATA.results.map(key));
   let added=0;
   for(const r of official){if(!seen.has(key(r))){DATA.results.push(r);seen.add(key(r));added++}}
