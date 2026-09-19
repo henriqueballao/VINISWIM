@@ -1,4 +1,4 @@
-const BUILD='53-LORENZO-2';
+const BUILD='53-LORENZO-3';
 const PREFIX='viniswim-lorenzo-';
 const CACHE=PREFIX+'v1';
 const CORE=['./','./index.html','./manifest.webmanifest','../../icon-192.png','../../icon-512.png'];
