@@ -1,0 +1,113 @@
+name: Dropbox session persistence test
+on:
+  push:
+    paths:
+      - 'index.html'
+      - 'service-worker.js'
+      - '.github/workflows/dropbox-session-test.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm i playwright@latest >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+      - name: Run persistence test
+        shell: bash
+        run: |
+          python3 -m http.server 4173 >/tmp/viniswim-http.log 2>&1 &
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const assert = require('assert');
+          const fs = require('fs');
+          (async()=>{
+            const browser = await chromium.launch({headless:true});
+            const ctx = await browser.newContext();
+            const page = await ctx.newPage();
+
+            const dataset = {
+              app:'VINISWIM',
+              athlete:{name:'Vinícius Suzin Ballão',registration:'422692',birthDate:'2015-09-30',category:'Petiz I',club:'Clube Curitibano'},
+              settings:{athleteRegistration:'422692',athleteName:'Vinícius Suzin Ballão',team:'Clube Curitibano',birthDate:'2015-09-30',category:'Petiz I',pushServerUrl:'',alerts:{}},
+              results:[],meets:[],sources:[],audit:{}
+            };
+
+            await page.route('https://content.dropboxapi.com/2/files/download', async route=>{
+              await route.fulfill({status:200,headers:{'content-type':'application/json','Dropbox-API-Result':'{"rev":"testrev"}'},body:JSON.stringify(dataset)});
+            });
+            await page.route('https://api.dropboxapi.com/oauth2/token', async route=>{
+              await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({access_token:'refreshed-token',expires_in:14400,token_type:'bearer'})});
+            });
+            await page.route('https://viniswim-monitor.onrender.com/**', async route=>{
+              await route.fulfill({status:200,contentType:'application/json',body:'{"ok":true,"results":[]}'});
+            });
+
+            await page.goto('http://127.0.0.1:4173/index.html');
+            await page.evaluate(()=>{
+              localStorage.setItem('viniswim_dbx_access_v1','persisted-token');
+              localStorage.setItem('viniswim_dbx_access_expires_v1',String(Date.now()+3600000));
+              localStorage.setItem('viniswim_local_data_v1',JSON.stringify({app:'VINISWIM',athlete:{name:'Vinícius Suzin Ballão'},settings:{},results:[],meets:[],sources:[],audit:{}}));
+            });
+            await page.reload();
+            await page.waitForTimeout(1500);
+
+            let state = await page.evaluate(()=>({
+              status:document.querySelector('#sidebarSyncStatus')?.textContent||'',
+              recoveryHidden:document.querySelector('#dropboxRecoveryPanel')?.hidden,
+              access:localStorage.getItem('viniswim_dbx_access_v1')
+            }));
+            console.log('FIRST_OPEN',state);
+            assert(!/reconectar/i.test(state.status),'First open asked to reconnect');
+            assert.strictEqual(state.recoveryHidden,true,'Recovery panel visible on first open');
+
+            await page.close();
+            const page2 = await ctx.newPage();
+            await page2.route('https://content.dropboxapi.com/2/files/download', async route=>{
+              await route.fulfill({status:200,headers:{'content-type':'application/json','Dropbox-API-Result':'{"rev":"testrev2"}'},body:JSON.stringify(dataset)});
+            });
+            await page2.route('https://api.dropboxapi.com/oauth2/token', async route=>{
+              await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({access_token:'refreshed-token-2',expires_in:14400,token_type:'bearer'})});
+            });
+            await page2.route('https://viniswim-monitor.onrender.com/**', async route=>{
+              await route.fulfill({status:200,contentType:'application/json',body:'{"ok":true,"results":[]}'});
+            });
+            await page2.goto('http://127.0.0.1:4173/index.html');
+            await page2.waitForTimeout(1500);
+            state = await page2.evaluate(()=>({
+              status:document.querySelector('#sidebarSyncStatus')?.textContent||'',
+              recoveryHidden:document.querySelector('#dropboxRecoveryPanel')?.hidden,
+              access:localStorage.getItem('viniswim_dbx_access_v1')
+            }));
+            console.log('SECOND_OPEN',state);
+            assert(!/reconectar/i.test(state.status),'Second open asked to reconnect');
+            assert.strictEqual(state.recoveryHidden,true,'Recovery panel visible on second open');
+            assert(state.access,'Access token missing after reopen');
+
+            await page2.evaluate(()=>{
+              localStorage.setItem('viniswim_dbx_access_expires_v1',String(Date.now()-1000));
+              localStorage.setItem('viniswim_dbx_refresh_v1','refresh-token');
+            });
+            await page2.reload();
+            await page2.waitForTimeout(1800);
+            state = await page2.evaluate(()=>({
+              status:document.querySelector('#sidebarSyncStatus')?.textContent||'',
+              recoveryHidden:document.querySelector('#dropboxRecoveryPanel')?.hidden,
+              access:localStorage.getItem('viniswim_dbx_access_v1')
+            }));
+            console.log('REFRESH_OPEN',state);
+            assert(!/reconectar/i.test(state.status),'Refresh flow asked to reconnect');
+            assert.strictEqual(state.recoveryHidden,true,'Recovery panel visible after refresh');
+            assert.strictEqual(state.access,'refreshed-token','Refresh token flow did not replace access token');
+
+            await browser.close();
+            console.log('DROPBOX_PERSISTENCE_TEST=PASS');
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
