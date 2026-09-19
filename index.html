@@ -2288,13 +2288,19 @@ function monitorResultSources(){
   ].filter((v,i,a)=>v&&a.indexOf(v)===i);
 }
 function monitorJsonpQuery(registration){
+  // URL curta: Safari/PWA falha ao carregar JSONP quando a query carrega todo o histórico.
+  const compactSources=[
+    DATA.settings?.fdapUrl||'https://fdap.org.br/',
+    DATA.settings?.fgdaUrl||'https://fgda.org.br/',
+    DATA.settings?.swimSystemMeetUrl||''
+  ].filter(Boolean);
   return new URLSearchParams({
     registration:String(registration),
     name:String(DATA.athlete?.name||DATA.settings?.athleteName||''),
     aliases:(DATA.athlete?.aliases||[]).join('|'),
     category:String(DATA.settings?.category||DATA.athlete?.category||''),
     swimSystemMeetUrl:String(DATA.settings?.swimSystemMeetUrl||''),
-    resultSources:monitorResultSources().join('|'),
+    resultSources:compactSources.join('|'),
     appUrl:location.origin+location.pathname
   });
 }
