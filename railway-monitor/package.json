@@ -1,0 +1,16 @@
+{
+  "name": "viniswim-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "web-push": "^3.6.7"
+  }
+}
