@@ -2328,10 +2328,21 @@ async function syncPushSubscription(){
   }
   let payload={
     subscription:sub.toJSON(),
-    athlete:{name:DATA.athlete?.name,registration:DATA.settings?.athleteRegistration||DATA.athlete?.registration},
+    athlete:{
+      name:DATA.athlete?.name||DATA.settings?.athleteName||'',
+      aliases:DATA.athlete?.aliases||[],
+      registration:DATA.settings?.athleteRegistration||DATA.athlete?.registration
+    },
     alerts:DATA.settings.alerts,
     meets:(DATA.meets||[]).filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)),
     swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||'',
+    resultSources:[
+      ...(DATA.settings?.resultSources||[]),
+      DATA.settings?.fdapUrl||'https://fdap.org.br/',
+      DATA.settings?.fgdaUrl||'https://fgda.org.br/',
+      ...(DATA.sources||[]).map(s=>s.url).filter(Boolean),
+      ...(DATA.results||[]).map(r=>r.sourceUrl).filter(Boolean)
+    ].filter((v,i,a)=>v&&a.indexOf(v)===i),
     timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo',
     appUrl:location.origin+location.pathname,
     knownResults:knownResultSignatures()
