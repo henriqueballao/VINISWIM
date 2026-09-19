@@ -2668,28 +2668,44 @@ async function updateFromSwimSystem(){
     setSwimUpdateStatus('Consultando FDAP e SwimSystem...');
     const fresh=await jsonpRequest(
       base+'/refresh-athlete?registration='+encodeURIComponent(registration),
-      180000
+      30000
     );
     if(!fresh?.ok)throw new Error(fresh?.error||'Falha no monitor');
-    const incoming=Array.isArray(fresh.results)?fresh.results:[];
+
+    // O Render inicia a varredura em background e responde imediatamente.
+    // Acompanhe até terminar; não marque como atualizado antes disso.
+    const t0=Date.now();
+    let st=null;
+    while(Date.now()-t0<210000){
+      await new Promise(r=>setTimeout(r,3000));
+      st=await jsonpRequest(
+        base+'/sync-status?registration='+encodeURIComponent(registration),
+        30000
+      );
+      if(!st?.ok)throw new Error(st?.error||'Falha no status do monitor');
+      if(st.error)throw new Error(st.error);
+      if(st.running===false)break;
+      setSwimUpdateStatus('Monitor varrendo FDAP e SwimSystem...');
+    }
+    if(!st || st.running!==false){
+      setSwimUpdateStatus('A varredura continua no servidor. Tente novamente em alguns instantes.','ok');
+      return;
+    }
+
+    const incoming=Array.isArray(st.results)?st.results:[];
     DATA.settings=DATA.settings||{};
     DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
     renderLastSwimSync();
 
+    let applied={changed:false,count:0};
     if(incoming.length){
-      const applied=await applyIncomingSwimResults(base,registration,incoming,{manual:false});
-      const s=fresh.stats||{};
-      setSwimUpdateStatus(
-        'Atualizado · '+Number(s.detected||0)+' detectado(s) · FDAP '+Number(s.federation||0)+' · SwimSystem '+Number(s.swimSystem||0)+'.',
-        'ok'
-      );
-      return applied;
+      applied=await applyIncomingSwimResults(base,registration,incoming,{manual:false});
     }
-    const s=fresh.stats||{};
     setSwimUpdateStatus(
-      'Atualizado · '+Number(s.detected||0)+' detectado(s) · nenhum novo pendente.',
+      'Atualizado · '+Number(st.detected||0)+' detectado(s) · FDAP '+Number(st.detectedFederation||0)+' · SwimSystem '+Number(st.detectedSwimSystem||0)+'.',
       'ok'
     );
+    return applied;
   }catch(e){
     setSwimUpdateStatus('Falha ao atualizar: '+(e.message||e),'err');
   }finally{
