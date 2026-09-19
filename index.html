@@ -1272,7 +1272,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='48';
+const VINISWIM_BUILD='47';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -1538,21 +1538,15 @@ function renderCards(){
   } else $('#nextMeet').innerHTML='<span class="muted">Nenhum campeonato futuro cadastrado.</span>';
 }
 function renderBest(){
-  let rows=[];
-  eventList().forEach(ev=>{
-    [25,50,null].forEach(pool=>{
-      let b=pool===null?bestFor(ev):bestFor(ev,pool);
-      if(!b)return;
-      if(pool===null && (confirmed().some(r=>r.event===ev&&r.poolMeters===25)||confirmed().some(r=>r.event===ev&&r.poolMeters===50)))return;
-      rows.push(b);
-    })
-  });
-  let seen=new Set();
-  rows=rows.filter(r=>{let k=r.event+'|'+String(r.poolMeters);if(seen.has(k))return false;seen.add(k);return true});
+  // "Melhores marcas confirmadas" = uma única melhor marca confirmada por prova.
+  // A piscina é informação da marca exibida, não cria uma segunda "melhor marca".
+  const rows=eventList()
+    .map(ev=>bestFor(ev))
+    .filter(Boolean);
+
   $('#bestTable').innerHTML=rows.map(r=>`<tr><td>${r.event}</td><td class="mono best">${r.time}</td><td>${poolLabel(r.poolMeters)}</td><td>${fmtDate(r.date)}</td><td>${canonicalVenue(r)}</td></tr>`).join('');
   const bm=$('#bestMobile');
   if(bm)bm.innerHTML=rows.map(r=>`<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${poolLabel(r.poolMeters)} · ${fmtDate(r.date)}</div></div><div class="time mono best">${r.time}</div></div><div class="meta">${canonicalVenue(r)}</div></div>`).join('');
-
 }
 function fillFilters(){
   const events=eventList();
@@ -1892,7 +1886,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v48').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v47').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
