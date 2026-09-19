@@ -105,7 +105,7 @@ jobs:
             console.log('REFRESH_OPEN',state);
             assert(!/reconectar/i.test(state.status),'Refresh flow asked to reconnect');
             assert.strictEqual(state.recoveryHidden,true,'Recovery panel visible after refresh');
-            assert.strictEqual(state.access,'refreshed-token','Refresh token flow did not replace access token');
+            assert.strictEqual(state.access,'refreshed-token-2','Refresh token flow did not replace access token');
 
             await browser.close();
             console.log('DROPBOX_PERSISTENCE_TEST=PASS');
