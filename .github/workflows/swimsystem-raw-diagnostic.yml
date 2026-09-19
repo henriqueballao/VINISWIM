@@ -1,35 +1,71 @@
-name: SwimSystem raw diagnostic
+name: SwimSystem sync verification
 on:
   push:
     paths:
       - '.github/workflows/swimsystem-raw-diagnostic.yml'
   workflow_dispatch:
 jobs:
-  inspect:
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect event status data
+      - name: Verify Vini sync through live Render
         shell: bash
         run: |
           node <<'NODE'
-          const base='https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0';
-          for(const id of ['15d9f398-a1e0-46e4-b45a-acd12eedf4d8','8f48b7d8-67bb-45be-ad84-43ae2048e08c']){
-            const r=await fetch(base+'/results?e='+id,{headers:{'user-agent':'Mozilla/5.0'}});
-            const html=await r.text();
-            console.log('EVENT',id,'HTTP',r.status,'LEN',html.length,'CORS',r.headers.get('access-control-allow-origin'));
-            let from=0,n=0;
-            while((from=html.indexOf(id,from))>=0 && n<12){
-              const chunk=html.slice(Math.max(0,from-1800),from+3000).replace(/\s+/g,' ');
-              console.log('OCC',n,'AT',from,chunk);
-              from+=id.length;n++;
-            }
-            const patterns=['isOfficial','officialized','official','resultStatus','publicationStatus','status'];
-            for(const p of patterns){
-              const re=new RegExp(p,'ig'); let m,k=0;
-              while((m=re.exec(html))&&k<8){
-                console.log('KEY',p,k,'AT',m.index,html.slice(Math.max(0,m.index-500),m.index+1000).replace(/\s+/g,' '));
-                k++;
-              }
-            }
+          const base='https://viniswim-monitor.onrender.com';
+          const registration='422692';
+          async function json(path,opt={}){
+            const r=await fetch(base+path,opt);
+            const text=await r.text();
+            let body=null;try{body=JSON.parse(text)}catch{}
+            console.log(path,'HTTP',r.status,JSON.stringify(body||text.slice(0,1000)));
+            if(!r.ok)throw new Error(path+' HTTP '+r.status+' '+text.slice(0,500));
+            return body;
+          }
+
+          const meet={
+            id:'m-202609',
+            name:'Campeonato Paranaense de Verão (Mirim/Petiz)',
+            dateStart:'2026-09-18',dateEnd:'2026-09-20',
+            city:'Colombo',venue:'Santa Mônica Clube de Campo',poolMeters:50,
+            sourceUrl:'https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0',
+            entries:[
+              {date:'2026-09-18',event:'100 Livre',seed:'1\'52"98',series:4,lane:8,scheduled:'10:05'},
+              {date:'2026-09-18',event:'50 Costas',seed:'55"90',series:4,lane:1,scheduled:'17:42'},
+              {date:'2026-09-19',event:'200 Livre',seed:'3\'47"56',series:3,lane:3,scheduled:'09:37'},
+              {date:'2026-09-19',event:'50 Livre',seed:'48"90',series:3,lane:6,scheduled:'16:53'},
+              {date:'2026-09-20',event:'100 Costas',seed:'NT',series:1,lane:5,scheduled:'11:18'}
+            ]
+          };
+          await json('/sync-results',{
+            method:'POST',headers:{'content-type':'application/json'},
+            body:JSON.stringify({
+              registration,
+              athlete:{name:'Vinícius Suzin Ballão',registration,category:'Petiz I'},
+              meets:[meet],
+              swimSystemMeetUrl:meet.sourceUrl,
+              timezone:'America/Sao_Paulo',
+              appUrl:'https://henriqueballao.github.io/VINISWIM/'
+            })
+          });
+
+          let status=null;
+          for(let i=0;i<12;i++){
+            await new Promise(r=>setTimeout(r,2500));
+            status=await json('/sync-status?registration='+registration);
+            if(!status.running)break;
+          }
+          const after=await json('/pending-results?registration='+registration);
+          const rows=after.results||[];
+          const free=rows.find(x=>x.event==='100 Livre');
+          const back=rows.find(x=>x.event==='50 Costas');
+          console.log('FINAL_100',JSON.stringify(free));
+          console.log('FINAL_50',JSON.stringify(back));
+
+          if(!free||free.status!=='official'||free.timeSeconds!==95.18||free.place!==34||free.aqua!==115||!free.sourceUrl.includes('15d9f398-a1e0-46e4-b45a-acd12eedf4d8')){
+            throw new Error('100 Livre não validado');
+          }
+          if(!back||back.status!=='official'||back.timeSeconds!==50.24||back.place!==22||back.aqua!==102||!back.sourceUrl.includes('8f48b7d8-67bb-45be-ad84-43ae2048e08c')){
+            throw new Error('50 Costas não validado');
           }
           NODE
