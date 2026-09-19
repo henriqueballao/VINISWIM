@@ -8,11 +8,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VINISWIM">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <title>VINISWIM · Lorenzo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2312384a'/%3E%3Cpath d='M16 16 L32 38 L48 16' stroke='%2361d4c4' stroke-width='7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M12 48 Q22 42 32 48 T52 48' stroke='%2361d4c4' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="../../apple-touch-icon.png">
 <style>
 :root{
   --bg:oklch(97.5% 0.006 240);--panel:oklch(99% 0.002 240);--ink:oklch(23% 0.025 245);--muted:oklch(52% 0.02 245);--line:oklch(90% 0.012 240);
@@ -1078,6 +1079,9 @@ tbody tr:hover{background:#f8fbfc}
             <label>Arquivo Dropbox<input id="setFile" value="/lorenzo-dados.json"></label>
             <label class="full">URL da competição<input id="setMeetUrl"></label>
             <label class="full">Servidor Push / conector SwimSystem<input id="setPushUrl" placeholder="https://seu-monitor.exemplo.com"></label>
+            <label class="full">FDAP · Federação do Paraná<input id="setFdapUrl" value="https://fdap.org.br/"></label>
+            <label class="full">FGDA · Federação Gaúcha<input id="setFgdaUrl" value="https://fgda.org.br/"></label>
+            <div class="field-help full">Fontes adicionais para localizar histórico e resultados oficiais pelo nome/registro do atleta.</div>
           </div>
           <div style="margin-top:12px"><button class="btn" type="button" id="settingsDropboxConnect">Reconectar Dropbox</button></div>
           
@@ -1413,7 +1417,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='53-LORENZO-1';
+const VINISWIM_BUILD='53-LORENZO-2';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='x7hepfpb668fhs5';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
@@ -1675,6 +1679,9 @@ async function handlePhotoUpload(file){
   DATA.settings=DATA.settings||{};
   DATA.settings.photoDataUrl=dataUrl;
   queueSave();
+  if(dropboxReady){
+    try{await dbxUpload()}catch(e){console.warn('VINISWIM photo sync',e)}
+  }
   
   $('#photoPreview').src=dataUrl;
   renderAthleteHero();
@@ -1692,6 +1699,8 @@ function render(){
   $('#setCategory').value=DATA.settings?.category||DATA.athlete?.category||'';
   $('#setMeetUrl').value=DATA.settings?.swimSystemMeetUrl||'';
   $('#setPushUrl').value=DATA.settings?.pushServerUrl||'';
+  $('#setFdapUrl').value=DATA.settings?.fdapUrl||'https://fdap.org.br/';
+  $('#setFgdaUrl').value=DATA.settings?.fgdaUrl||'https://fgda.org.br/';
   const pp=$('#photoPreview'); if(pp){const ph=DATA.settings?.photoDataUrl||DATA.athlete?.photoDataUrl||'';pp.src=ph||'';}
   renderAthleteHero();
 }
@@ -2847,6 +2856,8 @@ function collectSettingsFromForm(){
   const category=$('#setCategory');
   const meetUrl=$('#setMeetUrl');
   const pushUrl=$('#setPushUrl');
+  const fdapUrl=$('#setFdapUrl');
+  const fgdaUrl=$('#setFgdaUrl');
 
   if(athleteName) DATA.settings.athleteName=athleteName.value.trim();
   if(team) DATA.settings.team=team.value.trim();
@@ -2859,6 +2870,13 @@ function collectSettingsFromForm(){
   }
   if(meetUrl) DATA.settings.swimSystemMeetUrl=meetUrl.value.trim();
   if(pushUrl) DATA.settings.pushServerUrl=pushUrl.value.trim();
+  if(fdapUrl) DATA.settings.fdapUrl=fdapUrl.value.trim()||'https://fdap.org.br/';
+  if(fgdaUrl) DATA.settings.fgdaUrl=fgdaUrl.value.trim()||'https://fgda.org.br/';
+  DATA.settings.resultSources=[
+    DATA.settings.swimSystemMeetUrl||'',
+    DATA.settings.fdapUrl||'https://fdap.org.br/',
+    DATA.settings.fgdaUrl||'https://fgda.org.br/'
+  ].filter(Boolean);
 
   DATA.athlete.name=DATA.settings.athleteName||DATA.athlete.name||'';
   DATA.athlete.team=DATA.settings.team||DATA.athlete.team||DATA.athlete.club||'';
@@ -3085,11 +3103,24 @@ async function bootstrapDropbox(){
       return;
     }
     setDropboxStatus('Dropbox · carregando');
+    const cachedBeforeRemote=readLocalData();
     const remote=await dbxDownload();
     if(remote&&remote.app==='VINISWIM'){
       DATA=remote;
+      let personalMerged=false;
+      if(cachedBeforeRemote && String(cachedBeforeRemote.settings?.athleteRegistration||cachedBeforeRemote.athlete?.registration||'')===String(DATA.settings?.athleteRegistration||DATA.athlete?.registration||'')){
+        DATA.settings=DATA.settings||{};
+        const cs=cachedBeforeRemote.settings||{};
+        for(const k of ['photoDataUrl','birthDate','athleteName','team','category']){
+          if(cs[k] && !DATA.settings[k]){DATA.settings[k]=cs[k];personalMerged=true}
+        }
+      }
       const migrated=applyHistorical35Migration();
       cacheLocalData();
+      if(personalMerged && !migrated){
+        dropboxReady=true;
+        await dbxUpload();
+      }
       if(migrated){
         dropboxReady=true;
         await dbxUpload();
