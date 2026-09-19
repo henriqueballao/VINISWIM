@@ -2633,7 +2633,12 @@ async function syncPendingResultsFromServer(opts={}){
         },
         meets:(DATA.meets||[]).filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)),
         swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||'',
-        resultSources:DATA.settings?.resultSources||[],
+        resultSources:[
+          ...(DATA.settings?.resultSources||[]),
+          ...(DATA.sources||[]).map(s=>s.url).filter(Boolean),
+          ...(DATA.results||[]).map(r=>r.sourceUrl).filter(Boolean)
+        ].filter((v,i,a)=>v&&a.indexOf(v)===i),
+        knownSourceUrls:(DATA.results||[]).map(r=>r.sourceUrl).filter(Boolean),
         timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo',
         appUrl:location.origin+location.pathname,
         knownResults:knownResultSignatures()
@@ -2657,7 +2662,12 @@ async function syncPendingResultsFromServer(opts={}){
         },
         meets:(DATA.meets||[]).filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)),
         swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||'',
-        resultSources:DATA.settings?.resultSources||[],
+        resultSources:[
+          ...(DATA.settings?.resultSources||[]),
+          ...(DATA.sources||[]).map(s=>s.url).filter(Boolean),
+          ...(DATA.results||[]).map(r=>r.sourceUrl).filter(Boolean)
+        ].filter((v,i,a)=>v&&a.indexOf(v)===i),
+        knownSourceUrls:(DATA.results||[]).map(r=>r.sourceUrl).filter(Boolean),
         timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo',
         appUrl:location.origin+location.pathname,
         knownResults:knownResultSignatures()
