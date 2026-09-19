@@ -978,7 +978,7 @@ tbody tr:hover{background:#f8fbfc}
 
       <section id="history" class="page">
         <div class="section">
-          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultados</span></h3><div class="results-head-actions no-print"><div class="swim-update-cluster"><button class="btn" id="updateSwimSystemBtn" onclick="updateFromSwimSystem()">↻ Atualizar SwimSystem</button><span id="lastSwimSystemUpdate" class="last-swim-update">Última atualização: —</span></div><button class="btn primary" onclick="openResultModal()">+ Novo resultado</button></div></div>
+          <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultados</span></h3><div class="results-head-actions no-print"><div class="swim-update-cluster"><button class="btn" id="updateSwimSystemBtn" onclick="updateFromSwimSystem()">↻ Atualizar Resultados</button><span id="lastSwimSystemUpdate" class="last-swim-update">Última atualização: —</span></div><button class="btn primary" onclick="openResultModal()">+ Novo resultado</button></div></div>
           <div class="filters"><select id="fEvent"><option value="">Todas as provas</option></select><select id="fPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Piscina não confirmada</option></select><select id="fSource"><option value="">Todas as origens</option><option value="official">Oficial SwimSystem</option><option value="provisional">SwimSystem parcial</option><option value="manual">Manual confirmado</option></select></div>
           <div id="swimSystemUpdateStatus" class="swimsystem-update-status"></div>
           <div class="table-scroll"><table><thead><tr><th>Data</th><th>Categoria</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody id="historyTable"></tbody></table></div><div id="mobileHistory" class="mobile-results"></div>
@@ -1124,7 +1124,7 @@ tbody tr:hover{background:#f8fbfc}
         <div class="tutorial-num">3</div>
         <div>
           <h4>Depois que o Vini nadar</h4>
-          <p>Normalmente você não precisa digitar o resultado: use <b>Resultados → Atualizar SwimSystem</b> ou aguarde a sincronização automática. Use <b>+ Novo resultado</b> apenas quando o resultado não existir no SwimSystem ou para provas antigas.</p>
+          <p>Normalmente você não precisa digitar o resultado: use <b>Resultados → Atualizar Resultados</b> ou aguarde a sincronização automática. Use <b>+ Novo resultado</b> apenas quando o resultado não existir no SwimSystem ou para provas antigas.</p>
           <p>O VINISWIM normaliza o tempo. Você pode digitar, por exemplo, <b>1:45,58</b>, <b>1'45"58</b> ou <b>105,58</b>; a exibição fica padronizada.</p>
           <p>Depois use <b>Ações → Salvar</b> para gravar a base no Dropbox.</p>
         </div>
@@ -2827,7 +2827,7 @@ async function updateFromSwimSystem(){
   const btn=$('#updateSwimSystemBtn');
   if(btn){btn.disabled=true;btn.textContent='Atualizando...'}
   try{await syncPendingResultsFromServer({manual:true})}
-  finally{if(btn){btn.disabled=false;btn.textContent='↻ Atualizar SwimSystem'}}
+  finally{if(btn){btn.disabled=false;btn.textContent='↻ Atualizar Resultados'}}
 }
 
 function renderPendingOfficialResults(){
