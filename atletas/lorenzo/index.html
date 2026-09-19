@@ -3190,6 +3190,20 @@ async function bootstrapDropbox(){
     const remote=await dbxDownload();
     if(remote&&remote.app==='VINISWIM'){
       DATA=remote;
+      // Reaplica a identidade-base do Lorenzo se uma base antiga/vazia do Dropbox
+      // sobrescrever os dados publicados do atleta.
+      const seed=JSON.parse(document.getElementById('seedData').textContent);
+      DATA.athlete=DATA.athlete||{};
+      DATA.settings=DATA.settings||{};
+      for(const [k,v] of Object.entries(seed.athlete||{})){
+        if((DATA.athlete[k]==null || DATA.athlete[k]==='') && v!=null)DATA.athlete[k]=v;
+      }
+      for(const k of ['athleteRegistration','athleteName','team','category','categoryByYear','swimSystemMeetUrl','pushServerUrl','fdapUrl','fgdaUrl','resultSources']){
+        const v=seed.settings?.[k];
+        const cur=DATA.settings?.[k];
+        const empty=cur==null || cur==='' || (Array.isArray(cur)&&cur.length===0);
+        if(empty && v!=null)DATA.settings[k]=v;
+      }
       let personalMerged=false;
       if(cachedBeforeRemote && String(cachedBeforeRemote.settings?.athleteRegistration||cachedBeforeRemote.athlete?.registration||'')===String(DATA.settings?.athleteRegistration||DATA.athlete?.registration||'')){
         DATA.settings=DATA.settings||{};
@@ -3198,9 +3212,10 @@ async function bootstrapDropbox(){
           if(cs[k] && !DATA.settings[k]){DATA.settings[k]=cs[k];personalMerged=true}
         }
       }
+      const identityMigrated=ensureLorenzoIdentityAndCurrentResults();
       const migrated=applyHistorical35Migration();
       cacheLocalData();
-      if(personalMerged && !migrated){
+      if((personalMerged||identityMigrated) && !migrated){
         dropboxReady=true;
         await dbxUpload();
       }
