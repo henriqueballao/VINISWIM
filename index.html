@@ -2448,15 +2448,18 @@ async function applyIncomingSwimResults(base,registration,incoming,{manual=false
   renderLastSwimSync();
 
   if(dropboxReady){
+    let saved=false;
     try{
       await dbxUpload();
+      saved=true;
     }catch(e){
-      DATA=JSON.parse(snapshot);
-      render();
-      renderLastSwimSync();
-      throw e;
+      // O resultado já foi recebido do Railway e fica preservado localmente.
+      // Não transforma uma falha transitória do Dropbox em falha da atualização.
+      cacheLocalData();
+      setDropboxStatus('Dropbox · pendente','err');
+      console.warn('Dropbox pendente após atualização de resultados',e);
     }
-    await ackServerResults(base,registration,ack);
+    if(saved)await ackServerResults(base,registration,ack);
   }
 
   DATA.pendingOfficialResults=[];
@@ -2703,6 +2706,10 @@ async function pullAutonomousResults({manual=false}={}){
     }
 
     if(manual)setSwimUpdateStatus('Atualizado · nenhum resultado novo pendente.','ok');
+    else {
+      const el=$('#swimSystemUpdateStatus');
+      if(el?.classList.contains('err'))setSwimUpdateStatus('');
+    }
     return {changed:false,count:0};
   }catch(e){
     if(manual)setSwimUpdateStatus('Falha ao consultar o monitor: '+(e.message||e),'err');
@@ -2731,7 +2738,7 @@ async function updateFromSwimSystem(){
     );
     if(!fresh?.ok)throw new Error(fresh?.error||'Falha no monitor');
 
-    // O Render inicia a varredura em background e responde imediatamente.
+    // O Railway inicia a varredura em background e responde imediatamente.
     // Acompanhe até terminar; não marque como atualizado antes disso.
     const t0=Date.now();
     let st=null;
@@ -2766,7 +2773,18 @@ async function updateFromSwimSystem(){
     );
     return applied;
   }catch(e){
-    setSwimUpdateStatus('Falha ao atualizar: '+(e.message||e),'err');
+    // Se o Railway continua acessível, trate falha transitória do Safari/Dropbox como pendência,
+    // não como falha da consulta.
+    try{
+      const ping=await fetch(VINISWIM_MONITOR_BASE+'/health',{cache:'no-store'});
+      if(ping.ok){
+        setSwimUpdateStatus('Monitor conectado · atualização seguirá automaticamente.','ok');
+      }else{
+        setSwimUpdateStatus('Falha ao atualizar: '+(e.message||e),'err');
+      }
+    }catch(_){
+      setSwimUpdateStatus('Falha ao atualizar: '+(e.message||e),'err');
+    }
   }finally{
     if(btn){btn.disabled=false;btn.textContent='↻ Atualizar Resultados'}
   }
