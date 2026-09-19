@@ -910,17 +910,6 @@ tbody tr:hover{background:#f8fbfc}
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="viniswimLogo" viewBox="0 0 64 64"><path d="M16 15 L32 39 L48 15" stroke="currentColor" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 48 Q22 42 32 48 T52 48" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round" opacity=".9"/></symbol></svg>
 
-<div class="auth-gate" id="authGate" hidden>
-  <div class="auth-card">
-    <div class="auth-brand">
-      <div class="auth-mark"><svg width="26" height="26" viewBox="0 0 64 64"><use href="#viniswimLogo"/></svg></div>
-      <div><strong>VINISWIM</strong><span>performance tracker</span></div>
-    </div>
-    <h2>Conectar Dropbox</h2>
-    <p class="auth-sub">Conecte a base privada do VINISWIM para carregar os dados.</p>
-    <button class="auth-submit" type="button" id="authDropboxConnect">Conectar Dropbox</button>
-  </div>
-</div>
 
 <div class="app">
   <aside class="sidebar" id="mainSidebar">
@@ -942,6 +931,7 @@ tbody tr:hover{background:#f8fbfc}
       <div class="sidebar-actions-menu" id="sidebarActionsMenu">
         <div class="sidebar-sync-status" id="sidebarSyncStatus">Dropbox · verificando</div>
         <button type="button" id="actionSave"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l2 2v16H5V3Z"/><path d="M8 3v6h8V3M8 21v-8h8v8"/></svg></span>Salvar</button>
+        <button type="button" id="actionDropbox"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6 12 3l5 3-5 3-5-3Zm0 6 5-3 5 3-5 3-5-3Zm0 6 5-3 5 3-5 3-5-3Z"/></svg></span>Reconectar Dropbox</button>
         <button type="button" id="actionTutorial"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.4 2.4 0 0 1 4.5 1.2c0 1.8-2.3 2-2.3 3.8M12 17h.01"/></svg></span>Como usar o VINISWIM</button>
         <button type="button" id="actionPrint"><span class="menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7"/></svg></span>Imprimir / PDF</button>
       </div>
@@ -1084,6 +1074,7 @@ tbody tr:hover{background:#f8fbfc}
             <label class="full">URL da competição<input id="setMeetUrl"></label>
             <label class="full">Servidor Push / conector SwimSystem<input id="setPushUrl" placeholder="https://seu-monitor.exemplo.com"></label>
           </div>
+          <div style="margin-top:12px"><button class="btn" type="button" id="settingsDropboxConnect">Reconectar Dropbox</button></div>
           
         </div>
       </section>
@@ -1276,12 +1267,22 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='39';
+const VINISWIM_BUILD='40';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
 const DROPBOX_REDIRECT=location.origin+location.pathname;
 const DBX_REFRESH='viniswim_dbx_refresh_v1', DBX_ACCESS='viniswim_dbx_access_v1', DBX_PKCE='viniswim_dbx_pkce';
-let DATA=JSON.parse(document.getElementById('seedData').textContent);
+const LOCAL_DATA_CACHE='viniswim_local_data_v1';
+function readLocalData(){
+  try{
+    const d=JSON.parse(localStorage.getItem(LOCAL_DATA_CACHE)||'null');
+    return d&&d.app==='VINISWIM'?d:null;
+  }catch(e){return null}
+}
+function cacheLocalData(){
+  try{if(DATA&&DATA.app==='VINISWIM')localStorage.setItem(LOCAL_DATA_CACHE,JSON.stringify(DATA))}catch(e){}
+}
+let DATA=readLocalData()||JSON.parse(document.getElementById('seedData').textContent);
 let dropboxReady=false, dropboxRev='', saveTimer=null;
 
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -1886,7 +1887,7 @@ async function clearLegacyAppCaches(){
   try{
     if('caches' in window){
       const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k!=='viniswim-v39').map(k=>caches.delete(k)));
+      await Promise.all(keys.filter(k=>k!=='viniswim-v40').map(k=>caches.delete(k)));
     }
   }catch(e){console.warn('Cache cleanup',e)}
 }
@@ -2446,7 +2447,7 @@ function authConfigured(){
 }
 function lockApp(){
   sessionStorage.removeItem(AUTH_SESSION_KEY);
-  document.body.classList.add('auth-locked');
+  
   const gate=$('#authGate');if(gate)gate.hidden=false;
 }
 function unlockApp(){
@@ -2457,7 +2458,7 @@ function unlockApp(){
 }
 function showAuthGate(){
   const first=!authConfigured();
-  document.body.classList.add('auth-locked');
+  
   $('#authGate').hidden=false;
   $('#authTitle').textContent=first?'Primeiro acesso':'Entrar';
   $('#authSubtitle').textContent=first
@@ -2546,6 +2547,7 @@ function initMobileSidebar(){
   $('#actionSave')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
   $('#actionTutorial')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
   $('#actionPrint')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
+  $('#actionDropbox')?.addEventListener('click',()=>{if(mq.matches)closeMobileSidebar()});
 
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'&&document.body.classList.contains('sidebar-open'))closeMobileSidebar();
@@ -2597,7 +2599,7 @@ function collectSettingsFromForm(){
 
 async function actionSaveNow(){
   closeActionsMenu();
-  if(!dropboxReady){alert('Conecte o Dropbox primeiro.');return}
+  if(!dropboxReady){cacheLocalData();connectDropbox();return}
   try{
     collectSettingsFromForm();
     renderAthleteHero();
@@ -2612,6 +2614,8 @@ async function actionSaveNow(){
 function initActionsMenu(){
   $('#sidebarActionsBtn').onclick=openActionsMenu;
   $('#actionSave').onclick=actionSaveNow;
+  $('#actionDropbox')?.addEventListener('click',()=>{closeActionsMenu();connectDropbox()});
+  $('#settingsDropboxConnect')?.addEventListener('click',connectDropbox);
   $('#actionTutorial').onclick=()=>{closeActionsMenu();tutorialModal.showModal()};
   $('#actionPrint').onclick=()=>{closeActionsMenu();window.print()};
   document.addEventListener('click',e=>{
@@ -2635,15 +2639,34 @@ async function exchange(code){
   sessionStorage.setItem(DBX_ACCESS,d.access_token);if(d.refresh_token)localStorage.setItem(DBX_REFRESH,d.refresh_token);sessionStorage.removeItem(DBX_PKCE);history.replaceState({},document.title,DROPBOX_REDIRECT);return d.access_token;
 }
 async function token(){
-  let a=sessionStorage.getItem(DBX_ACCESS);if(a)return a;let rfr=localStorage.getItem(DBX_REFRESH);if(!rfr)return '';
-  let body=new URLSearchParams({refresh_token:rfr,grant_type:'refresh_token',client_id:DROPBOX_APP_KEY}),r=await fetch('https://api.dropboxapi.com/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body}),d=await r.json();if(!r.ok){localStorage.removeItem(DBX_REFRESH);return ''}sessionStorage.setItem(DBX_ACCESS,d.access_token);return d.access_token;
+  const a=sessionStorage.getItem(DBX_ACCESS);
+  if(a)return a;
+  const rfr=localStorage.getItem(DBX_REFRESH);
+  if(!rfr)return '';
+  try{
+    const body=new URLSearchParams({refresh_token:rfr,grant_type:'refresh_token',client_id:DROPBOX_APP_KEY});
+    const r=await fetch('https://api.dropboxapi.com/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+    let d={};try{d=await r.json()}catch(e){}
+    if(!r.ok){
+      // Só descarta o refresh token quando o Dropbox confirma que ele é inválido/revogado.
+      if(r.status===400 && /invalid_grant|invalid_refresh/i.test(JSON.stringify(d)))localStorage.removeItem(DBX_REFRESH);
+      return '';
+    }
+    sessionStorage.setItem(DBX_ACCESS,d.access_token);
+    return d.access_token;
+  }catch(e){
+    return '';
+  }
 }
 function dataFile(){return ($('#setFile')?.value||'/viniswim-dados.json').trim()||'/viniswim-dados.json'}
 async function dbxDownload(){
   let t=await token();if(!t)return null;
   let r=await fetch('https://content.dropboxapi.com/2/files/download',{method:'POST',headers:{Authorization:'Bearer '+t,'Dropbox-API-Arg':JSON.stringify({path:dataFile()})}});
   if(r.status===409)return null;if(!r.ok)throw new Error('Falha ao baixar base do Dropbox.');
-  let api=JSON.parse(r.headers.get('Dropbox-API-Result')||'{}');dropboxRev=api.rev||'';return await r.json();
+  let api=JSON.parse(r.headers.get('Dropbox-API-Result')||'{}');dropboxRev=api.rev||'';
+  const data=await r.json();
+  if(data&&data.app==='VINISWIM'){DATA=data;cacheLocalData()}
+  return data;
 }
 async function dbxUpload(){
   const t=await token();
@@ -2664,10 +2687,12 @@ async function dbxUpload(){
     setDropboxStatus('Dropbox · erro ao salvar','err');
     throw new Error('Falha ao salvar no Dropbox'+(detail?': '+detail:''));
   }
+  cacheLocalData();
   setDropboxStatus('Dropbox · sincronizado','ok');
   return true;
 }
 function queueSave(){
+  cacheLocalData();
   if(dropboxReady)setDropboxStatus('Dropbox · alterações não salvas');
 }
 
@@ -2690,20 +2715,17 @@ async function bootstrapDropbox(){
     const t=await token();
     if(!t){
       dropboxReady=false;
-      setDropboxStatus('Dropbox · não conectado','err');
-      
-      
-      renderAthleteHero();
-      document.body.classList.add('auth-locked');
-      $('#authGate').hidden=false;
-      const b=$('#authDropboxConnect');
-      if(b)b.onclick=connectDropbox;
+      setDropboxStatus('Dropbox · reconectar','err');
+      document.body.classList.remove('auth-locked');
+      render();
+      nav('dashboard',{persist:false,updateHash:false});
       return;
     }
     setDropboxStatus('Dropbox · carregando');
     const remote=await dbxDownload();
     if(remote&&remote.app==='VINISWIM'){
       DATA=remote;
+      cacheLocalData();
     }else{
       DATA=JSON.parse(document.getElementById('seedData').textContent);
       dropboxReady=true;
@@ -2714,30 +2736,30 @@ async function bootstrapDropbox(){
     
     
     document.body.classList.remove('auth-locked');
-    $('#authGate').hidden=true;
+    cacheLocalData();
     render();
+    nav('dashboard',{persist:false,updateHash:false});
     if('Notification' in window && Notification.permission==='granted'){
       syncPushSubscription().catch(e=>console.warn('push auto-register',e));
     }
     setTimeout(()=>syncPendingResultsFromServer({auto:true}),1200);
   }catch(e){
     dropboxReady=false;
-    setDropboxStatus('Dropbox · atenção','err');
-    
-    
+    setDropboxStatus('Dropbox · reconectar','err');
     console.error('VINISWIM Dropbox bootstrap',e);
-    alert(e.message||'Falha ao conectar ao Dropbox.');
+    document.body.classList.remove('auth-locked');
+    render();
+    nav('dashboard',{persist:false,updateHash:false});
   }
 }
 function logoutDropbox(){sessionStorage.removeItem(DBX_ACCESS);localStorage.removeItem(DBX_REFRESH);dropboxReady=false;setDropboxStatus('Dropbox · não conectado','err');}
 
 ensureAlertSettings();
 document.body.classList.remove('auth-locked');
-$('#authGate').hidden=true;
-renderAthleteHero();
+render();
+nav('dashboard',{persist:false,updateHash:false});
 initActionsMenu();
 initMobileSidebar();
-setTimeout(restoreNav,0);
 registerSW().then(()=>updateNotificationStatus());
 bootstrapDropbox();
 checkForegroundReminders();
