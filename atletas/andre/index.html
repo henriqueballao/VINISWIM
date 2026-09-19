@@ -2361,28 +2361,7 @@ async function wakeMonitor(base,{manual=false}={}){
       const r=await fetchJsonWithTimeout(base+'/health',{},tries[i]);
       if(r.ok)return true;
     }catch(e){
-      // Fallback iOS/PWA: usa GET simples para evitar falha de preflight/fetch POST.
-      try{
-        const q=new URLSearchParams({
-          registration:String(registration),
-          name:String(DATA.athlete?.name||DATA.settings?.athleteName||''),
-          aliases:(DATA.athlete?.aliases||[]).join('|'),
-          category:String(DATA.settings?.category||DATA.athlete?.category||''),
-          swimSystemMeetUrl:String(DATA.settings?.swimSystemMeetUrl||''),
-          resultSources:[
-            ...(DATA.settings?.resultSources||[]),
-            DATA.settings?.fdapUrl||'https://fdap.org.br/',
-            DATA.settings?.fgdaUrl||'https://fgda.org.br/',
-            ...(DATA.sources||[]).map(s=>s.url).filter(Boolean),
-            ...(DATA.results||[]).map(r=>r.sourceUrl).filter(Boolean)
-          ].filter((v,i,a)=>v&&a.indexOf(v)===i).join('|'),
-          appUrl:location.origin+location.pathname
-        });
-        const alt=await fetchJsonWithTimeout(base+'/sync-results-simple?'+q.toString(),{},30000);
-        if(alt.ok)trigger=alt;
-        else throw e;
-      }catch(_fallback){
-        const aborted=e?.name==='AbortError' || /aborted/i.test(String(e?.message||e));
+      const aborted=e?.name==='AbortError' || /aborted/i.test(String(e?.message||e));
       if(!aborted)throw e;
     }
   }
@@ -2568,59 +2547,50 @@ async function syncPendingResultsFromServer(opts={}){
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
-        registration,
-        athlete:{
-          name:DATA.athlete?.name||DATA.settings?.athleteName||'',
-          aliases:DATA.athlete?.aliases||[],
           registration,
-          category:DATA.settings?.category||DATA.athlete?.category||''
-        },
-        meets:(DATA.meets||[]).filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)),
-        swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||'',
-        resultSources:[
-          ...(DATA.settings?.resultSources||[]),
-          DATA.settings?.fdapUrl||'https://fdap.org.br/',
-          DATA.settings?.fgdaUrl||'https://fgda.org.br/',
-          ...(DATA.sources||[]).map(s=>s.url).filter(Boolean),
-          ...(DATA.results||[]).map(r=>r.sourceUrl).filter(Boolean)
-        ].filter((v,i,a)=>v&&a.indexOf(v)===i),
-        knownSourceUrls:(DATA.results||[]).map(r=>r.sourceUrl).filter(Boolean),
-        timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo',
-        appUrl:location.origin+location.pathname,
-        knownResults:knownResultSignatures()
-      })
-      },25000);
-    }catch(e){
-      const aborted=e?.name==='AbortError' || /aborted/i.test(String(e?.message||e));
-      if(!aborted)throw e;
-      setSwimUpdateStatus('Servidor iniciando consulta... tentando novamente.');
-      await new Promise(r=>setTimeout(r,2500));
-      trigger=await fetchJsonWithTimeout(base+'/sync-results',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-        registration,
-        athlete:{
-          name:DATA.athlete?.name||DATA.settings?.athleteName||'',
-          aliases:DATA.athlete?.aliases||[],
-          registration,
-          category:DATA.settings?.category||DATA.athlete?.category||''
-        },
-        meets:(DATA.meets||[]).filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)),
-        swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||'',
-        resultSources:[
-          ...(DATA.settings?.resultSources||[]),
-          DATA.settings?.fdapUrl||'https://fdap.org.br/',
-          DATA.settings?.fgdaUrl||'https://fgda.org.br/',
-          ...(DATA.sources||[]).map(s=>s.url).filter(Boolean),
-          ...(DATA.results||[]).map(r=>r.sourceUrl).filter(Boolean)
-        ].filter((v,i,a)=>v&&a.indexOf(v)===i),
-        knownSourceUrls:(DATA.results||[]).map(r=>r.sourceUrl).filter(Boolean),
-        timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo',
-        appUrl:location.origin+location.pathname,
-        knownResults:knownResultSignatures()
-      })
+          athlete:{
+            name:DATA.athlete?.name||DATA.settings?.athleteName||'',
+            aliases:DATA.athlete?.aliases||[],
+            registration,
+            category:DATA.settings?.category||DATA.athlete?.category||''
+          },
+          meets:(DATA.meets||[]).filter(m=>m.dateEnd>=new Date().toISOString().slice(0,10)),
+          swimSystemMeetUrl:DATA.settings?.swimSystemMeetUrl||'',
+          resultSources:[
+            ...(DATA.settings?.resultSources||[]),
+            DATA.settings?.fdapUrl||'https://fdap.org.br/',
+            DATA.settings?.fgdaUrl||'https://fgda.org.br/',
+            ...(DATA.sources||[]).map(s=>s.url).filter(Boolean),
+            ...(DATA.results||[]).map(r=>r.sourceUrl).filter(Boolean)
+          ].filter((v,i,a)=>v&&a.indexOf(v)===i),
+          knownSourceUrls:(DATA.results||[]).map(r=>r.sourceUrl).filter(Boolean),
+          timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo',
+          appUrl:location.origin+location.pathname,
+          knownResults:knownResultSignatures()
+        })
       },30000);
+    }catch(postError){
+      setSwimUpdateStatus('Tentando rota alternativa do monitor...');
+      const q=new URLSearchParams({
+        registration:String(registration),
+        name:String(DATA.athlete?.name||DATA.settings?.athleteName||''),
+        aliases:(DATA.athlete?.aliases||[]).join('|'),
+        category:String(DATA.settings?.category||DATA.athlete?.category||''),
+        swimSystemMeetUrl:String(DATA.settings?.swimSystemMeetUrl||''),
+        resultSources:[
+          ...(DATA.settings?.resultSources||[]),
+          DATA.settings?.fdapUrl||'https://fdap.org.br/',
+          DATA.settings?.fgdaUrl||'https://fgda.org.br/',
+          ...(DATA.sources||[]).map(s=>s.url).filter(Boolean),
+          ...(DATA.results||[]).map(r=>r.sourceUrl).filter(Boolean)
+        ].filter((v,i,a)=>v&&a.indexOf(v)===i).join('|'),
+        appUrl:location.origin+location.pathname
+      });
+      try{
+        trigger=await fetchJsonWithTimeout(base+'/sync-results-simple?'+q.toString(),{},30000);
+      }catch(getError){
+        throw postError;
+      }
     }
 
     if(!trigger.ok){
