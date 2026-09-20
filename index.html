@@ -47,7 +47,7 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
 .switch{position:relative;width:46px;height:26px;flex:0 0 auto}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;inset:0;border-radius:999px;background:#c7d0d7;cursor:pointer;transition:.2s}.slider:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}.switch input:checked + .slider{background:var(--good)}.switch input:checked + .slider:before{transform:translateX(20px)}
 .alert-status{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}.statusbox{border:1px solid var(--line);border-radius:10px;padding:12px}.statusbox small{color:var(--muted);display:block}.statusbox b{display:block;margin-top:5px}
 .timeline{display:grid;gap:8px;margin-top:12px}.timeline-row{display:grid;grid-template-columns:100px 1fr 150px;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.timeline-row:last-child{border-bottom:0}
-@media(max-width:700px){.alert-grid{grid-template-columns:1fr}.alert-status{grid-template-columns:1fr}.timeline-row{grid-template-columns:80px 1fr}.timeline-row .right{grid-column:2}}
+@media(max-width:700px){.import-box{grid-template-columns:1fr}.alert-grid{grid-template-columns:1fr}.alert-status{grid-template-columns:1fr}.timeline-row{grid-template-columns:80px 1fr}.timeline-row .right{grid-column:2}}
 
 /* VINISWIM V2 — responsividade e entrada padronizada */
 .field-help{font-size:11px;color:var(--muted);margin-top:4px}
@@ -84,7 +84,7 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
 .modal-sheet{max-height:min(88vh,820px);overflow:auto}
 .norm-preview{padding:10px 12px;border:1px dashed var(--line);border-radius:9px;background:#f7f9fb;font-size:13px}
 .norm-preview b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-.import-box{display:grid;grid-template-columns:1fr auto;gap:8px}
+.import-box{display:grid;grid-template-columns:minmax(135px,.45fr) minmax(0,1fr) auto;gap:8px}
 @media(max-width:980px){
   dialog{width:min(96vw,760px);margin:auto}
   .modal-body{padding:14px}
@@ -1476,36 +1476,38 @@ function meetForResult(r={}){
   return (DATA.meets||[]).find(x=>resultWithinMeet(r,x))||null;
 }
 function balizamentoUrl(meet={}){
-  const base=String(meet.sourceUrl||'').replace(/\/$/,'');
+  const base=safeExternalUrl(meet.sourceUrl||'');
   if(!base)return '';
-  if(/swimsystem\.app\/meets\/sw\//i.test(base))return base+'/athletes';
+  if(/swimsystem\.app\/meets\/sw\//i.test(base)){
+    return base.replace(/\/$/,'').replace(/\/(athletes|results).*$/,'')+'/athletes';
+  }
   return base;
 }
 function sourceActionsMarkup(meet,result=null){
-  const bal=balizamentoUrl(meet);
-  const res=String(result?.sourceUrl||'').trim();
+  const bal=balizamentoUrl(meet||{});
+  const res=result?safeExternalUrl(result.sourceUrl||sourceById(result.sourceId)?.url||''):'';
   if(!bal&&!res)return '';
   return '<div class="source-actions">'+
-    (bal?'<a class="source-action" href="'+bal+'" target="_blank" rel="noopener">Balizamento ↗</a>':'')+
-    (res?'<a class="source-action result" href="'+res+'" target="_blank" rel="noopener">Resultado ↗</a>':'')+
+    (bal?'<a class="source-action" href="'+bal+'" target="_blank" rel="noopener">Abrir balizamento ↗</a>':'')+
+    (res?'<a class="source-action result" href="'+res+'" target="_blank" rel="noopener">Abrir resultado ↗</a>':'')+
     '</div>';
 }
 function compareMarkup(entry,result,{compact=false,meet=null}={}){
-  if(!result)return sourceActionLinks(meet||{},entry,null);
+  if(!result)return sourceActionsMarkup(meet||{},null);
   const status=normalizedResultStatus(result.status);
   if(['dns','dsq','dnf'].includes(status)){
     const code=result.resultCode||status.toUpperCase();
     const label=result.resultLabel||resultStatusLabel(status).split(' · ').slice(1).join(' · ');
-    return '<div class="result-compare"><span class="entry-result-label">Situação</span><span class="result-time">'+code+'</span><span>'+label+'</span></div>'+sourceActionLinks(meet||{},entry,result);
+    return '<div class="result-compare"><span class="entry-result-label">Situação</span><span class="result-time">'+code+'</span><span>'+label+'</span></div>'+sourceActionsMarkup(meet||{},result);
   }
-  if(!resultHasPerformance(result))return sourceActionLinks(meet||{},entry,result);
+  if(!resultHasPerformance(result))return sourceActionsMarkup(meet||{},result);
   const x=comparisonFor(entry,result);
-  if(!x)return sourceActionLinks(meet||{},entry,result);
+  if(!x)return sourceActionsMarkup(meet||{},result);
   const icon=x.dir==='better'?'↓':x.dir==='worse'?'↑':'=';
   const delta=x.delta==null?'':(x.delta>0?'+':'')+x.delta.toFixed(2)+'s';
   const pct=x.pct==null?'':(x.pct>0?'+':'')+x.pct.toFixed(2)+'%';
   const seed=x.seed==null?'':`<span>Baliz. ${fmtTime(x.seed)}</span>`;
-  return `<div class="result-compare"><span class="entry-result-label">Resultado</span><span class="result-time">${result.time||fmtTime(result.timeSeconds)}</span>${seed}<span class="delta-pill ${x.dir}">${icon} ${delta}${pct?' · '+pct:''}</span></div>`+sourceActionLinks(meet||{},entry,result);
+  return `<div class="result-compare"><span class="entry-result-label">Resultado</span><span class="result-time">${result.time||fmtTime(result.timeSeconds)}</span>${seed}<span class="delta-pill ${x.dir}">${icon} ${delta}${pct?' · '+pct:''}</span></div>`+sourceActionsMarkup(meet||{},result);
 }
 function normalizeKnownVenues(){
   let changed=false;
@@ -1851,9 +1853,9 @@ function resultDisplayValue(r){
 function renderHistory(){
   let ev=$('#fEvent')?.value||'', pool=$('#fPool')?.value||'', src=$('#fSource')?.value||'';
   let a=[...(DATA.results||[])].filter(r=>(!ev||r.event===ev)&&(!src||r.status===src)&&(!pool||(pool==='unknown'?r.poolMeters==null:String(r.poolMeters)===pool))).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(a.event||'').localeCompare(String(b.event||'')));
-  $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<tr><td>${resultDateLabel(r)}</td><td><b>${resultCategory(r)}</b></td><td>${r.event}</td><td class="mono"><b>${resultDisplayValue(r)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||s.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusLabel(r.status)}</span></td><td>${sourceActionsMarkup(meetForResult(r),r)}<div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div></td></tr>`}).join('');
+  $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<tr><td>${resultDateLabel(r)}</td><td><b>${resultCategory(r)}</b></td><td>${r.event}</td><td class="mono"><b>${resultDisplayValue(r)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||s.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span></td><td>${sourceActionsMarkup(meetForResult(r),r)}<div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div></td></tr>`}).join('');
   const mh=$('#mobileHistory');
-  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${resultDisplayValue(r)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div>${sourceActionsMarkup(meetForResult(r),r)}<div class="actions"><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span>${resultOfficialUrl(r)?'<a class="btn" style="margin-left:8px" href="'+resultOfficialUrl(r)+'" target="_blank" rel="noopener">Fonte ↗</a>':''}<button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button></div></div>`}).join('');
+  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${resultDisplayValue(r)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div>${sourceActionsMarkup(meetForResult(r),r)}<div class="actions"><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span><button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button></div></div>`}).join('');
 }
 ['fEvent','fPool','fSource'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)renderHistory()}));
 
