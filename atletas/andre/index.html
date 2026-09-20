@@ -1632,23 +1632,21 @@ function sourceActionsMarkup(meet,result=null){
     '</div>';
 }
 function compareMarkup(entry,result,{compact=false,meet=null}={}){
-  if(!result)return meet?sourceActionsMarkup(meet,null):'';
+  if(!result)return sourceActionLinks(meet||{},entry,null);
   const status=normalizedResultStatus(result.status);
   if(['dns','dsq','dnf'].includes(status)){
     const code=result.resultCode||status.toUpperCase();
     const label=result.resultLabel||resultStatusLabel(status).split(' · ').slice(1).join(' · ');
-    return '<div class="result-compare"><span class="entry-result-label">Situação</span><span class="result-time">'+code+'</span><span>'+label+'</span></div>'+
-      (meet?sourceActionsMarkup(meet,result):'');
+    return '<div class="result-compare"><span class="entry-result-label">Situação</span><span class="result-time">'+code+'</span><span>'+label+'</span></div>'+sourceActionLinks(meet||{},entry,result);
   }
-  if(!resultHasPerformance(result))return meet?sourceActionsMarkup(meet,result):'';
+  if(!resultHasPerformance(result))return sourceActionLinks(meet||{},entry,result);
   const x=comparisonFor(entry,result);
-  if(!x)return meet?sourceActionsMarkup(meet,result):'';
+  if(!x)return sourceActionLinks(meet||{},entry,result);
   const icon=x.dir==='better'?'↓':x.dir==='worse'?'↑':'=';
   const delta=x.delta==null?'':(x.delta>0?'+':'')+x.delta.toFixed(2)+'s';
   const pct=x.pct==null?'':(x.pct>0?'+':'')+x.pct.toFixed(2)+'%';
   const seed=x.seed==null?'':`<span>Baliz. ${fmtTime(x.seed)}</span>`;
-  return `<div class="result-compare"><span class="entry-result-label">Resultado</span><span class="result-time">${result.time||fmtTime(result.timeSeconds)}</span>${seed}<span class="delta-pill ${x.dir}">${icon} ${delta}${pct?' · '+pct:''}</span></div>`+
-    (meet?sourceActionsMarkup(meet,result):'');
+  return `<div class="result-compare"><span class="entry-result-label">Resultado</span><span class="result-time">${result.time||fmtTime(result.timeSeconds)}</span>${seed}<span class="delta-pill ${x.dir}">${icon} ${delta}${pct?' · '+pct:''}</span></div>`+sourceActionLinks(meet||{},entry,result);
 }
 function normalizeKnownVenues(){
   let changed=false;
@@ -1928,12 +1926,17 @@ document.addEventListener('change',e=>{
 document.addEventListener('input',e=>{if(e.target.id==='rTime')syncResultPreview()});
 
 function resultStatusLabel(status){
-  if(status==='official')return 'OFICIAL SWIMSYSTEM';
-  if(status==='provisional')return 'SWIMSYSTEM PARCIAL';
+  if(status==='official')return 'OFICIAL';
+  if(status==='provisional')return 'PARCIAL';
   if(status==='dns')return 'DNS · NÃO COMPARECEU';
   if(status==='dsq')return 'DSQ · DESCLASSIFICADO';
   if(status==='dnf')return 'DNF · NÃO COMPLETOU';
   return 'MANUAL';
+}
+function resultStatusSourceLabel(r={}){
+  const base=resultStatusLabel(normalizedResultStatus(r.status));
+  if(['official','provisional'].includes(normalizedResultStatus(r.status)))return base+' · '+resultSourceName(r).toUpperCase();
+  return base;
 }
 function resultDisplayValue(r){
   if(r.status==='dns'||r.status==='dsq'||r.status==='dnf')return r.resultCode||resultStatusLabel(r.status).split(' · ')[0];
@@ -1944,7 +1947,7 @@ function renderHistory(){
   let a=[...(DATA.results||[])].filter(r=>(!ev||r.event===ev)&&(!src||r.status===src)&&(!pool||(pool==='unknown'?r.poolMeters==null:String(r.poolMeters)===pool))).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(a.event||'').localeCompare(String(b.event||'')));
   $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<tr><td>${resultDateLabel(r)}</td><td><b>${resultCategory(r)}</b></td><td>${r.event}</td><td class="mono"><b>${resultDisplayValue(r)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||s.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusLabel(r.status)}</span></td><td>${sourceActionsMarkup(meetForResult(r),r)}<div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div></td></tr>`}).join('');
   const mh=$('#mobileHistory');
-  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${resultDisplayValue(r)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div>${sourceActionsMarkup(meetForResult(r),r)}<div class="actions"><span class="tag ${r.status}">${resultStatusLabel(r.status)}</span><button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button></div></div>`}).join('');
+  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${resultDisplayValue(r)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div>${sourceActionsMarkup(meetForResult(r),r)}<div class="actions"><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span>${resultOfficialUrl(r)?'<a class="btn" style="margin-left:8px" href="'+resultOfficialUrl(r)+'" target="_blank" rel="noopener">Fonte ↗</a>':''}<button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button></div></div>`}).join('');
 }
 ['fEvent','fPool','fSource'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)renderHistory()}));
 
@@ -1956,6 +1959,39 @@ function sourceProviderLabel(meet={}){
   if(p==='other')return 'Outra fonte oficial';
   return meet.sourceUrl?'Fonte oficial':'Manual';
 }
+function resultSourceName(r={}){
+  const u=String(r.sourceUrl||sourceById(r.sourceId)?.url||'');
+  if(/swimsystem/i.test(u)||String(r.sourceId||'').startsWith('sw-'))return 'SwimSystem';
+  if(/fdap|fgda/i.test(u))return 'FDAP / FGDA';
+  if(r.status==='manual')return 'Manual';
+  return 'Fonte oficial';
+}
+function safeExternalUrl(raw=''){
+  try{
+    const u=new URL(String(raw||''),location.href);
+    return /^https?:$/.test(u.protocol)?u.toString():'';
+  }catch(_){return ''}
+}
+function entryBalizamentoUrl(meet={}){
+  const base=safeExternalUrl(meet.sourceUrl||'');
+  if(!base)return '';
+  if(/swimsystem\.app\/meets\/sw\//i.test(base)){
+    return base.replace(/\/$/,'').replace(/\/(athletes|results).*$/,'')+'/athletes';
+  }
+  return base;
+}
+function resultOfficialUrl(result={},meet={}){
+  return safeExternalUrl(result.sourceUrl||sourceById(result.sourceId)?.url||meet.sourceUrl||'');
+}
+function sourceActionLinks(meet,entry,result,{history=false}={}){
+  const bal=history?'':entryBalizamentoUrl(meet);
+  const res=result?resultOfficialUrl(result,meet):'';
+  const links=[];
+  if(bal)links.push('<a href="'+bal+'" target="_blank" rel="noopener">Abrir balizamento ↗</a>');
+  if(res)links.push('<a href="'+res+'" target="_blank" rel="noopener">Abrir resultado ↗</a>');
+  return links.length?'<div class="source-actions">'+links.join('')+'</div>':'';
+}
+
 function predictionMeet(){
   const id=String(DATA.settings?.predictionMeetId||'');
   const selected=(DATA.meets||[]).find(m=>m.id===id);
