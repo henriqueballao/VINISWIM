@@ -1,4 +1,4 @@
-// VINISWIM MONITOR V40 — DNS/DSQ/DNF real + descoberta automatica das provas do atleta
+// VINISWIM MONITOR V41 — busca rápida + histórico desacoplado + push imediato
 import express from 'express';
 import cors from 'cors';
 import webpush from 'web-push';
@@ -38,13 +38,13 @@ if(VAPID_PUBLIC_KEY&&VAPID_PRIVATE_KEY){
   webpush.setVapidDetails(VAPID_SUBJECT,VAPID_PUBLIC_KEY,VAPID_PRIVATE_KEY);
 }
 
-const defaultState={devices:[],sent:{},pendingResults:[],resultNotified:{},autonomousScanAt:{},autonomousStats:{}};
+const defaultState={devices:[],sent:{},pendingResults:[],resultNotified:{},autonomousScanAt:{},federationScanAt:{},autonomousStats:{}};
 
 const AUTONOMOUS_ATHLETES=[
   {
     registration:'422692',
     name:'Vinícius Suzin Ballão',
-    aliases:['Vinicius Suzin Ballao','Vinícius Suzin Ballão','Vini Suzin Ballão','Vini Suzin Ballao'],
+    aliases:['Vinicius Suzin Ballao','Vinícius Suzin Ballão','Vini Suzin Ballão','Vini Suzin Ballao','Vinicius Ballao','Vinícius Ballão','Vini Ballao','Vini Ballão','Vinicius Suzin','Vinícius Suzin'],
     category:'Petiz I',
     swimSystemMeetUrl:'https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0'
   },
@@ -53,8 +53,9 @@ const AUTONOMOUS_ATHLETES=[
     name:'Lorenzo de Azevedo Fortes',
     aliases:[
       'Lorenzo Azevedo Fortes','Lorenzo de Azevedo Fortes','Lorenzo De Fortes',
-      'Lorenzo De Zevedo Fortes','Lourenço Fortes','Lourenço de Azevedo Fortes',
-      'Lourenco Fortes','Lourenco de Azevedo Fortes'
+      'Lorenzo De Zevedo Fortes','Lorenzo De Zevedo','Lorenzo de Zevedo',
+      'Lourenço Fortes','Lourenço de Azevedo Fortes','Lourenço De Zevedo Fortes','Lourenço De Zevedo',
+      'Lourenco Fortes','Lourenco de Azevedo Fortes','Lourenco De Zevedo Fortes','Lourenco De Zevedo'
     ],
     category:'Petiz I',
     swimSystemMeetUrl:'https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0'
@@ -62,12 +63,13 @@ const AUTONOMOUS_ATHLETES=[
   {
     registration:'393259',
     name:'Andre Szpak ZRAIK',
-    aliases:['Andre Szpak ZRAIK','André Szpak ZRAIK','Andre Szpak Zraik','André Szpak Zraik'],
+    aliases:['Andre Szpak ZRAIK','André Szpak ZRAIK','Andre Szpak Zraik','André Szpak Zraik','Andre Zraik','André Zraik','Andre Szpak','André Szpak'],
     category:'Petiz I',
     swimSystemMeetUrl:'https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0'
   }
 ];
-const AUTONOMOUS_SCAN_INTERVAL_MS=5*60*1000;
+const AUTONOMOUS_SCAN_INTERVAL_MS=30*60*1000;
+const FEDERATION_SCAN_INTERVAL_MS=6*60*60*1000;
 
 async function ensureDir(){await fs.mkdir(DATA_DIR,{recursive:true})}
 async function loadState(){
@@ -1442,7 +1444,13 @@ async function applyDetectedResults(state,devices,found,{notify=true}={}){
 async function checkOfficialResults(state,device){
   if(device.alerts?.resultPublished===false)return [];
   const found=await detectResults(device,state);
-  return await applyDetectedResults(state,[device],found);
+
+  // Salva tudo que foi encontrado, mas push só para resultado do dia.
+  // Assim reconectar/atualizar o app nunca gera enxurrada de histórico.
+  await applyDetectedResults(state,[device],found,{notify:false});
+  const today=new Date().toISOString().slice(0,10);
+  const current=found.filter(r=>String(r.date||'')===today);
+  return current.length?await applyDetectedResults(state,[device],current,{notify:true}):[];
 }
 
 
@@ -1478,20 +1486,29 @@ function autonomousRepresentative(state,profile){
 
 async function runAutonomousAthleteScan(state,profile){
   const {representative,devices}=autonomousRepresentative(state,profile);
+
+  // 1) Caminho rápido: SwimSystem primeiro. Resultado do dia pode gerar push
+  // imediatamente, sem esperar o crawler histórico da federação.
   const liveDetected=await detectResultsAcrossSources(representative,state).catch(()=>[]);
-  const federationDetected=await detectFederationResults(representative).catch(()=>[]);
-  const detected=[...liveDetected,...federationDetected];
-
-  // Consolida todo o histórico sem gerar uma enxurrada de push.
-  await applyDetectedResults(state,devices,detected,{notify:false});
-
-  // Para resultados de hoje, mantém o fluxo normal de notificação.
+  await applyDetectedResults(state,devices,liveDetected,{notify:false});
   const today=new Date().toISOString().slice(0,10);
-  const current=detected.filter(r=>String(r.date||'')===today);
+  const current=liveDetected.filter(r=>String(r.date||'')===today);
   if(current.length && devices.length){
     await applyDetectedResults(state,devices,current,{notify:true});
   }
 
+  // 2) Histórico é lento e muda pouco. Roda no máximo a cada 6h.
+  state.federationScanAt=state.federationScanAt||{};
+  const lastFederation=Date.parse(state.federationScanAt[profile.registration]||0)||0;
+  const federationDue=!lastFederation || (Date.now()-lastFederation)>=FEDERATION_SCAN_INTERVAL_MS;
+  let federationDetected=[];
+  if(federationDue){
+    federationDetected=await detectFederationResults(representative).catch(()=>[]);
+    await applyDetectedResults(state,devices,federationDetected,{notify:false});
+    state.federationScanAt[profile.registration]=new Date().toISOString();
+  }
+
+  const detected=[...liveDetected,...federationDetected];
   state.autonomousScanAt=state.autonomousScanAt||{};
   state.autonomousStats=state.autonomousStats||{};
   state.autonomousScanAt[profile.registration]=new Date().toISOString();
@@ -1500,6 +1517,7 @@ async function runAutonomousAthleteScan(state,profile){
     detected:detected.length,
     swimSystem:liveDetected.length,
     federation:federationDetected.length,
+    federationScanRan:federationDue,
     federationPagesScanned:Number(federationDetected._pagesScanned||0),
     pending:state.pendingResults.filter(x=>String(x.registration||'')===profile.registration).length,
     updatedAt:new Date().toISOString()
@@ -1536,8 +1554,9 @@ async function monitor(){
       await applyDetectedResults(state,devices,found,{notify:true});
     }
 
-    // V34: varredura independente do botão/app.
-    // Roda imediatamente após deploy e depois a cada 15 minutos por atleta.
+    // V41: varredura autônoma de segurança. O caminho normal com aparelho
+    // inscrito já verifica o meet a cada ciclo; esta rotina evita trabalho duplicado
+    // e deixa o histórico pesado para a cadência própria da federação.
     for(const profile of AUTONOMOUS_ATHLETES){
       const last=Date.parse(state.autonomousScanAt?.[profile.registration]||0)||0;
       if(!last || (now-last)>=AUTONOMOUS_SCAN_INTERVAL_MS){
@@ -1552,7 +1571,7 @@ async function monitor(){
   finally{checking=false}
 }
 
-app.get('/health',(req,res)=>res.json({ok:true,version:'V40',features:{fdapCrawler:true,fdapPagination:true,fdapJsonApi:true,jsonpTransport:true,autonomousAthletes:true,refreshOnDemand:true,asyncRefresh:true},time:new Date().toISOString()}));
+app.get('/health',(req,res)=>res.json({ok:true,version:'V41',features:{fdapCrawler:true,fdapPagination:true,fdapJsonApi:true,jsonpTransport:true,autonomousAthletes:true,refreshOnDemand:true,asyncRefresh:true,fastPushPath:true,historicalThrottle:true},time:new Date().toISOString()}));
 
 
 app.get('/refresh-athlete',async(req,res)=>{
@@ -1562,7 +1581,7 @@ app.get('/refresh-athlete',async(req,res)=>{
 
   const existing=resultScanJobs.get(registration);
   if(!existing?.running){
-    const job={running:true,startedAt:new Date().toISOString(),finishedAt:null,error:null,detected:0,detectedSwimSystem:0,detectedFederation:0,federationPagesScanned:0,lastVersion:'V40'};
+    const job={running:true,startedAt:new Date().toISOString(),finishedAt:null,error:null,detected:0,detectedSwimSystem:0,detectedFederation:0,federationPagesScanned:0,lastVersion:'V41'};
     resultScanJobs.set(registration,job);
 
     (async()=>{
@@ -1588,7 +1607,7 @@ app.get('/refresh-athlete',async(req,res)=>{
   const pending=state.pendingResults.filter(x=>String(x.registration||'')===registration);
   jsonOrJsonp(req,res,{
     ok:true,
-    version:'V40',
+    version:'V41',
     registration,
     started:!existing?.running,
     running:true,
@@ -1637,7 +1656,7 @@ app.get('/athletes-summary',async(req,res)=>{
       updatedAt:null
     })
   }));
-  res.json({ok:true,version:'V40',athletes});
+  res.json({ok:true,version:'V41',athletes});
 });
 
 app.get('/status',async(req,res)=>{
@@ -1647,7 +1666,7 @@ app.get('/status',async(req,res)=>{
   const devices=state.devices.filter(x=>!registration||String(x.athlete?.registration||'')===registration);
   res.json({
     ok:true,
-    version:'V40',
+    version:'V41',
     devices:devices.length,
     registrations:devices.map(x=>String(x.athlete?.registration||'')),
     pendingResults:state.pendingResults.filter(x=>!registration||String(x.registration||'')===registration).length,
@@ -1667,7 +1686,7 @@ app.get('/debug-meet-base',async(req,res)=>{
   const raw=device.swimSystemMeetUrl||device.meets?.find(m=>m.sourceUrl)?.sourceUrl||'';
   res.json({
     ok:true,
-    version:'V40',
+    version:'V41',
     raw,
     meetBase:meetBase(raw)
   });
@@ -1692,7 +1711,7 @@ app.get('/scan-event-now',async(req,res)=>{
   catch(e){return res.status(502).json({error:e.message,url:u.toString()})}
 
   const rows=parseAthleteRowsFromResultPage(html,u.toString(),device,'');
-  res.json({ok:true,version:'V40',url:u.toString(),athleteFound:normalize(html).includes(normalize(device.athlete?.name||'')),rows});
+  res.json({ok:true,version:'V41',url:u.toString(),athleteFound:normalize(html).includes(normalize(device.athlete?.name||'')),rows});
 });
 
 app.get('/scan-results-now',async(req,res)=>{
@@ -1722,7 +1741,7 @@ app.get('/scan-results-now',async(req,res)=>{
   }
 
   await saveState(state);
-  res.json({ok:true,devices:devices.length,version:'V40',scans});
+  res.json({ok:true,devices:devices.length,version:'V41',scans});
 });
 
 app.get('/schedule-test-alert',async(req,res)=>{
@@ -1862,16 +1881,31 @@ async function runResultScanForRegistration(registration,fallbackDevice=null){
     if(!devices.length)throw new Error('contexto do atleta indisponível');
 
     const representative=devices[0];
+
+    // Fase rápida: devolve/propaga o que está no SwimSystem e envia push do dia
+    // antes de iniciar a pesquisa histórica.
+    job.phase='live';
     const liveDetected=await detectResultsAcrossSources(representative,state);
+    await applyDetectedResults(state,devices,liveDetected,{notify:false});
+    const today=new Date().toISOString().slice(0,10);
+    const current=liveDetected.filter(r=>String(r.date||'')===today);
+    if(current.length)await applyDetectedResults(state,devices,current,{notify:true});
+    job.detectedSwimSystem=liveDetected.length;
+    job.fastFinishedAt=new Date().toISOString();
+    await saveState(state);
+
+    // Fase histórica: completa Dropbox/app via pending-results, mas nunca gera
+    // mensagens antigas.
+    job.phase='history';
     const federationDetected=await detectFederationResults(representative);
+    await applyDetectedResults(state,devices,federationDetected,{notify:false});
     const detected=[...liveDetected,...federationDetected];
     job.detected=detected.length;
-    job.detectedSwimSystem=liveDetected.length;
     job.detectedFederation=federationDetected.length;
     job.federationPagesScanned=Number(federationDetected._pagesScanned||0);
-    job.lastVersion='V39';
+    job.lastVersion='V41';
+    job.phase='done';
 
-    await applyDetectedResults(state,devices,detected);
     await saveState(state);
     job.finishedAt=new Date().toISOString();
     job.running=false;
@@ -1885,7 +1919,7 @@ async function runResultScanForRegistration(registration,fallbackDevice=null){
   }
 }
 
-app.get('/config',(req,res)=>jsonOrJsonp(req,res,{publicKey:VAPID_PUBLIC_KEY,version:'V40'}));
+app.get('/config',(req,res)=>jsonOrJsonp(req,res,{publicKey:VAPID_PUBLIC_KEY,version:'V41'}));
 
 app.post('/subscribe',async(req,res)=>{
   const b=req.body||{};
@@ -1977,7 +2011,7 @@ app.get('/subscribe-simple',async(req,res)=>{
   }
 
   await saveState(state);
-  jsonOrJsonp(req,res,{ok:true,version:'V40',deviceId:device.id,pushConfirmed});
+  jsonOrJsonp(req,res,{ok:true,version:'V41',deviceId:device.id,pushConfirmed});
 });
 
 app.post('/sync-results',async(req,res)=>{
@@ -2045,7 +2079,7 @@ app.post('/sync-results',async(req,res)=>{
   const pending=state.pendingResults.filter(x=>String(x.registration)===registration);
   res.json({
     ok:true,
-    version:'V40',
+    version:'V41',
     started:!existing?.running,
     running:true,
     devices:devices.length,
@@ -2109,7 +2143,7 @@ app.get('/sync-results-simple',async(req,res)=>{
     runResultScanForRegistration(registration,fallbackDevice).catch(e=>console.error('async simple result scan',e));
   }
   const pending=state.pendingResults.filter(x=>String(x.registration)===registration);
-  jsonOrJsonp(req,res,{ok:true,version:'V40',started:!existing?.running,running:true,devices:devices.length,transient:!devices.length,results:pending});
+  jsonOrJsonp(req,res,{ok:true,version:'V41',started:!existing?.running,running:true,devices:devices.length,transient:!devices.length,results:pending});
 });
 
 app.get('/sync-status',async(req,res)=>{
@@ -2119,7 +2153,7 @@ app.get('/sync-status',async(req,res)=>{
   const results=state.pendingResults.filter(x=>String(x.registration)===registration);
   jsonOrJsonp(req,res,{
     ok:true,
-    version:'V40',
+    version:'V41',
     running:!!job?.running,
     startedAt:job?.startedAt||null,
     finishedAt:job?.finishedAt||null,
@@ -2128,6 +2162,8 @@ app.get('/sync-status',async(req,res)=>{
     detectedSwimSystem:job?.detectedSwimSystem||0,
     detectedFederation:job?.detectedFederation||0,
     federationPagesScanned:job?.federationPagesScanned||0,
+    phase:job?.phase||null,
+    fastFinishedAt:job?.fastFinishedAt||null,
     results
   });
 });
@@ -2170,7 +2206,7 @@ app.get('/pending-results/ack-simple',async(req,res)=>{
   }
   state.pendingResults=state.pendingResults.filter(x=>!(String(x.registration)===registration && rids.includes(String(x._rid||''))));
   await saveState(state);
-  jsonOrJsonp(req,res,{ok:true,version:'V40',removed:before-state.pendingResults.length});
+  jsonOrJsonp(req,res,{ok:true,version:'V41',removed:before-state.pendingResults.length});
 });
 
 app.post('/swimsystem/import',async(req,res)=>{
