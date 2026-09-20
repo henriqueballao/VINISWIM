@@ -1295,7 +1295,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='74';
+const VINISWIM_BUILD='75';
 const VINISWIM_MONITOR_BASE='https://viniswim-monitor-live-production.up.railway.app';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
@@ -1787,10 +1787,15 @@ function resultDisplayValue(r){
   const t=Number(r?.timeSeconds);
   return r?.time||(Number.isFinite(t)&&t>0?fmtTime(t):'—');
 }
+function isNumberedResult(r={}){
+  const status=normalizedResultStatus(r.status);
+  const t=Number(r.timeSeconds);
+  return (status==='official'||status==='manual') && Number.isFinite(t) && t>0;
+}
 function resultChronologyNumberMap(){
   const all=[...(DATA.results||[])];
   const originalIndex=new Map(all.map((r,i)=>[r,i]));
-  const ordered=[...all].sort((a,b)=>
+  const ordered=all.filter(isNumberedResult).sort((a,b)=>
     String(a.date||'').localeCompare(String(b.date||'')) ||
     String(a.publishedAt||a.importedAt||'').localeCompare(String(b.publishedAt||b.importedAt||'')) ||
     (originalIndex.get(a)-originalIndex.get(b))
@@ -1818,10 +1823,16 @@ function renderResultsSummary(){
 function renderHistory(){
   let ev=$('#fEvent')?.value||'', pool=$('#fPool')?.value||'', src=$('#fSource')?.value||'';
   const numberMap=resultChronologyNumberMap();
-  let a=[...(DATA.results||[])].filter(r=>(!ev||r.event===ev)&&(!src||r.status===src)&&(!pool||(pool==='unknown'?r.poolMeters==null:String(r.poolMeters)===pool))).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.publishedAt||b.importedAt||'').localeCompare(String(a.publishedAt||a.importedAt||''))||String(a.event||'').localeCompare(String(b.event||'')));
-  $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId),n=numberMap.get(r)||'—';return `<tr><td><span class="result-number">#${n}</span></td><td>${resultDateLabel(r)}</td><td><b>${resultCategory(r)}</b></td><td>${r.event}</td><td class="mono"><b>${resultDisplayValue(r)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||s.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span></td><td>${sourceActionsMarkup(meetForResult(r),r)}<div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div></td></tr>`}).join('');
+  const allResults=[...(DATA.results||[])];
+  const originalIndex=new Map(allResults.map((r,i)=>[r,i]));
+  let a=allResults.filter(r=>(!ev||r.event===ev)&&(!src||r.status===src)&&(!pool||(pool==='unknown'?r.poolMeters==null:String(r.poolMeters)===pool))).sort((a,b)=>
+    String(a.date||'').localeCompare(String(b.date||'')) ||
+    String(a.publishedAt||a.importedAt||'').localeCompare(String(b.publishedAt||b.importedAt||'')) ||
+    (originalIndex.get(a)-originalIndex.get(b))
+  );
+  $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId),n=numberMap.get(r);return `<tr><td>${n?'<span class="result-number">#'+n+'</span>':'<span class="tag '+r.status+'">'+resultStatusLabel(r.status).split(' · ')[0]+'</span>'}</td><td>${resultDateLabel(r)}</td><td><b>${resultCategory(r)}</b></td><td>${r.event}</td><td class="mono"><b>${resultDisplayValue(r)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||s.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span></td><td>${sourceActionsMarkup(meetForResult(r),r)}<div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div></td></tr>`}).join('');
   const mh=$('#mobileHistory');
-  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId),n=numberMap.get(r)||'—';return `<div class="result-card"><div class="top"><div><div><span class="result-number">#${n}</span><b>${r.event}</b></div><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${resultDisplayValue(r)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div>${sourceActionsMarkup(meetForResult(r),r)}<div class="actions"><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span><button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button></div></div>`}).join('');
+  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId),n=numberMap.get(r);return `<div class="result-card"><div class="top"><div><div>${n?'<span class="result-number">#'+n+'</span>':'<span class="tag '+r.status+'" style="margin-right:8px">'+resultStatusLabel(r.status).split(' · ')[0]+'</span>'}<b>${r.event}</b></div><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${resultDisplayValue(r)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div>${sourceActionsMarkup(meetForResult(r),r)}<div class="actions"><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span><button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button></div></div>`}).join('');
   renderResultsSummary();
 }
 ['fEvent','fPool','fSource'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)renderHistory()}));
