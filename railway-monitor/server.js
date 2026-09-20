@@ -1554,6 +1554,24 @@ app.get('/refresh-athlete',async(req,res)=>{
   });
 });
 
+async function writeFdapDiagnosticsOnce(){
+  for(const registration of ['399680','393259']){
+    const profile=AUTONOMOUS_ATHLETES.find(a=>a.registration===registration);
+    if(!profile)continue;
+    try{
+      const out=await buildFdapDiagnostic(profile);
+      await ensureDir();
+      await fs.writeFile(path.join(DATA_DIR,'fdap-diagnostic-'+registration+'.json'),JSON.stringify(out,null,2),'utf8');
+    }catch(e){
+      try{
+        await ensureDir();
+        await fs.writeFile(path.join(DATA_DIR,'fdap-diagnostic-'+registration+'.json'),JSON.stringify({ok:false,registration,error:e?.message||String(e),at:new Date().toISOString()},null,2),'utf8');
+      }catch(_){}
+    }
+  }
+}
+setTimeout(()=>writeFdapDiagnosticsOnce().catch(()=>{}),8000);
+
 app.get('/fdap-diagnostic',async(req,res)=>{
   const registration=String(req.query.registration||'');
   const profile=AUTONOMOUS_ATHLETES.find(a=>a.registration===registration);
