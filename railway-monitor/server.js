@@ -1,4 +1,5 @@
 // VINISWIM MONITOR V41 — busca rápida + histórico desacoplado + push imediato
+// deploy-trigger: V41 production
 import express from 'express';
 import cors from 'cors';
 import webpush from 'web-push';
