@@ -1469,7 +1469,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='72';
+const VINISWIM_BUILD='73';
 const VINISWIM_MONITOR_BASE='https://viniswim-monitor-live-production.up.railway.app';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='x7hepfpb668fhs5';
@@ -2817,12 +2817,22 @@ async function syncViaJsonp(base,registration,{manual=false}={}){
       DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
       renderLastSwimSync();
       if(manual)setSwimUpdateStatus(
-        'Consulta concluída · '+Number(st?.detected||0)+' resultado(s) detectado(s) · FDAP '+Number(st?.detectedFederation||0)+' · SwimSystem '+Number(st?.detectedSwimSystem||0)+'.',
+        'Consulta concluída · '+Number(st?.detected||0)+' resultado(s) detectado(s) · histórico '+Number(st?.detectedFederation||0)+' · SwimSystem '+Number(st?.detectedSwimSystem||0)+'.',
         'ok'
       );
       return {changed:false,count:0,diagnostics:st};
     }
-    if(manual)setSwimUpdateStatus('Monitor varrendo FDAP e SwimSystem...');
+    if(st?.fastFinishedAt && st?.phase==='history'){
+      DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+      renderLastSwimSync();
+      if(manual)setSwimUpdateStatus('Resultado atual verificado · histórico continua em segundo plano.','ok');
+      return {changed:false,count:0,historyRunning:true,diagnostics:st};
+    }
+    if(manual)setSwimUpdateStatus(
+      st?.phase==='history'
+        ? 'Resultado atual verificado · completando histórico em segundo plano...'
+        : 'Consultando resultados atuais no SwimSystem...'
+    );
     await new Promise(r=>setTimeout(r,2500));
   }
   if(manual)setSwimUpdateStatus('A varredura continua no servidor; o app verificará novamente.','ok');
@@ -2955,7 +2965,25 @@ async function pollResultSync(base,registration,{manual=false}={}){
         return {changed:false,count:0};
       }
 
-      if(manual)setSwimUpdateStatus('Monitor consultando o SwimSystem em segundo plano...');
+      // V41: a etapa rápida do SwimSystem terminou. Não prende a tela esperando
+      // a varredura histórica da federação, que continua no servidor.
+      if(status.body?.fastFinishedAt && status.body?.phase==='history'){
+        DATA.settings.lastSwimSystemSyncAt=new Date().toISOString();
+        renderLastSwimSync();
+        if(manual)setSwimUpdateStatus(
+          lastDetected
+            ? 'Resultado atual verificado · histórico continua em segundo plano.'
+            : 'Resultado atual em dia · histórico continua em segundo plano.',
+          'ok'
+        );
+        return {changed:false,count:0,historyRunning:true};
+      }
+
+      if(manual)setSwimUpdateStatus(
+        status.body?.phase==='history'
+          ? 'Resultado atual verificado · completando histórico em segundo plano...'
+          : 'Consultando resultados atuais no SwimSystem...'
+      );
     }
 
     await new Promise(r=>setTimeout(r,2500));
@@ -2989,7 +3017,7 @@ async function syncPendingResultsFromServer(opts={}){
   renderLastSwimSync();
 
   try{
-    // Em plano gratuito o Render pode estar dormindo. Acorda primeiro para evitar AbortError no iPhone.
+    // Confirma que o monitor Railway está respondendo antes da atualização manual.
     if(manual){
       const awake=await wakeMonitor(base,{manual:true});
       if(!awake){
