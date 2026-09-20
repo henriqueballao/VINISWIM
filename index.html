@@ -1654,6 +1654,7 @@ async function handlePhotoUpload(file){
   
   $('#photoPreview').src=dataUrl;
   renderAthleteHero();
+  syncCompetitionImportUI();
 }
 document.addEventListener('change',e=>{if(e.target.id==='setPhoto')handlePhotoUpload(e.target.files?.[0])});
 
@@ -3007,8 +3008,9 @@ async function importFromSwimSystem(){
     const d=await r.json();
     if(!d.meet)throw new Error('Competição não reconhecida pelo conector.');
     const exists=DATA.meets.find(m=>m.sourceUrl===url||m.id===d.meet.id);
+    d.meet.resultProvider='swimsystem';
     if(exists){
-      Object.assign(exists,d.meet);
+      Object.assign(exists,d.meet,{resultProvider:'swimsystem'});
     }else DATA.meets.push(d.meet);
     if(d.source && !DATA.sources.find(s=>s.id===d.source.id))DATA.sources.push(d.source);
     DATA.settings.swimSystemMeetUrl=url;
