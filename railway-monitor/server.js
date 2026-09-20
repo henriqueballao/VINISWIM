@@ -1003,6 +1003,96 @@ async function crawlFederationProfile(startUrls,device,maxPages=120){
   return {results:out,pagesScanned:visited.size};
 }
 
+async function buildFdapDiagnostic(profile){
+  const state=await loadState();
+  const {representative}=autonomousRepresentative(state,profile);
+  const athlete=representative.athlete||{};
+  const bases=(representative.resultSources||[]).filter(u=>/fdap\.org\.br|fgda\.org\.br/i.test(String(u)));
+  const startUrls=new Set();
+  for(const base of bases){
+    try{for(const u of await discoverFederationProfileUrls(base,athlete))startUrls.add(u)}catch(_){}
+  }
+
+  const queue=[...startUrls], visited=new Set(), pages=[];
+  const apiHints=new Set(), paginationHints=new Set(), profileHints=new Set();
+
+  while(queue.length && visited.size<40){
+    const url=queue.shift();
+    if(!url || visited.has(url))continue;
+    visited.add(url);
+    try{
+      const raw=await fetchText(url,12000);
+      const trim=String(raw||'').trim();
+      const page={url,kind:(trim.startsWith('{')||trim.startsWith('['))?'json':'html',bytes:raw.length,identity:false,resultLike:false,links:0,apiHints:[]};
+
+      if(page.kind==='json'){
+        page.identity=athleteTextMatches(raw,athlete)||normalize(raw).includes(normalize(athlete.registration||''));
+        page.resultLike=/tempo|marca|resultado|prova|evento|result|time/i.test(raw);
+        pages.push(page);
+        continue;
+      }
+
+      const $=cheerio.load(raw);
+      const body=$('body').text().replace(/\s+/g,' ').trim();
+      page.identity=athleteTextMatches(body,athlete)||normalize(body).includes(normalize(athlete.registration||''));
+      page.resultLike=/tempo|marca|resultado|prova|evento|recorde/i.test(body);
+
+      const foundLinks=[];
+      $('a[href],form[action],[data-url],[data-endpoint],[data-href],script[src]').each((_,el)=>{
+        const attrs=el.attribs||{};
+        for(const key of ['href','action','data-url','data-endpoint','data-href','src']){
+          const rawUrl=attrs[key]; if(!rawUrl)continue;
+          let u; try{u=new URL(rawUrl,url)}catch{continue}
+          foundLinks.push(u.toString());
+          const s=normalize(u.pathname+' '+u.search);
+          if(/api|ajax|resultado|result|marca|historico|history|atleta|athlete|ranking|prova|evento/.test(s))apiHints.add(u.toString());
+          if(/page|pagina|offset|limit|start|cursor|p=|paged/.test(s))paginationHints.add(u.toString());
+          if(/atleta|athlete|perfil|profile/.test(s))profileHints.add(u.toString());
+        }
+      });
+      page.links=foundLinks.length;
+
+      for(const s of $('script').toArray()){
+        const txt=$(s).html()||'';
+        for(const m of txt.matchAll(/https?:\\/\\/[^"'\s<>]+|\/[^"'\s<>]*(?:api|ajax|resultado|result|marca|historico|history|ranking|atleta|athlete)[^"'\s<>]*/gi)){
+          let u; try{u=new URL(m[0],url)}catch{continue}
+          apiHints.add(u.toString());
+        }
+        for(const m of txt.matchAll(/(?:fetch|axios\.(?:get|post)|url|endpoint)\s*\(?\s*["'`]([^"'`]+)["'`]/gi)){
+          let u; try{u=new URL(m[1],url)}catch{continue}
+          apiHints.add(u.toString());
+        }
+      }
+
+      page.apiHints=[...apiHints].slice(-20);
+      pages.push(page);
+
+      if(page.identity || visited.size===1){
+        for(const link of discoverFederationLinks(raw,url,athlete)){
+          if(!visited.has(link) && queue.length<120)queue.push(link);
+        }
+      }
+    }catch(e){
+      pages.push({url,error:e?.message||String(e)});
+    }
+  }
+
+  const crawl=await crawlFederationProfile([...startUrls],representative,140).catch(()=>({results:[],pagesScanned:0}));
+  return {
+    ok:true,
+    version:'V39-DIAG',
+    registration:profile.registration,
+    startUrls:[...startUrls],
+    pagesScanned:visited.size,
+    parsedResults:Array.isArray(crawl.results)?crawl.results.length:0,
+    crawlerPagesScanned:Number(crawl.pagesScanned||0),
+    apiHints:[...apiHints].slice(0,120),
+    paginationHints:[...paginationHints].slice(0,80),
+    profileHints:[...profileHints].slice(0,80),
+    pages
+  };
+}
+
 async function detectFederationResults(device){
   const athlete=device.athlete||{};
   const bases=(device.resultSources||[]).filter(u=>/fdap\.org\.br|fgda\.org\.br/i.test(String(u)));
@@ -1466,6 +1556,18 @@ app.get('/refresh-athlete',async(req,res)=>{
     running:true,
     results:pending
   });
+});
+
+app.get('/fdap-diagnostic',async(req,res)=>{
+  const registration=String(req.query.registration||'');
+  const profile=AUTONOMOUS_ATHLETES.find(a=>a.registration===registration);
+  if(!profile)return res.status(404).json({ok:false,error:'atleta não configurado'});
+  try{
+    const out=await buildFdapDiagnostic(profile);
+    res.json(out);
+  }catch(e){
+    res.status(500).json({ok:false,error:e?.message||String(e)});
+  }
 });
 
 app.get('/athletes-summary',async(req,res)=>{
