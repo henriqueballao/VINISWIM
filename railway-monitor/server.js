@@ -1054,11 +1054,6 @@ async function buildFdapDiagnostic(profile){
 
       for(const s of $('script').toArray()){
         const txt=$(s).html()||'';
-        const urlRx=new RegExp('https?:\\\\/\\\\/[^"\\'\\s<>]+|\\/[^"\\'\\s<>]*(?:api|ajax|resultado|result|marca|historico|history|ranking|atleta|athlete)[^"\\'\\s<>]*','gi');
-        for(const m of txt.matchAll(urlRx)){
-          let u; try{u=new URL(m[0],url)}catch{continue}
-          apiHints.add(u.toString());
-        }
         for(const m of txt.matchAll(/(?:fetch|axios\.(?:get|post)|url|endpoint)\s*\(?\s*["'`]([^"'`]+)["'`]/gi)){
           let u; try{u=new URL(m[1],url)}catch{continue}
           apiHints.add(u.toString());
