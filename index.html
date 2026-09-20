@@ -989,7 +989,7 @@ tbody tr:hover{background:#f8fbfc}
       <section id="history" class="page">
         <div class="section">
           <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultados</span></h3><div class="results-head-actions no-print"><div class="swim-update-cluster"><button class="btn" id="updateSwimSystemBtn" onclick="updateFromSwimSystem()">↻ Atualizar Resultados</button><span id="lastSwimSystemUpdate" class="last-swim-update">Última atualização: —</span></div><button class="btn primary" onclick="openResultModal()">+ Novo resultado</button></div></div>
-          <div class="filters"><select id="fEvent"><option value="">Todas as provas</option></select><select id="fPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Piscina não confirmada</option></select><select id="fSource"><option value="">Todas as origens</option><option value="official">Oficial</option><option value="provisional">Parcial</option><option value="manual">Manual confirmado</option></select></div>
+          <div class="filters"><select id="fEvent" aria-label="Filtrar por prova"><option value="" selected></option></select><select id="fPool" aria-label="Filtrar por piscina"><option value="" selected></option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Piscina não confirmada</option></select><select id="fSource" aria-label="Filtrar por origem"><option value="" selected></option><option value="official">Oficial</option><option value="manual">Manual confirmado</option><option value="occurrence">DNS / DSQ / DNF / Parcial</option></select></div>
           <div id="swimSystemUpdateStatus" class="swimsystem-update-status"></div>
           <div id="resultsPoolNote" class="results-pool-note"></div>
           <div class="table-scroll"><table><thead><tr><th>#</th><th>Data</th><th>Categoria</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody id="historyTable"></tbody></table></div><div id="mobileHistory" class="mobile-results"></div>
@@ -1295,7 +1295,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='77';
+const VINISWIM_BUILD='78';
 const VINISWIM_MONITOR_BASE='https://viniswim-monitor-live-production.up.railway.app';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
@@ -1539,6 +1539,7 @@ function pageFromHash(){
 }
 function nav(page,{persist=true,updateHash=false}={}){
   if(!NAV_PAGES.includes(page))page='dashboard';
+  if(page==='history')resetResultFilters();
   closeMobileSidebar();
   $$('.page').forEach(x=>x.classList.toggle('active',x.id===page));
   $$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
@@ -1658,17 +1659,29 @@ function metricIcon(name){
 function manualCount(){
   return (DATA.results||[]).filter(r=>normalizedResultStatus(r.status)==='manual'&&Number.isFinite(Number(r.timeSeconds))&&Number(r.timeSeconds)>0).length;
 }
+function occurrenceCount(){
+  return (DATA.results||[]).filter(r=>['dns','dsq','dnf','provisional'].includes(normalizedResultStatus(r.status))).length;
+}
+function resetResultFilters(){
+  if($('#fEvent'))$('#fEvent').value='';
+  if($('#fPool'))$('#fPool').value='';
+  if($('#fSource'))$('#fSource').value='';
+}
 function openResultsBySource(source=''){
+  nav('history',{persist:true,updateHash:false});
+  resetResultFilters();
   const el=$('#fSource');
   if(el)el.value=source;
-  nav('history',{persist:true,updateHash:false});
   renderHistory();
 }
 function renderCards(){
   let next=activeMeet();
+  const total=(DATA.results||[]).length;
   let cards=[
+    ['TOTAL DE RESULTADOS',total,'Registros no histórico','history',''],
     ['RESULTADOS MANUAIS',manualCount(),'Lançamentos manuais','history','manual'],
-    ['RESULTADOS OFICIAIS',officialCount(),'Fontes oficiais','official','official']
+    ['RESULTADOS OFICIAIS',officialCount(),'Fontes oficiais','official','official'],
+    ['OCORRÊNCIAS',occurrenceCount(),'DNS · DSQ · DNF · Parcial','calendar','occurrence']
   ];
   $('#summaryCards').innerHTML=cards.map(c=>`<div class="card kpi-card clickable" role="button" tabindex="0" onclick="openResultsBySource('${c[4]}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openResultsBySource('${c[4]}')}"><div class="kpi-card-icon">${metricIcon(c[3])}</div><div class="k">${c[0]}</div><div class="v">${c[1]}</div><div class="s">${c[2]}</div></div>`).join('');
   if(next){
@@ -1690,7 +1703,7 @@ function fillFilters(){
   const events=eventList();
   const f=$('#fEvent'), ce=$('#chartEvent');
   let fv=f.value, cv=ce.value;
-  f.innerHTML='<option value="">Todas as provas</option>'+events.map(x=>`<option>${x}</option>`).join('');
+  f.innerHTML='<option value=""></option>'+events.map(x=>`<option>${x}</option>`).join('');
   ce.innerHTML='<option value="__all">Todos os estilos</option>'+events.map(x=>`<option>${x}</option>`).join('');
   if(events.includes(fv))f.value=fv;if(cv==='__all'||events.includes(cv))ce.value=cv;else ce.value='__all';
 }
@@ -1800,19 +1813,20 @@ function resultChronologyNumberMap(){
 function renderResultsSummary(){
   const official=officialCount();
   const manual=manualCount();
-  const total=official+manual;
-  const poolsKnown=confirmed().filter(r=>r.poolMeters!=null).length;
-  const poolUnknown=Math.max(0,confirmed().length-poolsKnown);
+  const occurrences=occurrenceCount();
+  const total=(DATA.results||[]).length;
+  const poolsKnown=(DATA.results||[]).filter(r=>r.poolMeters!=null).length;
+  const poolUnknown=Math.max(0,total-poolsKnown);
   const status=$('#swimSystemUpdateStatus');
   if(status){
-    status.textContent=`${total} resultados · ${manual} manuais · ${official} oficiais.`;
+    status.textContent=`${total} resultados · ${manual} manuais · ${official} oficiais · ${occurrences} ocorrência(s).`;
     status.className='swimsystem-update-status ok';
   }
   const note=$('#resultsPoolNote');
   if(note){
     note.textContent=poolUnknown
-      ? `Piscina informada em ${poolsKnown} resultado(s); ${poolUnknown} aguardam conferência.`
-      : `Piscina informada nos ${poolsKnown} resultados.`;
+      ? `Piscina informada em ${poolsKnown} dos ${total} registros; ${poolUnknown} aguardam conferência.`
+      : `Piscina informada nos ${total} registros.`;
   }
 }
 function renderHistory(){
@@ -1820,7 +1834,7 @@ function renderHistory(){
   const numberMap=resultChronologyNumberMap();
   const allResults=[...(DATA.results||[])];
   const originalIndex=new Map(allResults.map((r,i)=>[r,i]));
-  let a=allResults.filter(r=>(!ev||r.event===ev)&&(!src||r.status===src)&&(!pool||(pool==='unknown'?r.poolMeters==null:String(r.poolMeters)===pool))).sort((a,b)=>
+  let a=allResults.filter(r=>(!ev||r.event===ev)&&(!src||(src==='occurrence'?['dns','dsq','dnf','provisional'].includes(normalizedResultStatus(r.status)):normalizedResultStatus(r.status)===src))&&(!pool||(pool==='unknown'?r.poolMeters==null:String(r.poolMeters)===pool))).sort((a,b)=>
     String(b.date||'').localeCompare(String(a.date||'')) ||
     String(b.publishedAt||b.importedAt||'').localeCompare(String(a.publishedAt||a.importedAt||'')) ||
     (originalIndex.get(b)-originalIndex.get(a))
