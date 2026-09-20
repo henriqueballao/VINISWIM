@@ -1,4 +1,4 @@
-// VINISWIM MONITOR V39 — DNS/DSQ/DNF real + descoberta automatica das provas do atleta
+// VINISWIM MONITOR V40 — DNS/DSQ/DNF real + descoberta automatica das provas do atleta
 import express from 'express';
 import cors from 'cors';
 import webpush from 'web-push';
@@ -1326,7 +1326,7 @@ async function checkAlerts(state,device,now){
         const target=dt.getTime()-min*60000;
         const id=[device.id,meet.id||meet.name,entry.event,entry.date,entry.scheduled,key].join('|');
         if(state.sent[id])continue;
-        if(now>=target&&now<target+70000){
+        if(now>=target&&now<target+5*60000){
           const ok=await sendPush(device,{
             title:`VINISWIM — ${entry.event} em ${label}`,
             body:`${meet.name||'Próxima prova'} · prevista para ${entry.scheduled}`,
@@ -1552,7 +1552,7 @@ async function monitor(){
   finally{checking=false}
 }
 
-app.get('/health',(req,res)=>res.json({ok:true,version:'V39',features:{fdapCrawler:true,fdapPagination:true,fdapJsonApi:true,jsonpTransport:true,autonomousAthletes:true,refreshOnDemand:true,asyncRefresh:true},time:new Date().toISOString()}));
+app.get('/health',(req,res)=>res.json({ok:true,version:'V40',features:{fdapCrawler:true,fdapPagination:true,fdapJsonApi:true,jsonpTransport:true,autonomousAthletes:true,refreshOnDemand:true,asyncRefresh:true},time:new Date().toISOString()}));
 
 
 app.get('/refresh-athlete',async(req,res)=>{
@@ -1562,7 +1562,7 @@ app.get('/refresh-athlete',async(req,res)=>{
 
   const existing=resultScanJobs.get(registration);
   if(!existing?.running){
-    const job={running:true,startedAt:new Date().toISOString(),finishedAt:null,error:null,detected:0,detectedSwimSystem:0,detectedFederation:0,federationPagesScanned:0,lastVersion:'V36'};
+    const job={running:true,startedAt:new Date().toISOString(),finishedAt:null,error:null,detected:0,detectedSwimSystem:0,detectedFederation:0,federationPagesScanned:0,lastVersion:'V40'};
     resultScanJobs.set(registration,job);
 
     (async()=>{
@@ -1588,7 +1588,7 @@ app.get('/refresh-athlete',async(req,res)=>{
   const pending=state.pendingResults.filter(x=>String(x.registration||'')===registration);
   jsonOrJsonp(req,res,{
     ok:true,
-    version:'V39',
+    version:'V40',
     registration,
     started:!existing?.running,
     running:true,
@@ -1637,7 +1637,7 @@ app.get('/athletes-summary',async(req,res)=>{
       updatedAt:null
     })
   }));
-  res.json({ok:true,version:'V39',athletes});
+  res.json({ok:true,version:'V40',athletes});
 });
 
 app.get('/status',async(req,res)=>{
@@ -1647,7 +1647,7 @@ app.get('/status',async(req,res)=>{
   const devices=state.devices.filter(x=>!registration||String(x.athlete?.registration||'')===registration);
   res.json({
     ok:true,
-    version:'V39',
+    version:'V40',
     devices:devices.length,
     registrations:devices.map(x=>String(x.athlete?.registration||'')),
     pendingResults:state.pendingResults.filter(x=>!registration||String(x.registration||'')===registration).length,
@@ -1667,7 +1667,7 @@ app.get('/debug-meet-base',async(req,res)=>{
   const raw=device.swimSystemMeetUrl||device.meets?.find(m=>m.sourceUrl)?.sourceUrl||'';
   res.json({
     ok:true,
-    version:'V39',
+    version:'V40',
     raw,
     meetBase:meetBase(raw)
   });
@@ -1692,7 +1692,7 @@ app.get('/scan-event-now',async(req,res)=>{
   catch(e){return res.status(502).json({error:e.message,url:u.toString()})}
 
   const rows=parseAthleteRowsFromResultPage(html,u.toString(),device,'');
-  res.json({ok:true,version:'V39',url:u.toString(),athleteFound:normalize(html).includes(normalize(device.athlete?.name||'')),rows});
+  res.json({ok:true,version:'V40',url:u.toString(),athleteFound:normalize(html).includes(normalize(device.athlete?.name||'')),rows});
 });
 
 app.get('/scan-results-now',async(req,res)=>{
@@ -1722,7 +1722,7 @@ app.get('/scan-results-now',async(req,res)=>{
   }
 
   await saveState(state);
-  res.json({ok:true,devices:devices.length,version:'V39',scans});
+  res.json({ok:true,devices:devices.length,version:'V40',scans});
 });
 
 app.get('/schedule-test-alert',async(req,res)=>{
@@ -1885,7 +1885,7 @@ async function runResultScanForRegistration(registration,fallbackDevice=null){
   }
 }
 
-app.get('/config',(req,res)=>jsonOrJsonp(req,res,{publicKey:VAPID_PUBLIC_KEY,version:'V39'}));
+app.get('/config',(req,res)=>jsonOrJsonp(req,res,{publicKey:VAPID_PUBLIC_KEY,version:'V40'}));
 
 app.post('/subscribe',async(req,res)=>{
   const b=req.body||{};
@@ -1907,8 +1907,23 @@ app.post('/subscribe',async(req,res)=>{
     updatedAt:new Date().toISOString()
   };
   if(existing)Object.assign(existing,device); else state.devices.push(device);
+
+  // V40: confirma a inscrição no próprio aparelho. Isso valida de ponta a ponta
+  // permissão do iOS + service worker + subscription Apple + VAPID do servidor.
+  // Não repete em cada abertura do app.
+  let pushConfirmed=false;
+  if(!existing?.pushConfirmedAt){
+    pushConfirmed=await sendPush(device,{
+      title:'VINISWIM — notificações ativas',
+      body:(device.athlete?.name||'Atleta')+' · aparelho registrado para receber alertas.',
+      tag:'viniswim-push-confirmed',
+      data:{url:(device.appUrl||'./')+'#alerts'}
+    });
+    if(pushConfirmed)device.pushConfirmedAt=new Date().toISOString();
+  }
+
   await saveState(state);
-  res.json({ok:true,deviceId:device.id});
+  res.json({ok:true,deviceId:device.id,pushConfirmed});
 });
 
 app.get('/subscribe-simple',async(req,res)=>{
@@ -1949,8 +1964,20 @@ app.get('/subscribe-simple',async(req,res)=>{
     updatedAt:new Date().toISOString()
   };
   if(existing)Object.assign(existing,device); else state.devices.push(device);
+
+  let pushConfirmed=false;
+  if(!existing?.pushConfirmedAt){
+    pushConfirmed=await sendPush(device,{
+      title:'VINISWIM — notificações ativas',
+      body:(device.athlete?.name||'Atleta')+' · aparelho registrado para receber alertas.',
+      tag:'viniswim-push-confirmed',
+      data:{url:(device.appUrl||'./')+'#alerts'}
+    });
+    if(pushConfirmed)device.pushConfirmedAt=new Date().toISOString();
+  }
+
   await saveState(state);
-  jsonOrJsonp(req,res,{ok:true,version:'V39',deviceId:device.id});
+  jsonOrJsonp(req,res,{ok:true,version:'V40',deviceId:device.id,pushConfirmed});
 });
 
 app.post('/sync-results',async(req,res)=>{
@@ -2018,7 +2045,7 @@ app.post('/sync-results',async(req,res)=>{
   const pending=state.pendingResults.filter(x=>String(x.registration)===registration);
   res.json({
     ok:true,
-    version:'V39',
+    version:'V40',
     started:!existing?.running,
     running:true,
     devices:devices.length,
@@ -2082,7 +2109,7 @@ app.get('/sync-results-simple',async(req,res)=>{
     runResultScanForRegistration(registration,fallbackDevice).catch(e=>console.error('async simple result scan',e));
   }
   const pending=state.pendingResults.filter(x=>String(x.registration)===registration);
-  jsonOrJsonp(req,res,{ok:true,version:'V39',started:!existing?.running,running:true,devices:devices.length,transient:!devices.length,results:pending});
+  jsonOrJsonp(req,res,{ok:true,version:'V40',started:!existing?.running,running:true,devices:devices.length,transient:!devices.length,results:pending});
 });
 
 app.get('/sync-status',async(req,res)=>{
@@ -2092,7 +2119,7 @@ app.get('/sync-status',async(req,res)=>{
   const results=state.pendingResults.filter(x=>String(x.registration)===registration);
   jsonOrJsonp(req,res,{
     ok:true,
-    version:'V39',
+    version:'V40',
     running:!!job?.running,
     startedAt:job?.startedAt||null,
     finishedAt:job?.finishedAt||null,
@@ -2143,7 +2170,7 @@ app.get('/pending-results/ack-simple',async(req,res)=>{
   }
   state.pendingResults=state.pendingResults.filter(x=>!(String(x.registration)===registration && rids.includes(String(x._rid||''))));
   await saveState(state);
-  jsonOrJsonp(req,res,{ok:true,version:'V39',removed:before-state.pendingResults.length});
+  jsonOrJsonp(req,res,{ok:true,version:'V40',removed:before-state.pendingResults.length});
 });
 
 app.post('/swimsystem/import',async(req,res)=>{
