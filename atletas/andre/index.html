@@ -997,7 +997,7 @@ tbody tr:hover{background:#f8fbfc}
         <div class="section">
   <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v3M18 3v3M4 8h16"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 12h4M13 12h4M7 16h4"/></svg></span><span>Campeonatos</span></h3><button class="btn primary no-print" onclick="openMeetModal()">+ Novo campeonato</button></div>
   <div class="notice" style="margin-bottom:14px">
-    <b>SwimSystem:</b> a importação automática usa um conector externo para evitar bloqueios CORS do navegador. Cole a URL oficial e o VINISWIM consulta o atleta pelo registro 422692 quando o conector estiver configurado.
+    <b>Fonte oficial:</b> o VINISWIM pode importar competições por integrações externas. Use abaixo a integração disponível para esta competição.
   </div>
   <div class="import-box no-print" style="margin-bottom:16px">
     <input id="swimSystemImportUrl" placeholder="https://www.swimsystem.app/meets/sw/...">
@@ -1033,9 +1033,9 @@ tbody tr:hover{background:#f8fbfc}
         <div class="section">
           <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultado oficial</span></h3></div>
           <div class="notice">
-            Quando o monitor externo detectar um resultado novo no SwimSystem, os aparelhos cadastrados recebem a notificação.
+            Quando o monitor detectar um novo resultado na fonte oficial da competição, os aparelhos cadastrados recebem a notificação.
             O VINISWIM <b>importa automaticamente</b> o resultado para a base e salva no Dropbox.
-            Resultados ainda parciais ficam identificados como <b>SwimSystem parcial</b> e só entram nos cálculos de evolução quando forem oficializados.
+            Resultados ainda parciais ficam identificados como <b>parciais</b> e só entram nos cálculos de evolução quando forem oficializados.
           </div>
           <div id="pendingOfficialResults" style="margin-top:12px"></div>
         </div>
@@ -1079,7 +1079,7 @@ tbody tr:hover{background:#f8fbfc}
           <div class="form">
             <label>Arquivo Dropbox<input id="setFile" value="/andre-dados.json"></label>
             <label class="full">URL da competição<input id="setMeetUrl"></label>
-            <label class="full">Servidor Push / conector SwimSystem<input id="setPushUrl" placeholder="https://seu-monitor.exemplo.com"></label>
+            <label class="full">Servidor Push / monitor de resultados<input id="setPushUrl" placeholder="https://seu-monitor.exemplo.com"></label>
             <label class="full">FDAP · Federação do Paraná<input id="setFdapUrl" value="https://fdap.org.br/"></label>
             <label class="full">FGDA · Federação Gaúcha<input id="setFgdaUrl" value="https://fgda.org.br/"></label>
             <div class="field-help full">Fontes adicionais para localizar histórico e resultados oficiais pelo nome/registro do atleta.</div>
@@ -1107,7 +1107,7 @@ tbody tr:hover{background:#f8fbfc}
         <div class="tutorial-num">1</div>
         <div>
           <h4>Antes de uma competição</h4>
-          <p>Entre em <b>Campeonatos</b> e cadastre o campeonato. Informe nome, datas, local, cidade, piscina e a URL oficial do SwimSystem quando houver.</p>
+          <p>Entre em <b>Campeonatos</b> e cadastre o campeonato. Informe nome, datas, local, cidade, piscina e a URL oficial da fonte de resultados quando houver.</p>
           <p>Depois inclua as provas do Vini com <b>data, horário previsto, balizamento, série e raia</b>. Esses dados alimentam a Visão Geral, Expectativas e os alertas de proximidade.</p>
         </div>
       </div>
@@ -1117,7 +1117,7 @@ tbody tr:hover{background:#f8fbfc}
         <div>
           <h4>Quando sair o balizamento</h4>
           <p>Atualize o campeonato existente. Não crie um resultado. O <b>balizamento é uma referência pré-prova</b>, não um tempo realizado.</p>
-          <p>Se o SwimSystem estiver conectado futuramente pelo monitor, o VINISWIM poderá trazer série, raia, horário e balizamento automaticamente para sua confirmação.</p>
+          <p>Quando houver uma fonte oficial conectada ao monitor, o VINISWIM poderá trazer série, raia, horário e balizamento automaticamente.</p>
         </div>
       </div>
 
@@ -1125,7 +1125,7 @@ tbody tr:hover{background:#f8fbfc}
         <div class="tutorial-num">3</div>
         <div>
           <h4>Depois que o Vini nadar</h4>
-          <p>Normalmente você não precisa digitar o resultado: use <b>Resultados → Atualizar Resultados</b> ou aguarde a sincronização automática. Use <b>+ Novo resultado</b> apenas quando o resultado não existir no SwimSystem ou para provas antigas.</p>
+          <p>Normalmente você não precisa digitar o resultado: use <b>Resultados → Atualizar Resultados</b> ou aguarde a sincronização automática. Use <b>+ Novo resultado</b> apenas quando o resultado não estiver disponível em uma fonte oficial ou para provas antigas.</p>
           <p>O VINISWIM normaliza o tempo. Você pode digitar, por exemplo, <b>1:45,58</b>, <b>1'45"58</b> ou <b>105,58</b>; a exibição fica padronizada.</p>
           <p>Depois use <b>Ações → Salvar</b> para gravar a base no Dropbox.</p>
         </div>
@@ -1135,8 +1135,8 @@ tbody tr:hover{background:#f8fbfc}
         <div class="tutorial-num">4</div>
         <div>
           <h4>Resultados oficiais publicados</h4>
-          <p>Quando ativarmos o monitor automático, ele verificará o SwimSystem. Ao encontrar um novo resultado, o iPhone receberá uma notificação.</p>
-          <p>O VINISWIM importa o resultado automaticamente para <b>Resultados</b>. Se ainda estiver parcial, ele fica identificado como tal e não entra nos cálculos oficiais; quando o SwimSystem oficializar, o registro é atualizado automaticamente.</p>
+          <p>O monitor automático verifica as fontes oficiais configuradas. Ao encontrar um novo resultado, o aparelho recebe uma notificação.</p>
+          <p>O VINISWIM importa o resultado automaticamente para <b>Resultados</b>. Se ainda estiver parcial, ele fica identificado como tal e não entra nos cálculos oficiais; quando a fonte oficial publicar o resultado definitivo, o registro é atualizado automaticamente.</p>
         </div>
       </div>
 
@@ -1223,7 +1223,7 @@ tbody tr:hover{background:#f8fbfc}
         <label>Origem
           <select id="rStatus">
             <option value="manual">Manual confirmado</option>
-            <option value="official">Oficial SwimSystem</option>
+            <option value="official">Oficial</option>
           </select>
         </label>
 
@@ -1241,7 +1241,7 @@ tbody tr:hover{background:#f8fbfc}
   <div class="modal-head"><b>Novo campeonato</b><button class="btn" onclick="meetModal.close()">Fechar</button></div>
   <div class="modal-body"><div class="form">
     <label>Nome<input id="mName"></label><label>Início<input id="mStart" type="date"></label><label>Fim<input id="mEnd" type="date"></label><label>Piscina<select id="mPool"><option value="">Não informada</option><option value="25">25 m</option><option value="50">50 m</option></select></label>
-    <label>Local<input id="mVenue"></label><label>Cidade<input id="mCity"></label><label class="full">URL SwimSystem<input id="mUrl"></label>
+    <label>Local<input id="mVenue"></label><label>Cidade<input id="mCity"></label><label class="full">URL oficial da competição<input id="mUrl"></label>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="meetModal.close()">Cancelar</button><button class="btn primary" onclick="saveMeet()">Salvar</button></div>
 </dialog>
@@ -2004,7 +2004,7 @@ function drawChart(){
   });
 
   if(legend && ptsAll.some(p=>p.status==='provisional')){
-    legend.innerHTML+=`<span class="chart-provisional-legend"><i class="chart-provisional-dot"></i>Provisório SwimSystem</span>`;
+    legend.innerHTML+=`<span class="chart-provisional-legend"><i class="chart-provisional-dot"></i>Resultado provisório</span>`;
   }
   ctx.textAlign='left';
   if(ev==='__all'){
@@ -2021,7 +2021,7 @@ function drawChart(){
     const catPts=basis.filter(x=>resultCategory(x)===lastCat);
     const cf=catPts[0],cl=catPts[catPts.length-1],cd=cl.timeSeconds-cf.timeSeconds,cp=cf.timeSeconds?(-cd/cf.timeSeconds*100):0;
     const catText=catPts.length>1?` · dentro de <b>${lastCat}</b>: ${cf.time} → ${cl.time}, ${cd<0?'ganho '+(-cd).toFixed(2)+' s ('+cp.toFixed(1)+'%)':cd>0?'aumento '+cd.toFixed(2)+' s':'sem variação'}`:` · categoria atual do histórico: <b>${lastCat}</b>`;
-    $('#evolutionStats').innerHTML=`<b>Evolução esportiva observada — ${ev}</b> · ${basis.length} resultado(s) · primeiro ${first.time} → último ${last.time} · melhor <b>${fmtTime(best)}</b>${catText}${cats.length>1?` · transição <b>${cats.join(' → ')}</b> considerada como contexto de faixa etária`:''}. A mudança de categoria não é usada como explicação causal automática.${provisional?` Provisório SwimSystem: <b>${provisional.time}</b>.`:''}`;
+    $('#evolutionStats').innerHTML=`<b>Evolução esportiva observada — ${ev}</b> · ${basis.length} resultado(s) · primeiro ${first.time} → último ${last.time} · melhor <b>${fmtTime(best)}</b>${catText}${cats.length>1?` · transição <b>${cats.join(' → ')}</b> considerada como contexto de faixa etária`:''}. A mudança de categoria não é usada como explicação causal automática.${provisional?` Resultado provisório: <b>${provisional.time}</b>.`:''}`;
   }
 }
 document.addEventListener('change',e=>{if(['chartEvent','chartPool'].includes(e.target.id))drawChart()});window.addEventListener('resize',()=>setTimeout(drawChart,50));
@@ -2090,7 +2090,7 @@ function saveResult(){
 function deleteResult(id){
   const r=DATA.results.find(x=>x.id===id);
   if(!r)return;
-  if(confirm(`Excluir ${r.event} · ${resultDisplayValue(r)} de ${resultDateLabel(r)}?\n\nA exclusão vale para a base local/Dropbox. Se o resultado continuar publicado no SwimSystem, uma sincronização futura poderá encontrá-lo novamente.`)){
+  if(confirm(`Excluir ${r.event} · ${resultDisplayValue(r)} de ${resultDateLabel(r)}?\n\nA exclusão vale para a base local/Dropbox. Se o resultado continuar publicado na fonte oficial, uma sincronização futura poderá encontrá-lo novamente.`)){
     DATA.results=DATA.results.filter(x=>x.id!==id);
     render();queueSave();
   }
@@ -2141,7 +2141,7 @@ ensureAlertSettings();
   if(!$('#alertOptions'))return;
   const opts=[
     ...ALERT_DEFS.map(a=>({key:a.key,title:a.label,desc:`Avisar ${a.label.toLowerCase()} do horário previsto da prova.`})),
-    {key:'resultPublished',title:'Resultado publicado',desc:'Avisar assim que o resultado oficial for encontrado no SwimSystem.'},
+    {key:'resultPublished',title:'Resultado publicado',desc:'Avisar assim que o resultado oficial for encontrado na fonte da competição.'},
     {key:'personalBest',title:'Recorde pessoal',desc:'Destacar quando o resultado confirmado superar a melhor marca da mesma piscina.'}
   ];
   $('#alertOptions').innerHTML=opts.map(o=>`<div class="alert-option"><div><b>${o.title}</b><small>${o.desc}</small></div><label class="switch"><input type="checkbox" ${DATA.settings.alerts[o.key]?'checked':''} onchange="toggleAlert('${o.key}',this.checked)"><span class="slider"></span></label></div>`).join('');
@@ -2651,7 +2651,7 @@ async function syncPendingResultsFromServer(opts={}){
   const manual=!!opts.manual;
 
   if(!base){
-    if(manual)setSwimUpdateStatus('Servidor Push / SwimSystem não configurado.','err');
+    if(manual)setSwimUpdateStatus('Servidor Push / monitor não configurado.','err');
     return {changed:false,count:0,error:new Error('Servidor não configurado')};
   }
   if(!registration){
