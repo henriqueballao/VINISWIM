@@ -1,6 +1,6 @@
-const BUILD='53-LORENZO-17';
+const BUILD='53-LORENZO-18';
 const PREFIX='viniswim-lorenzo-';
-const CACHE=PREFIX+'v15';
+const CACHE=PREFIX+'v16';
 const CORE=['./','./index.html','./manifest.webmanifest','../../icon-192.png','../../icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).catch(()=>{}));self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(k=>k.startsWith(PREFIX)&&k!==CACHE).map(k=>caches.delete(k)));await self.clients.claim();const list=await self.clients.matchAll({type:'window',includeUncontrolled:true});await Promise.all(list.map(c=>c.navigate(c.url).catch(()=>{})));})());});
