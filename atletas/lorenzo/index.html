@@ -1861,6 +1861,7 @@ function render(){
   $('#setFgdaUrl').value=DATA.settings?.fgdaUrl||'https://fgda.org.br/';
   const pp=$('#photoPreview'); if(pp){const ph=DATA.settings?.photoDataUrl||DATA.athlete?.photoDataUrl||'';pp.src=ph||'';}
   renderAthleteHero();
+  syncCompetitionImportUI();
 }
 
 function metricIcon(name){
