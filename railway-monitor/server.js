@@ -140,6 +140,43 @@ async function fetchText(url,timeoutMs=9000){
     clearTimeout(timer);
   }
 }
+const federationNextAt=new Map();
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+async function fetchTextFederation(url,timeoutMs=15000){
+  const host=new URL(url).host;
+  for(let attempt=0;attempt<4;attempt++){
+    const wait=Math.max(0,(federationNextAt.get(host)||0)-Date.now());
+    if(wait)await sleep(wait);
+    federationNextAt.set(host,Date.now()+3500);
+
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),timeoutMs);
+    try{
+      const r=await fetch(url,{
+        headers:{
+          'user-agent':'Mozilla/5.0 (compatible; VINISWIM/1.0; +historico-publico)',
+          'accept':'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
+          'accept-language':'pt-BR,pt;q=0.9,en;q=0.6'
+        },
+        signal:ctrl.signal,
+        redirect:'follow'
+      });
+      if(r.status===429){
+        const retryRaw=String(r.headers.get('retry-after')||'').trim();
+        const retrySec=/^\d+$/.test(retryRaw)?Number(retryRaw):0;
+        const backoff=Math.max(15000,retrySec*1000,(attempt+1)*15000);
+        federationNextAt.set(host,Date.now()+backoff);
+        if(attempt===3)throw new Error('HTTP 429 em '+url);
+        await sleep(backoff);
+        continue;
+      }
+      if(!r.ok)throw new Error('HTTP '+r.status+' em '+url);
+      return await r.text();
+    }finally{clearTimeout(timer)}
+  }
+  throw new Error('Falha FDAP em '+url);
+}
+
 
 function extractMeet(html,url){
   const $=cheerio.load(html);
@@ -856,26 +893,31 @@ function parseFederationProfileResults(html,sourceUrl,device){
 }
 async function discoverFederationProfileUrls(base,athlete){
   const origin=new URL(base).origin;
-  const names=[athlete.name,...(athlete.aliases||[])].filter(Boolean);
   const urls=new Set();
+  const registration=String(athlete.registration||'').trim();
+  const primary=String(athlete.name||'').trim();
+  const slug=slugifyName(primary);
+
   const baseUrl=String(base||'');
   if(baseUrl!==origin+'/' && baseUrl!==origin)urls.add(baseUrl);
-  for(const n of names){
-    const slug=slugifyName(n);
-    urls.add(origin+'/atleta/natacao/'+String(athlete.registration||'')+'/'+slug);
-    urls.add(origin+'/atletas-natacao/'+slug);
-    urls.add(origin+'/atleta/'+slug);
+
+  if(registration&&slug)urls.add(origin+'/atleta/natacao/'+registration+'/'+slug);
+  if(slug)urls.add(origin+'/atletas-natacao/'+slug);
+  if(slug)urls.add(origin+'/atleta/'+slug);
+
+  // Uma única busca por domínio, somente como descoberta complementar.
+  if(primary){
     try{
-      const searchUrl=origin+'/?s='+encodeURIComponent(n);
-      const html=await fetchText(searchUrl,9000);
+      const searchUrl=origin+'/?s='+encodeURIComponent(primary);
+      const html=await fetchTextFederation(searchUrl,15000);
       const $=cheerio.load(html);
       $('a[href]').each((_,a)=>{
         const href=$(a).attr('href')||'';
         const label=$(a).text().replace(/\s+/g,' ').trim();
-        let u;
-        try{u=new URL(href,origin)}catch{return}
+        let u; try{u=new URL(href,origin)}catch{return}
         if(u.origin!==origin)return;
-        if(athleteTextMatches(label,athlete) || athleteTextMatches(u.pathname.replace(/[-_/]/g,' '),athlete))urls.add(u.toString());
+        const pathText=u.pathname.replace(/[-_/]/g,' ');
+        if(athleteTextMatches(label,athlete) || athleteTextMatches(pathText,athlete) || (registration&&u.pathname.includes(registration)))urls.add(u.toString());
       });
     }catch(_){}
   }
@@ -976,7 +1018,7 @@ async function crawlFederationProfile(startUrls,device,maxPages=120){
     if(!url||visited.has(url))continue;
     visited.add(url);
     try{
-      const raw=await fetchText(url,12000);
+      const raw=await fetchTextFederation(url,15000);
       const trim=String(raw||'').trim();
       if(trim.startsWith('{')||trim.startsWith('[')){
         for(const r of parseFederationJsonResults(trim,url,device))out.push(r);
@@ -1021,7 +1063,7 @@ async function buildFdapDiagnostic(profile){
     if(!url || visited.has(url))continue;
     visited.add(url);
     try{
-      const raw=await fetchText(url,12000);
+      const raw=await fetchTextFederation(url,15000);
       const trim=String(raw||'').trim();
       const page={url,kind:(trim.startsWith('{')||trim.startsWith('['))?'json':'html',bytes:raw.length,identity:false,resultLike:false,links:0,apiHints:[]};
 
@@ -1076,7 +1118,7 @@ async function buildFdapDiagnostic(profile){
   const crawl=await crawlFederationProfile([...startUrls],representative,140).catch(()=>({results:[],pagesScanned:0}));
   return {
     ok:true,
-    version:'V39-DIAG',
+    version:'V39-DIAG-SLOW',
     registration:profile.registration,
     startUrls:[...startUrls],
     pagesScanned:visited.size,
