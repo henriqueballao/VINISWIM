@@ -1295,7 +1295,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='76';
+const VINISWIM_BUILD='77';
 const VINISWIM_MONITOR_BASE='https://viniswim-monitor-live-production.up.railway.app';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
@@ -1825,9 +1825,9 @@ function renderHistory(){
     String(b.publishedAt||b.importedAt||'').localeCompare(String(a.publishedAt||a.importedAt||'')) ||
     (originalIndex.get(b)-originalIndex.get(a))
   );
-  $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId),n=numberMap.get(r);return `<tr><td><span class="result-number">#${n}</span></td><td>${resultDateLabel(r)}</td><td><b>${resultCategory(r)}</b></td><td>${r.event}</td><td class="mono"><b>${resultDisplayValue(r)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||s.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span></td><td>${sourceActionsMarkup(meetForResult(r),r)}<div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div></td></tr>`}).join('');
+  $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId),n=numberMap.get(r),manual=normalizedResultStatus(r.status)==='manual';return `<tr><td><span class="result-number">#${n}</span></td><td>${resultDateLabel(r)}</td><td><b>${resultCategory(r)}</b></td><td>${r.event}</td><td class="mono"><b>${resultDisplayValue(r)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||s.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span></td><td>${sourceActionsMarkup(meetForResult(r),r)}${manual?`<div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div>`:''}</td></tr>`}).join('');
   const mh=$('#mobileHistory');
-  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId),n=numberMap.get(r);return `<div class="result-card"><div class="top"><div><div><span class="result-number">#${n}</span><b>${r.event}</b></div><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${resultDisplayValue(r)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div>${sourceActionsMarkup(meetForResult(r),r)}<div class="actions"><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span><button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button></div></div>`}).join('');
+  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId),n=numberMap.get(r),manual=normalizedResultStatus(r.status)==='manual';return `<div class="result-card"><div class="top"><div><div><span class="result-number">#${n}</span><b>${r.event}</b></div><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${resultDisplayValue(r)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div>${sourceActionsMarkup(meetForResult(r),r)}<div class="actions"><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span>${manual?`<button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button>`:''}</div></div>`}).join('');
   renderResultsSummary();
 }
 ['fEvent','fPool','fSource'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)renderHistory()}));
@@ -2134,6 +2134,10 @@ function openResultModal(id=null){
   if(id){
     const r=DATA.results.find(x=>x.id===id);
     if(!r)return;
+    if(normalizedResultStatus(r.status)!=='manual'){
+      editingResultId=null;
+      return;
+    }
     const p=splitEventName(r.event);
     $('#rDate').value=r.date||'';
     $('#rDistance').value=p.distance;
@@ -2182,7 +2186,13 @@ function saveResult(){
   };
   if(editingResultId){
     const r=DATA.results.find(x=>x.id===editingResultId);
-    if(r)Object.assign(r,payload,{editedAt:new Date().toISOString()});
+    if(!r || normalizedResultStatus(r.status)!=='manual'){
+      editingResultId=null;
+      resultModal.close();
+      render();
+      return;
+    }
+    Object.assign(r,payload,{status:'manual',editedAt:new Date().toISOString()});
   }else{
     DATA.results.push({id:'manual-'+Date.now(),place:null,aqua:null,sourceId:null,...payload});
   }
@@ -2192,6 +2202,7 @@ function saveResult(){
 function deleteResult(id){
   const r=DATA.results.find(x=>x.id===id);
   if(!r)return;
+  if(normalizedResultStatus(r.status)!=='manual')return;
   if(confirm(`Excluir ${r.event} · ${resultDisplayValue(r)} de ${resultDateLabel(r)}?\n\nA exclusão vale para a base local/Dropbox. Se o resultado continuar publicado na fonte oficial, uma sincronização futura poderá encontrá-lo novamente.`)){
     DATA.results=DATA.results.filter(x=>x.id!==id);
     render();queueSave();
