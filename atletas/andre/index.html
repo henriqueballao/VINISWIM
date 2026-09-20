@@ -980,7 +980,7 @@ tbody tr:hover{background:#f8fbfc}
       <section id="history" class="page">
         <div class="section">
           <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultados</span></h3><div class="results-head-actions no-print"><div class="swim-update-cluster"><button class="btn" id="updateSwimSystemBtn" onclick="updateFromSwimSystem()">↻ Atualizar Resultados</button><span id="lastSwimSystemUpdate" class="last-swim-update">Última atualização: —</span></div><button class="btn primary" onclick="openResultModal()">+ Novo resultado</button></div></div>
-          <div class="filters"><select id="fEvent"><option value="">Todas as provas</option></select><select id="fPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Piscina não confirmada</option></select><select id="fSource"><option value="">Todas as origens</option><option value="official">Oficial SwimSystem</option><option value="provisional">SwimSystem parcial</option><option value="manual">Manual confirmado</option></select></div>
+          <div class="filters"><select id="fEvent"><option value="">Todas as provas</option></select><select id="fPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Piscina não confirmada</option></select><select id="fSource"><option value="">Todas as origens</option><option value="official">Oficial</option><option value="provisional">Parcial</option><option value="manual">Manual confirmado</option></select></div>
           <div id="swimSystemUpdateStatus" class="swimsystem-update-status"></div>
           <div class="table-scroll"><table><thead><tr><th>Data</th><th>Categoria</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody id="historyTable"></tbody></table></div><div id="mobileHistory" class="mobile-results"></div>
         </div>
@@ -1483,6 +1483,13 @@ function canonicalVenue(r={}){
   return venue||r.city||'—';
 }
 function eventKey(v=''){return String(v||'').replace(/\b(\d{2,4})\s*m\b/i,'$1').replace(/\s+/g,' ').trim().toLowerCase()}
+function normalizedResultStatus(status=''){
+  const s=String(status||'').trim().toLowerCase();
+  if(s==='official'||s==='oficial')return 'official';
+  if(s==='provisional'||s==='partial'||s==='parcial'||s==='published')return 'provisional';
+  if(s==='dns'||s==='dsq'||s==='dnf'||s==='manual')return s;
+  return s||'manual';
+}
 function resultForEntry(meet,entry){
   const key=eventKey(entry.event);
   const candidates=(DATA.results||[]).filter(r=>{
@@ -1493,11 +1500,20 @@ function resultForEntry(meet,entry){
     // fallback seguro para resultado sincronizado atual: mesma data + prova
     return !!(entry.date && r.date===entry.date);
   }).sort((a,b)=>{
-    const sa=a.status==='official'?0:a.status==='provisional'?1:2;
-    const sb=b.status==='official'?0:b.status==='provisional'?1:2;
-    return sa-sb;
+    const rank=s=>{
+      const x=normalizedResultStatus(s);
+      return x==='official'?0:x==='manual'?1:x==='provisional'?2:3;
+    };
+    const dr=rank(a.status)-rank(b.status);
+    if(dr)return dr;
+    const at=Date.parse(a.publishedAt||a.updatedAt||'')||0;
+    const bt=Date.parse(b.publishedAt||b.updatedAt||'')||0;
+    return bt-at;
   });
-  return candidates[0]||null;
+  if(!candidates.length)return null;
+  const chosen={...candidates[0]};
+  chosen.status=normalizedResultStatus(chosen.status);
+  return chosen;
 }
 function meetHasPendingEntries(meet){
   const entries=meet?.entries||[];
@@ -1523,6 +1539,7 @@ function meetState(meet){
 }
 function actualResultCard(entry,result){
   if(!result)return '<div class="actual-result-card" style="opacity:.45"><small>Resultado</small><div class="actual-time">—</div></div>';
+  result={...result,status:normalizedResultStatus(result.status)};
   const x=comparisonFor(entry,result);
   const dir=x?.dir||'same';
   const icon=dir==='better'?'↓':dir==='worse'?'↑':'=';
@@ -1723,7 +1740,7 @@ function renderCards(){
   let next=activeMeet();
   let cards=[
     ['PROVAS COM HISTÓRICO',events.length,'resultados confirmados','history'],
-    ['RESULTADOS OFICIAIS',officialCount(),'SwimSystem','official'],
+    ['RESULTADOS OFICIAIS',officialCount(),'Fontes oficiais','official'],
     ['PISCINA CONFIRMADA',poolsKnown,`${confirmed().length-poolsKnown} aguardam conferência`,'pool'],
     ['CAMPEONATO ATIVO',next?fmtDate(next.dateStart):'—',next?next.name:'Nenhum cadastrado','calendar']
   ];
@@ -1902,7 +1919,7 @@ function renderPredictions(){
       const expectationMeta=est
         ? `Expectativa pré-prova · ${est.n} resultado(s) anteriores utilizados`
         : 'Expectativa pré-prova indisponível';
-      return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · prova realizada</small><small style="display:block;color:var(--muted);margin-top:3px">${expectationMeta}</small></div>${actualResultCard(e,rr)}${expectationVsActual('Expectativa conservadora',est?.conservative,rr)}${expectationVsActual('Expectativa provável',est?.prob,rr)}${expectationVsActual('Expectativa agressiva',est?.aggressive,rr)}<div class="confidence ${rr.status==='official'?'high':'medium'}">${rr.status==='official'?'OFICIAL':'PROVISÓRIO'}</div></div>`;
+      return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · prova realizada</small><small style="display:block;color:var(--muted);margin-top:3px">${expectationMeta}</small></div>${actualResultCard(e,rr)}${expectationVsActual('Expectativa conservadora',est?.conservative,rr)}${expectationVsActual('Expectativa provável',est?.prob,rr)}${expectationVsActual('Expectativa agressiva',est?.aggressive,rr)}<div class="confidence ${normalizedResultStatus(rr.status)==='official'?'high':'medium'}">${normalizedResultStatus(rr.status)==='official'?'OFICIAL':'PROVISÓRIO'}</div></div>`;
     }
     if(!est)return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · Sem histórico suficiente</small></div>${actualResultCard(e,null)}<div></div><div></div><div></div><div class="confidence low">BAIXA</div></div>`;
     return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · ${est.n} resultado(s) anteriores utilizados</small></div>${actualResultCard(e,null)}<div class="range"><small>Conservadora</small><b class="mono">${fmtTime(est.conservative)}</b></div><div class="range"><small>Provável</small><b class="mono">${fmtTime(est.prob)}</b></div><div class="range"><small>Agressiva</small><b class="mono">${fmtTime(est.aggressive)}</b></div><div class="confidence ${est.conf}">${est.conf==='high'?'ALTA':est.conf==='medium'?'MÉDIA':'BAIXA'}</div></div>`;
@@ -1910,7 +1927,7 @@ function renderPredictions(){
 }
 function renderAudit(){
   let official=DATA.results.filter(r=>r.status==='official').length, manual=DATA.results.filter(r=>r.status==='manual').length, unknownPool=DATA.results.filter(r=>r.poolMeters==null).length;
-  $('#auditSummary').innerHTML=`<b>${official}</b> resultados oficiais SwimSystem · <b>${manual}</b> manuais confirmados · <b>${unknownPool}</b> registros oficiais com piscina ainda não confirmada na fonte consultada. Esses campos permanecem vazios até conferência.`;
+  $('#auditSummary').innerHTML=`<b>${official}</b> resultados oficiais · <b>${manual}</b> manuais confirmados · <b>${unknownPool}</b> registros oficiais com piscina ainda não confirmada na fonte consultada. Esses campos permanecem vazios até conferência.`;
   $('#sourceList').innerHTML=DATA.sources.map(s=>`<div class="audit-row"><div><span class="tag official">OFICIAL</span></div><div><b>${s.title}</b><div style="color:var(--muted);margin-top:3px">${s.city||'—'} · ${fmtDate(s.dateStart)}${s.dateEnd&&s.dateEnd!==s.dateStart?' a '+fmtDate(s.dateEnd):''} · ${poolLabel(s.poolMeters)}</div><div style="color:var(--muted);margin-top:3px">${s.note||''}</div></div><div><a class="source-link" href="${s.url}" target="_blank">Abrir fonte ↗</a></div></div>`).join('');
 }
 function drawChart(){
