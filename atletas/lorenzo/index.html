@@ -60,7 +60,7 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
 .source-action{display:inline-flex;align-items:center;justify-content:center;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--accent2);font-size:11px;font-weight:700;text-decoration:none}
 .source-action:hover{background:#f4f7f9}
 .source-action.result{color:var(--good)}
-.result-compare{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px;font-size:11px}
+.result-compare{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px;font-size:11px}.result-compare.status{padding:8px 10px;border-radius:10px;background:#f3f4f6;color:#4b5563}.result-compare.status .result-time{color:#4b5563}
 .result-compare .result-time{font-family:'Space Grotesk',Inter,sans-serif;font-weight:800;font-size:16px;color:var(--ink)}
 .delta-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 7px;border-radius:999px;font-weight:700}
 .delta-pill.better{background:#e8f5ef;color:var(--good)}
@@ -1678,7 +1678,7 @@ function compareMarkup(entry,result,{compact=false,meet=null}={}){
   if(['dns','dsq','dnf'].includes(status)){
     const code=result.resultCode||status.toUpperCase();
     const label=result.resultLabel||resultStatusLabel(status).split(' · ').slice(1).join(' · ');
-    return '<div class="result-compare"><span class="entry-result-label">Situação</span><span class="result-time">'+code+'</span><span>'+label+'</span></div>'+sourceActionsMarkup(meet||{},result);
+    return '<div class="result-compare status"><span class="entry-result-label">Situação</span><span class="result-time">'+code+'</span><span>'+label+'</span></div>'+sourceActionsMarkup(meet||{},result);
   }
   if(!resultHasPerformance(result))return sourceActionsMarkup(meet||{},result);
   const x=comparisonFor(entry,result);
@@ -2035,8 +2035,10 @@ function resultStatusSourceLabel(r={}){
   return base;
 }
 function resultDisplayValue(r){
-  if(r.status==='dns'||r.status==='dsq'||r.status==='dnf')return r.resultCode||resultStatusLabel(r.status).split(' · ')[0];
-  return r.time||fmtTime(r.timeSeconds);
+  const status=normalizedResultStatus(r?.status);
+  if(['dns','dsq','dnf'].includes(status))return r.resultCode||resultStatusLabel(status).split(' · ')[0];
+  const t=Number(r?.timeSeconds);
+  return r?.time||(Number.isFinite(t)&&t>0?fmtTime(t):'—');
 }
 function renderHistory(){
   let ev=$('#fEvent')?.value||'', pool=$('#fPool')?.value||'', src=$('#fSource')?.value||'';
