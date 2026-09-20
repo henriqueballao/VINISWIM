@@ -29,7 +29,7 @@ button,input,select{font:inherit}.app{display:grid;grid-template-columns:250px 1
 .nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#becbd5;text-align:left;padding:12px 13px;border-radius:10px;cursor:pointer}.nav button.active,.nav button:hover{background:var(--nav2);color:#fff}.sidebar-foot{position:absolute;bottom:18px;left:16px;right:16px;font-size:12px;color:#80919f}
 main{min-width:0}.topbar{height:70px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:10}.topbar h1{font-size:18px;margin:0}.sync{display:flex;gap:8px;align-items:center}.pill{padding:7px 10px;border-radius:999px;background:#eef3f6;color:#4b5a67;font-size:12px}.pill.ok{background:#e8f5ef;color:var(--good)}.btn{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:9px;cursor:pointer}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}.btn.danger{color:var(--bad)}.content{padding:24px;max-width:1500px;margin:auto}
 .page{display:none}.page.active{display:block}.hero{background:linear-gradient(135deg,var(--nav) 0%,var(--accent2) 100%);color:white;padding:24px;border-radius:18px;display:grid;grid-template-columns:1.5fr .7fr;gap:24px;margin-bottom:20px}.hero h2{font-size:27px;margin:0 0 7px}.hero p{margin:0;color:#b7c5cf}.hero-stat{align-self:center;text-align:right}.hero-stat b{font-size:38px}.hero-stat span{display:block;color:#9fb1bf;font-size:12px}
-.grid{display:grid;gap:16px}.grid.cards{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow)}.card .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}.card .v{font-size:28px;font-weight:750;margin-top:7px}.card .s{font-size:12px;color:var(--muted);margin-top:5px}
+.grid{display:grid;gap:16px}.grid.cards{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}#summaryCards{grid-template-columns:repeat(2,minmax(0,1fr))}.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow)}.card .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}.card .v{font-size:28px;font-weight:750;margin-top:7px}.card .s{font-size:12px;color:var(--muted);margin-top:5px}
 .kpi-card.clickable{cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
 .kpi-card.clickable:active{transform:scale(.985)}
 .result-number{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:26px;padding:0 8px;border-radius:999px;background:#eef4f8;color:#40596c;font-size:12px;font-weight:800;margin-right:8px}
@@ -2934,11 +2934,11 @@ async function pullAutonomousResults({manual=false}={}){
 
     if(incoming.length){
       const applied=await applyIncomingSwimResults(base,registration,incoming,{manual});
-      if(manual && !applied.count)setSwimUpdateStatus('Atualizado · base já estava em dia.','ok');
+      if(manual && !applied.count)renderResultsSummary();
       return applied;
     }
 
-    if(manual)setSwimUpdateStatus('Atualizado · nenhum resultado novo pendente.','ok');
+    if(manual)renderResultsSummary();
     else {
       const el=$('#swimSystemUpdateStatus');
       if(el?.classList.contains('err'))setSwimUpdateStatus('');
@@ -3000,10 +3000,8 @@ async function updateFromSwimSystem(){
     if(incoming.length){
       applied=await applyIncomingSwimResults(base,registration,incoming,{manual:false});
     }
-    setSwimUpdateStatus(
-      'Atualizado · '+Number(st.detected||0)+' detectado(s) · FDAP '+Number(st.detectedFederation||0)+' · SwimSystem '+Number(st.detectedSwimSystem||0)+'.',
-      'ok'
-    );
+    renderHistory();
+    renderResultsSummary();
     return applied;
   }catch(e){
     // Se o Railway continua acessível, trate falha transitória do Safari/Dropbox como pendência,
