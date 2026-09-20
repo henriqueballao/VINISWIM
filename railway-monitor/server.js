@@ -14,6 +14,8 @@ app.use(express.json({limit:'2mb'}));
 const PORT=Number(process.env.PORT||8080);
 const DATA_DIR=process.env.DATA_DIR||'./data';
 const STATE_FILE=path.join(DATA_DIR,'state.json');
+const STATE_API_URL=String(process.env.STATE_API_URL||'').trim();
+const STATE_API_TOKEN=String(process.env.STATE_API_TOKEN||'').trim();
 const INTERVAL=Number(process.env.CHECK_INTERVAL_MS||60000);
 
 const ADMIN_TOKEN=process.env.ADMIN_TOKEN||'';
@@ -73,13 +75,49 @@ const AUTONOMOUS_SCAN_INTERVAL_MS=30*60*1000;
 const FEDERATION_SCAN_INTERVAL_MS=6*60*60*1000;
 
 async function ensureDir(){await fs.mkdir(DATA_DIR,{recursive:true})}
+async function loadRemoteState(){
+  if(!STATE_API_URL||!STATE_API_TOKEN)return null;
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),8000);
+  try{
+    const r=await fetch(STATE_API_URL,{
+      headers:{'x-state-token':STATE_API_TOKEN},
+      signal:ctrl.signal,
+      cache:'no-store'
+    });
+    if(!r.ok)throw new Error('state API HTTP '+r.status);
+    const body=await r.json();
+    return body?.state && typeof body.state==='object' ? body.state : null;
+  }finally{clearTimeout(timer)}
+}
+async function saveRemoteState(state){
+  if(!STATE_API_URL||!STATE_API_TOKEN)return false;
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),8000);
+  try{
+    const r=await fetch(STATE_API_URL,{
+      method:'POST',
+      headers:{'content-type':'application/json','x-state-token':STATE_API_TOKEN},
+      body:JSON.stringify({state}),
+      signal:ctrl.signal
+    });
+    if(!r.ok)throw new Error('state API HTTP '+r.status);
+    return true;
+  }finally{clearTimeout(timer)}
+}
 async function loadState(){
+  try{
+    const remote=await loadRemoteState();
+    if(remote)return {...defaultState,...remote};
+  }catch(e){console.warn('persistent state read',e?.message||e)}
   try{return {...defaultState,...JSON.parse(await fs.readFile(STATE_FILE,'utf8'))}}
   catch{return structuredClone(defaultState)}
 }
 async function saveState(s){
   await ensureDir();
   await fs.writeFile(STATE_FILE,JSON.stringify(s,null,2),'utf8');
+  try{await saveRemoteState(s)}
+  catch(e){console.warn('persistent state write',e?.message||e)}
 }
 function normalize(s=''){
   return String(s).normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().replace(/\s+/g,' ').trim();
@@ -1572,7 +1610,7 @@ async function monitor(){
   finally{checking=false}
 }
 
-app.get('/health',(req,res)=>res.json({ok:true,version:'V41',features:{fdapCrawler:true,fdapPagination:true,fdapJsonApi:true,jsonpTransport:true,autonomousAthletes:true,refreshOnDemand:true,asyncRefresh:true,fastPushPath:true,historicalThrottle:true},time:new Date().toISOString()}));
+app.get('/health',(req,res)=>res.json({ok:true,version:'V41',features:{fdapCrawler:true,fdapPagination:true,fdapJsonApi:true,jsonpTransport:true,autonomousAthletes:true,refreshOnDemand:true,asyncRefresh:true,fastPushPath:true,historicalThrottle:true,persistentRemoteState:true},time:new Date().toISOString()}));
 
 
 app.get('/refresh-athlete',async(req,res)=>{
