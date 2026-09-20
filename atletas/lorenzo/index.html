@@ -1000,8 +1000,14 @@ tbody tr:hover{background:#f8fbfc}
     <b>Fonte oficial:</b> o VINISWIM pode importar competições por integrações externas. Use abaixo a integração disponível para esta competição.
   </div>
   <div class="import-box no-print" style="margin-bottom:16px">
-    <input id="swimSystemImportUrl" placeholder="https://www.swimsystem.app/meets/sw/...">
-    <button class="btn" onclick="importFromSwimSystem()">Importar do SwimSystem</button>
+    <select id="competitionSourceFilter" onchange="syncCompetitionImportUI()">
+      <option value="swimsystem">SwimSystem</option>
+      <option value="fdap">FDAP / FGDA</option>
+      <option value="other">Outra fonte oficial</option>
+      <option value="manual">Manual</option>
+    </select>
+    <input id="swimSystemImportUrl" placeholder="URL oficial da competição">
+    <button class="btn" id="competitionImportBtn" onclick="importCompetitionFromSelectedSource()">Importar competição</button>
   </div>
   <div id="swimImportStatus" style="margin-bottom:12px"></div>
   <div id="meetList"></div>
@@ -1009,7 +1015,7 @@ tbody tr:hover{background:#f8fbfc}
       </section>
 
       <section id="predictions" class="page">
-        <div class="section"><div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/><path d="m18 6 3-3"/></svg></span><span>Expectativas de tempo</span></h3></div><div class="notice">Estimativas calculadas somente com resultados confirmados. Quando não houver dados suficientes, o sistema mostra baixa confiança em vez de inventar precisão.</div><div id="predictionList" style="margin-top:12px"></div></div>
+        <div class="section"><div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/><path d="m18 6 3-3"/></svg></span><span>Expectativas de tempo</span></h3><div class="filters"><select id="predictionMeetFilter" onchange="changePredictionMeet(this.value)"></select></div></div><div class="notice">Estimativas calculadas somente com resultados confirmados. Quando não houver dados suficientes, o sistema mostra baixa confiança em vez de inventar precisão.</div><div id="predictionList" style="margin-top:12px"></div></div>
       </section>
 
 
@@ -1241,7 +1247,9 @@ tbody tr:hover{background:#f8fbfc}
   <div class="modal-head"><b>Novo campeonato</b><button class="btn" onclick="meetModal.close()">Fechar</button></div>
   <div class="modal-body"><div class="form">
     <label>Nome<input id="mName"></label><label>Início<input id="mStart" type="date"></label><label>Fim<input id="mEnd" type="date"></label><label>Piscina<select id="mPool"><option value="">Não informada</option><option value="25">25 m</option><option value="50">50 m</option></select></label>
-    <label>Local<input id="mVenue"></label><label>Cidade<input id="mCity"></label><label class="full">URL oficial da competição<input id="mUrl"></label>
+    <label>Local<input id="mVenue"></label><label>Cidade<input id="mCity"></label>
+    <label>Fonte dos resultados<select id="mProvider"><option value="auto">Automática / monitor</option><option value="swimsystem">SwimSystem</option><option value="fdap">FDAP / FGDA</option><option value="other">Outra fonte oficial</option><option value="manual">Manual</option></select></label>
+    <label class="full">URL oficial da competição<input id="mUrl"></label>
   </div></div>
   <div class="modal-foot"><button class="btn" onclick="meetModal.close()">Cancelar</button><button class="btn primary" onclick="saveMeet()">Salvar</button></div>
 </dialog>
@@ -1529,24 +1537,54 @@ function normalizedResultStatus(status=''){
   if(s==='dns'||s==='dsq'||s==='dnf'||s==='manual')return s;
   return s||'manual';
 }
+function resultHasPerformance(r={}){
+  const s=normalizedResultStatus(r.status);
+  if(['dns','dsq','dnf'].includes(s))return true;
+  const t=Number(r.timeSeconds);
+  return Number.isFinite(t)&&t>0;
+}
+function resultWithinMeet(r,meet){
+  const d=String(r.date||'');
+  if(!d)return false;
+  const a=String(meet?.dateStart||''), b=String(meet?.dateEnd||a);
+  return !!a && d>=a && d<=b;
+}
+function resultSourceAffinity(r,meet){
+  let score=0;
+  if(r.meetId&&meet?.id&&r.meetId===meet.id)score+=100;
+  if(r.meet&&meet?.name&&String(r.meet).trim()===String(meet.name).trim())score+=80;
+  if(r.sourceId&&meet?.sourceId&&r.sourceId===meet.sourceId)score+=70;
+  if(r.sourceUrl&&meet?.sourceUrl){
+    try{
+      const a=new URL(r.sourceUrl),b=new URL(meet.sourceUrl);
+      if(a.origin===b.origin && a.pathname.includes(b.pathname.replace(/\/$/,'')))score+=55;
+    }catch(_){}
+  }
+  if(resultWithinMeet(r,meet))score+=30;
+  return score;
+}
 function resultForEntry(meet,entry){
   const key=eventKey(entry.event);
   const candidates=(DATA.results||[]).filter(r=>{
     if(eventKey(r.event)!==key)return false;
-    if(entry.date && r.date && entry.date!==r.date)return false;
-    if(r.meetId && meet.id && r.meetId===meet.id)return true;
-    if(r.meet && meet.name && r.meet===meet.name)return true;
-    // fallback seguro para resultado sincronizado atual: mesma data + prova
-    return !!(entry.date && r.date===entry.date);
+    if(!resultHasPerformance(r))return false; // NT/zero não vira resultado provisório.
+    const exactDate=entry.date&&r.date&&entry.date===r.date;
+    const linked=(r.meetId&&meet.id&&r.meetId===meet.id) || (r.meet&&meet.name&&r.meet===meet.name) || (r.sourceId&&meet.sourceId&&r.sourceId===meet.sourceId);
+    return !!(exactDate||linked||resultWithinMeet(r,meet));
   }).sort((a,b)=>{
     const rank=s=>{
       const x=normalizedResultStatus(s);
-      return x==='official'?0:x==='manual'?1:x==='provisional'?2:3;
+      return x==='official'?0:x==='manual'?1:(x==='dns'||x==='dsq'||x==='dnf')?2:x==='provisional'?3:4;
     };
-    const dr=rank(a.status)-rank(b.status);
-    if(dr)return dr;
-    const at=Date.parse(a.publishedAt||a.updatedAt||'')||0;
-    const bt=Date.parse(b.publishedAt||b.updatedAt||'')||0;
+    const sr=rank(a.status)-rank(b.status);
+    if(sr)return sr;
+    const af=resultSourceAffinity(b,meet)-resultSourceAffinity(a,meet);
+    if(af)return af;
+    const exactA=(entry.date&&a.date===entry.date)?1:0;
+    const exactB=(entry.date&&b.date===entry.date)?1:0;
+    if(exactA!==exactB)return exactB-exactA;
+    const at=Date.parse(a.publishedAt||a.updatedAt||a.editedAt||'')||0;
+    const bt=Date.parse(b.publishedAt||b.updatedAt||b.editedAt||'')||0;
     return bt-at;
   });
   if(!candidates.length)return null;
@@ -1579,6 +1617,12 @@ function meetState(meet){
 function actualResultCard(entry,result){
   if(!result)return '<div class="actual-result-card" style="opacity:.45"><small>Resultado</small><div class="actual-time">—</div></div>';
   result={...result,status:normalizedResultStatus(result.status)};
+  if(['dns','dsq','dnf'].includes(result.status)){
+    const code=result.resultCode||result.status.toUpperCase();
+    const label=result.resultLabel||resultStatusLabel(result.status).split(' · ').slice(1).join(' · ');
+    return '<div class="actual-result-card"><small>Situação oficial</small><div class="actual-time">'+code+'</div><div class="actual-delta same">'+label+'</div></div>';
+  }
+  if(!resultHasPerformance(result))return '<div class="actual-result-card" style="opacity:.45"><small>Resultado</small><div class="actual-time">—</div></div>';
   const x=comparisonFor(entry,result);
   const dir=x?.dir||'same';
   const icon=dir==='better'?'↓':dir==='worse'?'↑':'=';
@@ -1957,6 +2001,50 @@ function renderHistory(){
 }
 ['fEvent','fPool','fSource'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)renderHistory()}));
 
+function sourceProviderLabel(meet={}){
+  const p=String(meet.resultProvider||'').toLowerCase();
+  if(p==='swimsystem'||/swimsystem/i.test(meet.sourceUrl||''))return 'SwimSystem';
+  if(p==='fdap'||/fdap|fgda/i.test(meet.sourceUrl||''))return 'FDAP / FGDA';
+  if(p==='manual')return 'Manual';
+  if(p==='other')return 'Outra fonte oficial';
+  return meet.sourceUrl?'Fonte oficial':'Manual';
+}
+function predictionMeet(){
+  const id=String(DATA.settings?.predictionMeetId||'');
+  const selected=(DATA.meets||[]).find(m=>m.id===id);
+  return selected||activeMeet()||[...(DATA.meets||[])].sort((a,b)=>String(b.dateStart||'').localeCompare(String(a.dateStart||'')))[0]||null;
+}
+function changePredictionMeet(id){
+  DATA.settings=DATA.settings||{};
+  DATA.settings.predictionMeetId=id||'';
+  renderPredictions();
+  queueSave();
+}
+function fillPredictionMeetFilter(){
+  const el=$('#predictionMeetFilter');
+  if(!el)return;
+  const ordered=[...(DATA.meets||[])].sort((a,b)=>String(b.dateStart||'').localeCompare(String(a.dateStart||'')));
+  const current=predictionMeet();
+  el.innerHTML=ordered.map(m=>'<option value="'+m.id+'">'+fmtDate(m.dateStart)+' · '+m.name+'</option>').join('');
+  if(current)el.value=current.id;
+}
+function sourceForImport(){
+  return $('#competitionSourceFilter')?.value||'swimsystem';
+}
+function syncCompetitionImportUI(){
+  const provider=sourceForImport();
+  const input=$('#swimSystemImportUrl'),btn=$('#competitionImportBtn');
+  if(input)input.placeholder=provider==='swimsystem'?'https://www.swimsystem.app/meets/sw/...':'URL oficial da competição';
+  if(btn)btn.textContent=provider==='swimsystem'?'Importar competição':'Cadastrar com esta fonte';
+}
+function importCompetitionFromSelectedSource(){
+  const provider=sourceForImport();
+  if(provider==='swimsystem')return importFromSwimSystem();
+  const url=$('#swimSystemImportUrl')?.value?.trim()||'';
+  openMeetModal({provider,url});
+  const status=$('#swimImportStatus');
+  if(status)status.innerHTML='<span class="pill">Fonte selecionada: '+(provider==='fdap'?'FDAP / FGDA':provider==='manual'?'Manual':'Outra fonte oficial')+'</span>';
+}
 function renderMeets(){
   const today=new Date().toISOString().slice(0,10);
   const a=activeMeet();
@@ -1966,7 +2054,7 @@ function renderMeets(){
     const xf=String(x.dateEnd||'')>=today?0:1, yf=String(y.dateEnd||'')>=today?0:1;
     return xf-yf || String(x.dateStart||'').localeCompare(String(y.dateStart||''));
   });
-  $('#meetList').innerHTML=ordered.map(m=>`<div class="meet"><div><h4>${m.name}${meetState(m)}</h4><p>${fmtDate(m.dateStart)} a ${fmtDate(m.dateEnd)} · ${m.venue||m.city||'—'} · ${poolLabel(m.poolMeters)}</p>${m.entries?.length?`<div class="entry-grid">${m.entries.map(e=>{const rr=resultForEntry(m,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)}</small><div class="mono" style="font-size:19px;margin-top:5px">${e.seed||'NT'}</div><small>S${e.series??'—'} / R${e.lane??'—'} · ${e.scheduled||'—'}</small>${compareMarkup(e,rr)}</div>`}).join('')}</div>`:''}</div><div>${m.sourceId?'<span class="tag official">OFICIAL</span>':'<span class="tag manual">MANUAL</span>'}</div></div>`).join('');
+  $('#meetList').innerHTML=ordered.map(m=>`<div class="meet"><div><h4>${m.name}${meetState(m)}</h4><p>${fmtDate(m.dateStart)} a ${fmtDate(m.dateEnd)} · ${m.venue||m.city||'—'} · ${poolLabel(m.poolMeters)}</p>${m.entries?.length?`<div class="entry-grid">${m.entries.map(e=>{const rr=resultForEntry(m,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)}</small><div class="mono" style="font-size:19px;margin-top:5px">${e.seed||'NT'}</div><small>S${e.series??'—'} / R${e.lane??'—'} · ${e.scheduled||'—'}</small>${compareMarkup(e,rr)}</div>`}).join('')}</div>`:''}</div><div><span class="tag ${m.sourceId||m.sourceUrl?'official':'manual'}">${sourceProviderLabel(m)}</span></div></div>`).join('');
 }
 function regress(points){
   if(points.length<2)return null;
@@ -1992,6 +2080,47 @@ function estimate(event,pool,targetDate){
   let conf=exact.length>=4?'high':exact.length>=3?'medium':'low';
   return {prob:pred,aggressive,conservative,conf,n:exact.length,best,latest};
 }
+function scheduledMinutes(v=''){
+  const m=String(v||'').match(/(\d{1,2}):(\d{2})/);
+  return m?Number(m[1])*60+Number(m[2]):null;
+}
+function resultBeforeMeetEntry(r,meet,entry){
+  const rd=String(r.date||''), ed=String(entry?.date||meet?.dateStart||'');
+  if(!rd||!ed)return false;
+  if(rd<ed)return true;
+  if(rd>ed)return false;
+
+  // No mesmo dia, só usa prova anterior do próprio campeonato quando a ordem é comprovável.
+  const linked=(r.meetId&&meet?.id&&r.meetId===meet.id) || (r.meet&&meet?.name&&r.meet===meet.name) || (r.sourceId&&meet?.sourceId&&r.sourceId===meet.sourceId);
+  if(!linked)return false;
+  const entries=meet?.entries||[];
+  const ri=entries.findIndex(e=>eventKey(e.event)===eventKey(r.event));
+  const ei=entries.indexOf(entry);
+  if(ri<0||ei<0||ri===ei)return false;
+  const rt=scheduledMinutes(entries[ri]?.scheduled), et=scheduledMinutes(entry?.scheduled);
+  if(rt!=null&&et!=null)return rt<et;
+  return ri<ei;
+}
+function estimateForMeetEntry(event,meet,entry){
+  const prior=confirmed().filter(r=>resultBeforeMeetEntry(r,meet,entry));
+  let pts=prior.filter(r=>eventKey(r.event)===eventKey(event)&&(meet.poolMeters==null||r.poolMeters===meet.poolMeters)).sort((a,b)=>a.date.localeCompare(b.date));
+  if(pts.length<2 && meet.poolMeters!=null)pts=prior.filter(r=>eventKey(r.event)===eventKey(event)).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!pts.length)return null;
+  const recent=pts.slice(-4),best=Math.min(...recent.map(p=>p.timeSeconds)),latest=recent[recent.length-1].timeSeconds;
+  const reg=regress(recent); let pred=latest;
+  if(reg){
+    const targetDate=entry?.date||meet.dateStart;
+    const days=(new Date(targetDate).getTime()-reg.t0)/86400000;
+    pred=reg.a+reg.b*days;
+  }
+  pred=Math.max(pred,best*0.95);
+  const spread=pts.length>=4?.018:pts.length>=3?.025:.035;
+  const aggressive=Math.min(pred*(1-spread/2),best*.995);
+  const conservative=Math.max(pred*(1+spread),latest*.995);
+  const conf=pts.length>=4?'high':pts.length>=3?'medium':'low';
+  return {prob:pred,aggressive,conservative,conf,n:pts.length,best,latest};
+}
+
 function expectationVsActual(label,expected,result){
   if(!Number.isFinite(expected))return '<div class="range"><small>'+label+'</small><b class="mono">—</b></div>';
   const actual=Number(result?.timeSeconds);
@@ -2003,17 +2132,22 @@ function expectationVsActual(label,expected,result){
   return '<div class="range"><small>'+label+'</small><b class="mono">'+fmtTime(expected)+'</b><span class="expect-vs-actual '+dir+'">'+icon+' oficial '+txt+'</span></div>';
 }
 function renderPredictions(){
-  const future=activeMeet();
-  if(!future){$('#predictionList').innerHTML='<p>Nenhum campeonato ativo ou futuro cadastrado.</p>';return}
-  const head=`<div class="pred-meet-title">${future.name}${meetState(future)}</div><div class="pred-meet-meta">${fmtDate(future.dateStart)} a ${fmtDate(future.dateEnd)} · ${future.venue||future.city||'—'} · ${poolLabel(future.poolMeters)}</div>`;
+  fillPredictionMeetFilter();
+  const future=predictionMeet();
+  if(!future){$('#predictionList').innerHTML='<p>Nenhum campeonato cadastrado.</p>';return}
+  const head=`<div class="pred-meet-title">${future.name}${meetState(future)}</div><div class="pred-meet-meta">${fmtDate(future.dateStart)} a ${fmtDate(future.dateEnd)} · ${future.venue||future.city||'—'} · ${poolLabel(future.poolMeters)} · ${sourceProviderLabel(future)}</div>`;
   $('#predictionList').innerHTML=head+(future.entries||[]).map(e=>{
     const rr=resultForEntry(future,e);
-    const est=estimate(e.event,future.poolMeters,e.date);
+    const est=estimateForMeetEntry(e.event,future,e);
     if(rr){
       const expectationMeta=est
         ? `Expectativa pré-prova · ${est.n} resultado(s) anteriores utilizados`
         : 'Expectativa pré-prova indisponível';
-      return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · prova realizada</small><small style="display:block;color:var(--muted);margin-top:3px">${expectationMeta}</small></div>${actualResultCard(e,rr)}${expectationVsActual('Expectativa conservadora',est?.conservative,rr)}${expectationVsActual('Expectativa provável',est?.prob,rr)}${expectationVsActual('Expectativa agressiva',est?.aggressive,rr)}<div class="confidence ${normalizedResultStatus(rr.status)==='official'?'high':'medium'}">${normalizedResultStatus(rr.status)==='official'?'OFICIAL':'PROVISÓRIO'}</div></div>`;
+      const status=normalizedResultStatus(rr.status);
+      const completed=['official','manual','dns','dsq','dnf'].includes(status);
+      const pill=status==='official'?'OFICIAL':status==='dns'?'DNS':status==='dsq'?'DSQ':status==='dnf'?'DNF':status==='manual'?'CONFIRMADO':'PROVISÓRIO';
+      const cls=completed?'high':'medium';
+      return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · prova realizada</small><small style="display:block;color:var(--muted);margin-top:3px">${expectationMeta}</small></div>${actualResultCard(e,rr)}${expectationVsActual('Expectativa conservadora',est?.conservative,rr)}${expectationVsActual('Expectativa provável',est?.prob,rr)}${expectationVsActual('Expectativa agressiva',est?.aggressive,rr)}<div class="confidence ${cls}">${pill}</div></div>`;
     }
     if(!est)return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · Sem histórico suficiente</small></div>${actualResultCard(e,null)}<div></div><div></div><div></div><div class="confidence low">BAIXA</div></div>`;
     return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · ${est.n} resultado(s) anteriores utilizados</small></div>${actualResultCard(e,null)}<div class="range"><small>Conservadora</small><b class="mono">${fmtTime(est.conservative)}</b></div><div class="range"><small>Provável</small><b class="mono">${fmtTime(est.prob)}</b></div><div class="range"><small>Agressiva</small><b class="mono">${fmtTime(est.aggressive)}</b></div><div class="confidence ${est.conf}">${est.conf==='high'?'ALTA':est.conf==='medium'?'MÉDIA':'BAIXA'}</div></div>`;
@@ -2156,7 +2290,17 @@ function openResultModal(id=null){
   syncResultPreview();
   resultModal.showModal();
 }
-function openMeetModal(){meetModal.showModal()}
+function openMeetModal(opts={}){
+  $('#mName').value='';
+  $('#mStart').value='';
+  $('#mEnd').value='';
+  $('#mPool').value='';
+  $('#mVenue').value='';
+  $('#mCity').value='';
+  if($('#mProvider'))$('#mProvider').value=opts.provider||'auto';
+  $('#mUrl').value=opts.url||'';
+  meetModal.showModal();
+}
 function saveResult(){
   const date=$('#rDate').value, distance=$('#rDistance').value, stroke=$('#rStroke').value;
   const nt=normalizeTimeInput($('#rTime').value);
@@ -2191,7 +2335,9 @@ function deleteResult(id){
 }
 function saveMeet(){
   if(!$('#mName').value||!$('#mStart').value){alert('Informe nome e data inicial.');return}
-  DATA.meets.push({id:'manual-meet-'+Date.now(),name:$('#mName').value.trim(),dateStart:$('#mStart').value,dateEnd:$('#mEnd').value||$('#mStart').value,city:$('#mCity').value.trim()||null,venue:$('#mVenue').value.trim()||null,poolMeters:$('#mPool').value?Number($('#mPool').value):null,sourceId:null,sourceUrl:$('#mUrl').value.trim()||null,entries:[]});
+  const provider=$('#mProvider')?.value||'auto';
+  const sourceUrl=$('#mUrl').value.trim()||null;
+  DATA.meets.push({id:'manual-meet-'+Date.now(),name:$('#mName').value.trim(),dateStart:$('#mStart').value,dateEnd:$('#mEnd').value||$('#mStart').value,city:$('#mCity').value.trim()||null,venue:$('#mVenue').value.trim()||null,poolMeters:$('#mPool').value?Number($('#mPool').value):null,resultProvider:provider,sourceId:null,sourceUrl,entries:[]});
   meetModal.close();render();queueSave();
 }
 function saveSettings(){
