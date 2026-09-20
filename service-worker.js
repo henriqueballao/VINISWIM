@@ -1,5 +1,5 @@
-const BUILD='75';
-const CACHE='viniswim-v75';
+const BUILD='76';
+const CACHE='viniswim-v76';
 const CORE=['./manifest.webmanifest','./apple-touch-icon.png','./icon-192.png','./icon-512.png','./viniswim-logo.svg'];
 
 self.addEventListener('install',e=>{
