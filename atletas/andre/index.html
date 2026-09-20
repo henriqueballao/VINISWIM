@@ -29,7 +29,12 @@ button,input,select{font:inherit}.app{display:grid;grid-template-columns:250px 1
 .nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#becbd5;text-align:left;padding:12px 13px;border-radius:10px;cursor:pointer}.nav button.active,.nav button:hover{background:var(--nav2);color:#fff}.sidebar-foot{position:absolute;bottom:18px;left:16px;right:16px;font-size:12px;color:#80919f}
 main{min-width:0}.topbar{height:70px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:10}.topbar h1{font-size:18px;margin:0}.sync{display:flex;gap:8px;align-items:center}.pill{padding:7px 10px;border-radius:999px;background:#eef3f6;color:#4b5a67;font-size:12px}.pill.ok{background:#e8f5ef;color:var(--good)}.btn{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:9px;cursor:pointer}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}.btn.danger{color:var(--bad)}.content{padding:24px;max-width:1500px;margin:auto}
 .page{display:none}.page.active{display:block}.hero{background:linear-gradient(135deg,var(--nav) 0%,var(--accent2) 100%);color:white;padding:24px;border-radius:18px;display:grid;grid-template-columns:1.5fr .7fr;gap:24px;margin-bottom:20px}.hero h2{font-size:27px;margin:0 0 7px}.hero p{margin:0;color:#b7c5cf}.hero-stat{align-self:center;text-align:right}.hero-stat b{font-size:38px}.hero-stat span{display:block;color:#9fb1bf;font-size:12px}
-.grid{display:grid;gap:16px}.grid.cards{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow)}.card .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}.card .v{font-size:28px;font-weight:750;margin-top:7px}.card .s{font-size:12px;color:var(--muted);margin-top:5px}.section{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.section h3{margin:0;font-size:16px}.filters{display:flex;flex-wrap:wrap;gap:8px}.filters select,.filters input,.form input,.form select{border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff}
+.grid{display:grid;gap:16px}.grid.cards{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}#summaryCards{grid-template-columns:repeat(2,minmax(0,1fr))}.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow)}.card .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}.card .v{font-size:28px;font-weight:750;margin-top:7px}.card .s{font-size:12px;color:var(--muted);margin-top:5px}
+.kpi-card.clickable{cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
+.kpi-card.clickable:active{transform:scale(.985)}
+.result-number{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:26px;padding:0 8px;border-radius:999px;background:#eef4f8;color:#40596c;font-size:12px;font-weight:800;margin-right:8px}
+.results-pool-note{margin:8px 0 14px;padding:10px 12px;border-radius:10px;background:#f5f8fa;color:#60717f;font-size:12px}
+.section{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.section h3{margin:0;font-size:16px}.filters{display:flex;flex-wrap:wrap;gap:8px}.filters select,.filters input,.form input,.form select{border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff}
 table{border-collapse:collapse;width:100%}th,td{padding:10px 9px;border-bottom:1px solid #edf0f2;text-align:left;font-size:13px}th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#65727d}.mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.tag{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:700}.tag.official{background:#e8f5ef;color:var(--good)}.tag.manual{background:#fff3dd;color:var(--warn)}.tag.provisional{background:#eaf3ff;color:#2f6faa}.tag.unknown{background:#f1f3f5;color:#66717b}
 .tag.dns,.tag.dsq,.tag.dnf{background:#f3f4f6;color:#4b5563}.best{font-weight:800;color:var(--good)}
 .chart-wrap{height:360px;position:relative}.chart-wrap canvas{width:100%;height:100%}.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:12px}.legend span:before{content:"";display:inline-block;width:18px;height:3px;background:currentColor;margin-right:6px;vertical-align:middle}
@@ -984,9 +989,10 @@ tbody tr:hover{background:#f8fbfc}
       <section id="history" class="page">
         <div class="section">
           <div class="section-head"><h3 class="section-title"><span class="section-title-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span>Resultados</span></h3><div class="results-head-actions no-print"><div class="swim-update-cluster"><button class="btn" id="updateSwimSystemBtn" onclick="updateFromSwimSystem()">↻ Atualizar Resultados</button><span id="lastSwimSystemUpdate" class="last-swim-update">Última atualização: —</span></div><button class="btn primary" onclick="openResultModal()">+ Novo resultado</button></div></div>
-          <div class="filters"><select id="fEvent"><option value="">Todas as provas</option></select><select id="fPool"><option value="">Todas as piscinas</option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Piscina não confirmada</option></select><select id="fSource"><option value="">Todas as origens</option><option value="official">Oficial</option><option value="provisional">Parcial</option><option value="manual">Manual confirmado</option></select></div>
+          <div class="filters"><select id="fEvent" aria-label="Filtrar por prova"><option value="" selected></option></select><select id="fPool" aria-label="Filtrar por piscina"><option value="" selected></option><option value="25">25 m</option><option value="50">50 m</option><option value="unknown">Piscina não confirmada</option></select><select id="fSource" aria-label="Filtrar por origem"><option value="" selected></option><option value="official">Oficial</option><option value="manual">Manual confirmado</option><option value="occurrence">DNS / DSQ / DNF / Parcial</option></select></div>
           <div id="swimSystemUpdateStatus" class="swimsystem-update-status"></div>
-          <div class="table-scroll"><table><thead><tr><th>Data</th><th>Categoria</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody id="historyTable"></tbody></table></div><div id="mobileHistory" class="mobile-results"></div>
+          <div id="resultsPoolNote" class="results-pool-note"></div>
+          <div class="table-scroll"><table><thead><tr><th>#</th><th>Data</th><th>Categoria</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody id="historyTable"></tbody></table></div><div id="mobileHistory" class="mobile-results"></div>
         </div>
       </section>
 
@@ -1430,7 +1436,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='73';
+const VINISWIM_BUILD='78';
 const VINISWIM_MONITOR_BASE='https://viniswim-monitor-live-production.up.railway.app';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='cl1s9p8l21ovxan';
@@ -1703,6 +1709,7 @@ function pageFromHash(){
 }
 function nav(page,{persist=true,updateHash=false}={}){
   if(!NAV_PAGES.includes(page))page='dashboard';
+  if(page==='history')resetResultFilters();
   closeMobileSidebar();
   $$('.page').forEach(x=>x.classList.toggle('active',x.id===page));
   $$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
@@ -1819,17 +1826,34 @@ function metricIcon(name){
   return icons[name]||icons.history;
 }
 
+function manualCount(){
+  return (DATA.results||[]).filter(r=>normalizedResultStatus(r.status)==='manual'&&Number.isFinite(Number(r.timeSeconds))&&Number(r.timeSeconds)>0).length;
+}
+function occurrenceCount(){
+  return (DATA.results||[]).filter(r=>['dns','dsq','dnf','provisional'].includes(normalizedResultStatus(r.status))).length;
+}
+function resetResultFilters(){
+  if($('#fEvent'))$('#fEvent').value='';
+  if($('#fPool'))$('#fPool').value='';
+  if($('#fSource'))$('#fSource').value='';
+}
+function openResultsBySource(source=''){
+  nav('history',{persist:true,updateHash:false});
+  resetResultFilters();
+  const el=$('#fSource');
+  if(el)el.value=source;
+  renderHistory();
+}
 function renderCards(){
-  let events=eventList(), latest=[...confirmed()].sort((a,b)=>b.date.localeCompare(a.date))[0];
-  let poolsKnown=confirmed().filter(r=>r.poolMeters!=null).length;
   let next=activeMeet();
+  const total=(DATA.results||[]).length;
   let cards=[
-    ['PROVAS COM HISTÓRICO',events.length,'resultados confirmados','history'],
-    ['RESULTADOS OFICIAIS',officialCount(),'Fontes oficiais','official'],
-    ['PISCINA CONFIRMADA',poolsKnown,`${confirmed().length-poolsKnown} aguardam conferência`,'pool'],
-    ['CAMPEONATO ATIVO',next?fmtDate(next.dateStart):'—',next?next.name:'Nenhum cadastrado','calendar']
+    ['TOTAL DE RESULTADOS',total,'Registros no histórico','history',''],
+    ['RESULTADOS MANUAIS',manualCount(),'Lançamentos manuais','history','manual'],
+    ['RESULTADOS OFICIAIS',officialCount(),'Fontes oficiais','official','official'],
+    ['OCORRÊNCIAS',occurrenceCount(),'DNS · DSQ · DNF · Parcial','calendar','occurrence']
   ];
-  $('#summaryCards').innerHTML=cards.map(c=>`<div class="card kpi-card"><div class="kpi-card-icon">${metricIcon(c[3])}</div><div class="k">${c[0]}</div><div class="v">${c[1]}</div><div class="s">${c[2]}</div></div>`).join('');
+  $('#summaryCards').innerHTML=cards.map(c=>`<div class="card kpi-card clickable" role="button" tabindex="0" onclick="openResultsBySource('${c[4]}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openResultsBySource('${c[4]}')}"><div class="kpi-card-icon">${metricIcon(c[3])}</div><div class="k">${c[0]}</div><div class="v">${c[1]}</div><div class="s">${c[2]}</div></div>`).join('');
   if(next){
     $('#nextMeet').innerHTML=`<div class="meet modern-meet"><div><h4>${next.name}${meetState(next)}</h4><p>${fmtDate(next.dateStart)} a ${fmtDate(next.dateEnd)} · ${next.venue||next.city||'local não informado'} · ${poolLabel(next.poolMeters)}</p><div class="entry-grid">${(next.entries||[]).map(e=>{const rr=resultForEntry(next,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)} · ${e.scheduled||'—'}</small><div class="mono" style="font-size:20px;margin-top:7px">${e.seed||'NT'}</div><small>Série ${e.series??'—'} · Raia ${e.lane??'—'}</small>${compareMarkup(e,rr,{meet:next})}</div>`}).join('')}</div></div></div>`
   } else $('#nextMeet').innerHTML='<span class="muted">Nenhum campeonato futuro cadastrado.</span>';
@@ -1849,7 +1873,7 @@ function fillFilters(){
   const events=eventList();
   const f=$('#fEvent'), ce=$('#chartEvent');
   let fv=f.value, cv=ce.value;
-  f.innerHTML='<option value="">Todas as provas</option>'+events.map(x=>`<option>${x}</option>`).join('');
+  f.innerHTML='<option value=""></option>'+events.map(x=>`<option>${x}</option>`).join('');
   ce.innerHTML='<option value="__all">Todos os estilos</option>'+events.map(x=>`<option>${x}</option>`).join('');
   if(events.includes(fv))f.value=fv;if(cv==='__all'||events.includes(cv))ce.value=cv;else ce.value='__all';
 }
@@ -1946,12 +1970,49 @@ function resultDisplayValue(r){
   const t=Number(r?.timeSeconds);
   return r?.time||(Number.isFinite(t)&&t>0?fmtTime(t):'—');
 }
+function resultChronologyNumberMap(){
+  const all=[...(DATA.results||[])];
+  const originalIndex=new Map(all.map((r,i)=>[r,i]));
+  const ordered=[...all].sort((a,b)=>
+    String(a.date||'').localeCompare(String(b.date||'')) ||
+    String(a.publishedAt||a.importedAt||'').localeCompare(String(b.publishedAt||b.importedAt||'')) ||
+    (originalIndex.get(a)-originalIndex.get(b))
+  );
+  return new Map(ordered.map((r,i)=>[r,i+1]));
+}
+function renderResultsSummary(){
+  const official=officialCount();
+  const manual=manualCount();
+  const occurrences=occurrenceCount();
+  const total=(DATA.results||[]).length;
+  const poolsKnown=(DATA.results||[]).filter(r=>r.poolMeters!=null).length;
+  const poolUnknown=Math.max(0,total-poolsKnown);
+  const status=$('#swimSystemUpdateStatus');
+  if(status){
+    status.textContent=`${total} resultados · ${manual} manuais · ${official} oficiais · ${occurrences} ocorrência(s).`;
+    status.className='swimsystem-update-status ok';
+  }
+  const note=$('#resultsPoolNote');
+  if(note){
+    note.textContent=poolUnknown
+      ? `Piscina informada em ${poolsKnown} dos ${total} registros; ${poolUnknown} aguardam conferência.`
+      : `Piscina informada nos ${total} registros.`;
+  }
+}
 function renderHistory(){
   let ev=$('#fEvent')?.value||'', pool=$('#fPool')?.value||'', src=$('#fSource')?.value||'';
-  let a=[...(DATA.results||[])].filter(r=>(!ev||r.event===ev)&&(!src||r.status===src)&&(!pool||(pool==='unknown'?r.poolMeters==null:String(r.poolMeters)===pool))).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(a.event||'').localeCompare(String(b.event||'')));
-  $('#historyTable').innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<tr><td>${resultDateLabel(r)}</td><td><b>${resultCategory(r)}</b></td><td>${r.event}</td><td class="mono"><b>${resultDisplayValue(r)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||s.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span></td><td>${sourceActionsMarkup(meetForResult(r),r)}<div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div></td></tr>`}).join('');
+  const numberMap=resultChronologyNumberMap();
+  const allResults=[...(DATA.results||[])];
+  const originalIndex=new Map(allResults.map((r,i)=>[r,i]));
+  let a=allResults.filter(r=>(!ev||r.event===ev)&&(!src||(src==='occurrence'?['dns','dsq','dnf','provisional'].includes(normalizedResultStatus(r.status)):normalizedResultStatus(r.status)===src))&&(!pool||(pool==='unknown'?r.poolMeters==null:String(r.poolMeters)===pool))).sort((a,b)=>
+    String(b.date||'').localeCompare(String(a.date||'')) ||
+    String(b.publishedAt||b.importedAt||'').localeCompare(String(a.publishedAt||a.importedAt||'')) ||
+    (originalIndex.get(b)-originalIndex.get(a))
+  );
+  $('#historyTable').innerHTML=a.map(r=>{let srcObj=sourceById(r.sourceId),n=numberMap.get(r),manual=normalizedResultStatus(r.status)==='manual';return `<tr><td><span class="result-number">#${n}</span></td><td>${resultDateLabel(r)}</td><td><b>${resultCategory(r)}</b></td><td>${r.event}</td><td class="mono"><b>${resultDisplayValue(r)}</b></td><td>${poolLabel(r.poolMeters)}</td><td>${canonicalVenue(r)}</td><td>${r.meet||srcObj.title||'—'}</td><td><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span></td><td>${sourceActionsMarkup(meetForResult(r),r)}${manual?`<div class="row-actions"><button class="btn" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" onclick="deleteResult('${r.id}')">Excluir</button></div>`:''}</td></tr>`}).join('');
   const mh=$('#mobileHistory');
-  if(mh)mh.innerHTML=a.map(r=>{let s=sourceById(r.sourceId);return `<div class="result-card"><div class="top"><div><b>${r.event}</b><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${resultDisplayValue(r)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||s.title||'Competição não informada'}</div>${sourceActionsMarkup(meetForResult(r),r)}<div class="actions"><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span><button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button></div></div>`}).join('');
+  if(mh)mh.innerHTML=a.map(r=>{let srcObj=sourceById(r.sourceId),n=numberMap.get(r),manual=normalizedResultStatus(r.status)==='manual';return `<div class="result-card"><div class="top"><div><div><span class="result-number">#${n}</span><b>${r.event}</b></div><div class="meta">${resultDateLabel(r)} · ${resultCategory(r)} · ${poolLabel(r.poolMeters)}</div></div><div class="time mono">${resultDisplayValue(r)}</div></div><div class="meta">${canonicalVenue(r)}<br>${r.meet||srcObj.title||'Competição não informada'}</div>${sourceActionsMarkup(meetForResult(r),r)}<div class="actions"><span class="tag ${r.status}">${resultStatusSourceLabel(r)}</span>${manual?`<button class="btn" style="margin-left:8px" onclick="openResultModal('${r.id}')">Editar</button><button class="btn danger" style="margin-left:8px" onclick="deleteResult('${r.id}')">Excluir</button>`:''}</div></div>`}).join('');
+  renderResultsSummary();
 }
 ['fEvent','fPool','fSource'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)renderHistory()}));
 
@@ -2257,6 +2318,10 @@ function openResultModal(id=null){
   if(id){
     const r=DATA.results.find(x=>x.id===id);
     if(!r)return;
+    if(normalizedResultStatus(r.status)!=='manual'){
+      editingResultId=null;
+      return;
+    }
     const p=splitEventName(r.event);
     $('#rDate').value=r.date||'';
     $('#rDistance').value=p.distance;
@@ -2305,7 +2370,13 @@ function saveResult(){
   };
   if(editingResultId){
     const r=DATA.results.find(x=>x.id===editingResultId);
-    if(r)Object.assign(r,payload,{editedAt:new Date().toISOString()});
+    if(!r || normalizedResultStatus(r.status)!=='manual'){
+      editingResultId=null;
+      resultModal.close();
+      render();
+      return;
+    }
+    Object.assign(r,payload,{status:'manual',editedAt:new Date().toISOString()});
   }else{
     DATA.results.push({id:'manual-'+Date.now(),place:null,aqua:null,sourceId:null,...payload});
   }
@@ -2315,6 +2386,7 @@ function saveResult(){
 function deleteResult(id){
   const r=DATA.results.find(x=>x.id===id);
   if(!r)return;
+  if(normalizedResultStatus(r.status)!=='manual')return;
   if(confirm(`Excluir ${r.event} · ${resultDisplayValue(r)} de ${resultDateLabel(r)}?\n\nA exclusão vale para a base local/Dropbox. Se o resultado continuar publicado na fonte oficial, uma sincronização futura poderá encontrá-lo novamente.`)){
     DATA.results=DATA.results.filter(x=>x.id!==id);
     render();queueSave();
