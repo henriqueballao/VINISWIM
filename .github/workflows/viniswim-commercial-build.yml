@@ -1,0 +1,77 @@
+name: Build VINISWIM Commercial
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'commercial-deploy/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-commercial:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Unpack source
+        run: |
+          rm -rf /tmp/viniswim-commercial
+          mkdir -p /tmp/viniswim-commercial
+          unzip -q commercial-deploy/commercial-src.zip -d /tmp/viniswim-commercial
+
+      - name: Adapt PWA to GitHub Pages subpath
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('/tmp/viniswim-commercial/VINISWIM-COMMERCIAL/apps/web')
+          p=root/'public/manifest.webmanifest'
+          s=p.read_text()
+          s=s.replace('"start_url":"/"', '"start_url":"./","scope":"./"')
+          p.write_text(s)
+          p=root/'src/main.tsx'
+          s=p.read_text()
+          s=s.replace("navigator.serviceWorker.register('/sw.js')", "navigator.serviceWorker.register(import.meta.env.BASE_URL+'sw.js')")
+          p.write_text(s)
+          p=root/'public/sw.js'
+          s=p.read_text()
+          s=s.replace("badge:'/favicon.ico'", "")
+          s=s.replace("self.clients.openWindow('/')", "self.clients.openWindow(self.registration.scope)")
+          p.write_text(s)
+          PY
+
+      - name: Install and build
+        working-directory: /tmp/viniswim-commercial/VINISWIM-COMMERCIAL
+        run: |
+          npm install --no-audit --no-fund
+          npm --workspace @viniswim/shared run build
+          npm --workspace @viniswim/web run build -- --base=/VINISWIM/commercial/
+
+      - name: Publish isolated commercial path
+        run: |
+          rm -rf commercial
+          mkdir commercial
+          cp -a /tmp/viniswim-commercial/VINISWIM-COMMERCIAL/apps/web/dist/. commercial/
+          touch commercial/.nojekyll
+
+      - name: Commit compiled app
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add commercial
+          if git diff --cached --quiet; then
+            echo "No build changes"
+          else
+            git commit -m "Build VINISWIM commercial frontend"
+            git push
+          fi
