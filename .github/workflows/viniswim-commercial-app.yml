@@ -1,0 +1,42 @@
+name: Build VINISWIM Commercial App
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'commercial/**'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install and build
+        working-directory: commercial
+        run: |
+          npm install --no-audit --no-fund
+          npm --workspace @viniswim/shared run build
+          npm --workspace @viniswim/web run build -- --base=/VINISWIM/app/
+      - name: Publish isolated app path
+        run: |
+          rm -rf app
+          mkdir app
+          cp -a commercial/apps/web/dist/. app/
+          touch app/.nojekyll
+      - name: Commit compiled app
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app
+          if git diff --cached --quiet; then
+            echo "No build changes"
+          else
+            git commit -m "Build VINISWIM commercial app"
+            git push
+          fi
