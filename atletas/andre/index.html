@@ -72,6 +72,10 @@ dialog{border:0;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.25);width:
 .delta-pill.worse{background:#fdeaea;color:var(--bad)}
 .delta-pill.same{background:#eef3f6;color:var(--muted)}
 .entry-result-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.entry-seed-label{display:block;margin-top:6px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.entry-seed-time{display:block;margin-top:2px;color:var(--muted);font-size:14px;font-weight:600}
+.result-seed-inline{color:var(--muted);font-size:11px;font-weight:500}
+
 .pred-meet-title{font-weight:800;font-size:14px;margin:0 0 4px}
 .pred-meet-meta{font-size:11px;color:var(--muted);margin-bottom:12px}
 .row-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
@@ -1436,7 +1440,7 @@ tbody tr:hover{background:#f8fbfc}
   }
 }</script>
 <script>
-const VINISWIM_BUILD='79';
+const VINISWIM_BUILD='80';
 const VINISWIM_MONITOR_BASE='https://viniswim-monitor-live-production.up.railway.app';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='cl1s9p8l21ovxan';
@@ -1653,7 +1657,7 @@ function compareMarkup(entry,result,{compact=false,meet=null}={}){
   const icon=x.dir==='better'?'↓':x.dir==='worse'?'↑':'=';
   const delta=x.delta==null?'':(x.delta>0?'+':'')+x.delta.toFixed(2)+'s';
   const pct=x.pct==null?'':(x.pct>0?'+':'')+x.pct.toFixed(2)+'%';
-  const seed=x.seed==null?'':`<span>Baliz. ${fmtTime(x.seed)}</span>`;
+  const seed=x.seed==null?'':`<span class="result-seed-inline">Baliz. ${fmtTime(x.seed)}</span>`;
   return `<div class="result-compare"><span class="entry-result-label">Resultado</span><span class="result-time">${result.time||fmtTime(result.timeSeconds)}</span>${seed}<span class="delta-pill ${x.dir}">${icon} ${delta}${pct?' · '+pct:''}</span></div>`+sourceActionsMarkup(meet||{},result);
 }
 function normalizeKnownVenues(){
@@ -1855,7 +1859,7 @@ function renderCards(){
   ];
   $('#summaryCards').innerHTML=cards.map(c=>`<div class="card kpi-card clickable" role="button" tabindex="0" onclick="openResultsBySource('${c[4]}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openResultsBySource('${c[4]}')}"><div class="kpi-card-icon">${metricIcon(c[3])}</div><div class="k">${c[0]}</div><div class="v">${c[1]}</div><div class="s">${c[2]}</div></div>`).join('');
   if(next){
-    $('#nextMeet').innerHTML=`<div class="meet modern-meet"><div><h4>${next.name}${meetState(next)}</h4><p>${fmtDate(next.dateStart)} a ${fmtDate(next.dateEnd)} · ${next.venue||next.city||'local não informado'} · ${poolLabel(next.poolMeters)}</p><div class="entry-grid">${(next.entries||[]).map(e=>{const rr=resultForEntry(next,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)} · ${e.scheduled||'—'}</small><div class="mono" style="font-size:20px;margin-top:7px">${e.seed||'NT'}</div><small>Série ${e.series??'—'} · Raia ${e.lane??'—'}</small>${compareMarkup(e,rr,{meet:next})}</div>`}).join('')}</div></div></div>`
+    $('#nextMeet').innerHTML=`<div class="meet modern-meet"><div><h4>${next.name}${meetState(next)}</h4><p>${fmtDate(next.dateStart)} a ${fmtDate(next.dateEnd)} · ${next.venue||next.city||'local não informado'} · ${poolLabel(next.poolMeters)}</p><div class="entry-grid">${(next.entries||[]).map(e=>{const rr=resultForEntry(next,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)} · ${e.scheduled||'—'}</small><span class="entry-seed-label">Balizamento</span><span class="entry-seed-time mono">${e.seed||'NT'}</span><small>Série ${e.series??'—'} · Raia ${e.lane??'—'}</small>${compareMarkup(e,rr,{meet:next})}</div>`}).join('')}</div></div></div>`
   } else $('#nextMeet').innerHTML='<span class="muted">Nenhum campeonato futuro cadastrado.</span>';
 }
 function renderBest(){
@@ -2102,7 +2106,7 @@ function renderMeets(){
     const xf=String(x.dateEnd||'')>=today?0:1, yf=String(y.dateEnd||'')>=today?0:1;
     return xf-yf || String(x.dateStart||'').localeCompare(String(y.dateStart||''));
   });
-  $('#meetList').innerHTML=ordered.map(m=>`<div class="meet"><div><h4>${m.name}${meetState(m)}</h4><p>${fmtDate(m.dateStart)} a ${fmtDate(m.dateEnd)} · ${m.venue||m.city||'—'} · ${poolLabel(m.poolMeters)}</p>${m.entries?.length?`<div class="entry-grid">${m.entries.map(e=>{const rr=resultForEntry(m,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)}</small><div class="mono" style="font-size:19px;margin-top:5px">${e.seed||'NT'}</div><small>S${e.series??'—'} / R${e.lane??'—'} · ${e.scheduled||'—'}</small>${compareMarkup(e,rr,{meet:m})}</div>`}).join('')}</div>`:''}</div><div><span class="tag ${m.sourceId||m.sourceUrl?'official':'manual'}">${sourceProviderLabel(m)}</span></div></div>`).join('');
+  $('#meetList').innerHTML=ordered.map(m=>`<div class="meet"><div><h4>${m.name}${meetState(m)}</h4><p>${fmtDate(m.dateStart)} a ${fmtDate(m.dateEnd)} · ${m.venue||m.city||'—'} · ${poolLabel(m.poolMeters)}</p>${m.entries?.length?`<div class="entry-grid">${m.entries.map(e=>{const rr=resultForEntry(m,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)}</small><span class="entry-seed-label">Balizamento</span><span class="entry-seed-time mono">${e.seed||'NT'}</span><small>S${e.series??'—'} / R${e.lane??'—'} · ${e.scheduled||'—'}</small>${compareMarkup(e,rr,{meet:m})}</div>`}).join('')}</div>`:''}</div><div><span class="tag ${m.sourceId||m.sourceUrl?'official':'manual'}">${sourceProviderLabel(m)}</span></div></div>`).join('');
 }
 function regress(points){
   if(points.length<2)return null;
@@ -2202,8 +2206,12 @@ function renderPredictions(){
   }).join('');
 }
 function renderAudit(){
-  let official=DATA.results.filter(r=>r.status==='official').length, manual=DATA.results.filter(r=>r.status==='manual').length, unknownPool=DATA.results.filter(r=>r.poolMeters==null).length;
-  $('#auditSummary').innerHTML=`<b>${official}</b> resultados oficiais · <b>${manual}</b> manuais confirmados · <b>${unknownPool}</b> registros oficiais com piscina ainda não confirmada na fonte consultada. Esses campos permanecem vazios até conferência.`;
+  const total=(DATA.results||[]).length;
+  const official=(DATA.results||[]).filter(r=>normalizedResultStatus(r.status)==='official').length;
+  const manual=(DATA.results||[]).filter(r=>normalizedResultStatus(r.status)==='manual').length;
+  const occurrences=(DATA.results||[]).filter(r=>['dns','dsq','dnf','provisional'].includes(normalizedResultStatus(r.status))).length;
+  const unknownPool=(DATA.results||[]).filter(r=>r.poolMeters==null).length;
+  $('#auditSummary').innerHTML=`<b>${total}</b> registros no histórico · <b>${official}</b> oficiais · <b>${manual}</b> manuais · <b>${occurrences}</b> ocorrência(s) · <b>${unknownPool}</b> sem piscina confirmada. Campos não confirmados permanecem vazios até conferência.`;
   $('#sourceList').innerHTML=DATA.sources.map(s=>`<div class="audit-row"><div><span class="tag official">OFICIAL</span></div><div><b>${s.title}</b><div style="color:var(--muted);margin-top:3px">${s.city||'—'} · ${fmtDate(s.dateStart)}${s.dateEnd&&s.dateEnd!==s.dateStart?' a '+fmtDate(s.dateEnd):''} · ${poolLabel(s.poolMeters)}</div><div style="color:var(--muted);margin-top:3px">${s.note||''}</div></div><div><a class="source-link" href="${s.url}" target="_blank">Abrir fonte ↗</a></div></div>`).join('');
 }
 function drawChart(){
