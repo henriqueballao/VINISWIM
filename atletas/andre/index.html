@@ -1268,7 +1268,8 @@ tbody tr:hover{background:#f8fbfc}
   <div class="modal-foot"><button class="btn" onclick="meetModal.close()">Cancelar</button><button class="btn primary" onclick="saveMeet()">Salvar</button></div>
 </dialog>
 
-<script id="seedData" type="application/json">{
+<script id="seedData" type="application/json">
+{
   "schemaVersion": 2,
   "app": "VINISWIM",
   "athlete": {
@@ -1299,46 +1300,7 @@ tbody tr:hover{background:#f8fbfc}
       "kind": "official"
     }
   ],
-  "results": [
-    {
-      "id": "393259|m-202609|50 Peito|42\"18",
-      "date": "2026-09-18",
-      "event": "50 Peito",
-      "timeSeconds": 42.18,
-      "time": "42\"18",
-      "poolMeters": 50,
-      "venue": "Santa Mônica Clube de Campo",
-      "city": "Colombo",
-      "meet": "Campeonato Paranaense de Verão (Mirim/Petiz)",
-      "meetId": "m-202609",
-      "sourceId": "swimsystem-auto",
-      "sourceUrl": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
-      "seed": "42\"07",
-      "series": 6,
-      "lane": 7,
-      "status": "official",
-      "category": "Petiz I"
-    },
-    {
-      "id": "393259|m-202609|400 Livre|5'51\"30",
-      "date": "2026-09-18",
-      "event": "400 Livre",
-      "timeSeconds": 351.3,
-      "time": "5'51\"30",
-      "poolMeters": 50,
-      "venue": "Santa Mônica Clube de Campo",
-      "city": "Colombo",
-      "meet": "Campeonato Paranaense de Verão (Mirim/Petiz)",
-      "meetId": "m-202609",
-      "sourceId": "swimsystem-auto",
-      "sourceUrl": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
-      "seed": "5'56\"49",
-      "series": 3,
-      "lane": 3,
-      "status": "official",
-      "category": "Petiz I"
-    }
-  ],
+  "results": [],
   "meets": [
     {
       "id": "m-202609",
@@ -1438,9 +1400,10 @@ tbody tr:hover{background:#f8fbfc}
     "basis": "Base individual independente. Sem dados do Vinícius.",
     "categoryAnalysis": "Evolução esportiva observada deve ser analisada separadamente da mudança de faixa etária/categoria."
   }
-}</script>
+}
+</script>
 <script>
-const VINISWIM_BUILD='80';
+const VINISWIM_BUILD='81';
 const VINISWIM_MONITOR_BASE='https://viniswim-monitor-live-production.up.railway.app';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='cl1s9p8l21ovxan';
@@ -1693,12 +1656,7 @@ function ensureHistoricalSources(){
     if(x)Object.assign(x,p);
   }
 }
-function applyHistorical35Migration(){
-  // Instância independente: nunca importar o histórico do Vinícius.
-  DATA.settings=DATA.settings||{};
-  DATA.settings.categoryByYear=DATA.settings.categoryByYear||{'2025':'Mirim 2','2026':'Petiz I'};
-  return false;
-}
+function applyHistorical35Migration(){return false;}
 function sourceById(id){return DATA.sources.find(x=>x.id===id)||{}}
 function eventList(){return [...new Set(DATA.results.map(r=>r.event))].sort((a,b)=>{let na=parseInt(a),nb=parseInt(b);return na-nb||a.localeCompare(b)})}
 function confirmed(){return DATA.results.filter(r=>(r.status==='official'||r.status==='manual')&&Number.isFinite(Number(r.timeSeconds))&&Number(r.timeSeconds)>0)}
@@ -1792,10 +1750,7 @@ async function handlePhotoUpload(file){
   DATA.settings=DATA.settings||{};
   DATA.settings.photoDataUrl=dataUrl;
   queueSave();
-  if(dropboxReady){
-    try{await dbxUpload()}catch(e){console.warn('VINISWIM photo sync',e)}
-  }
-  
+
   $('#photoPreview').src=dataUrl;
   renderAthleteHero();
   syncCompetitionImportUI();
@@ -2588,7 +2543,7 @@ async function syncPushSubscription(){
   DATA.settings.vapidPublicKey=cfg.publicKey;
   DATA.settings.pushServerUrl=VINISWIM_MONITOR_BASE;
   cacheLocalData();
-  if(vapidChanged && dropboxReady) dbxUpload().catch(e=>console.warn('push migration save',e));
+  if(vapidChanged && dropboxReady)setDropboxStatus('Dropbox · alterações não salvas');
   const payload={
     subscription:sub.toJSON(),
     athlete:{
@@ -2702,20 +2657,23 @@ function normalizeServerResult(x){
   };
 }
 async function ackServerResults(base,registration,rids){
-  if(!rids.length)return;
+  if(!rids.length)return true;
   try{
     const r=await fetch(base+'/pending-results/ack',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({registration,rids})
     });
-    if(r.ok)return;
+    if(r.ok)return true;
   }catch(_){}
   try{
     await jsonpRequest(
       base+'/pending-results/ack-simple?registration='+encodeURIComponent(registration)+'&rids='+encodeURIComponent(rids.join('|')),
       30000
     );
-  }catch(_){}
+    return true;
+  }catch(_){
+    return false;
+  }
 }
 
 function setSwimUpdateStatus(text,state=''){
@@ -2875,19 +2833,12 @@ async function applyIncomingSwimResults(base,registration,incoming,{manual=false
   render();
   renderLastSwimSync();
 
-  if(dropboxReady){
-    let saved=false;
-    try{
-      await dbxUpload();
-      saved=true;
-    }catch(e){
-      // O resultado já foi recebido do Railway e fica preservado localmente.
-      // Não transforma uma falha transitória do Dropbox em falha da atualização.
-      cacheLocalData();
-      setDropboxStatus('Dropbox · pendente','err');
-      console.warn('Dropbox pendente após atualização de resultados',e);
-    }
-    if(saved)await ackServerResults(base,registration,ack);
+  // Resultados detectados entram imediatamente no frontend e no cache local,
+  // mas só são persistidos no Dropbox quando o usuário aciona Salvar.
+  cacheLocalData();
+  rememberPendingResultAcks(ack);
+  if(dropboxReady && (changed || ack.length)){
+    setDropboxStatus('Dropbox · alterações não salvas');
   }
 
   DATA.pendingOfficialResults=[];
@@ -3515,6 +3466,14 @@ async function actionSaveNow(){
     collectSettingsFromForm();
     renderAthleteHero();
     await dbxUpload();
+
+    const registration=DATA.settings?.athleteRegistration||DATA.athlete?.registration||'';
+    const pendingAcks=readPendingResultAcks();
+    if(registration && pendingAcks.length){
+      const acked=await ackServerResults(VINISWIM_MONITOR_BASE,registration,pendingAcks);
+      if(acked)clearPendingResultAcks();
+    }
+
     alert('Dados salvos no Dropbox.');
   }catch(e){
     setDropboxStatus('Dropbox · erro ao salvar','err');
@@ -3680,6 +3639,16 @@ async function dbxUpload(){
   setDropboxStatus('Dropbox · sincronizado','ok');
   return true;
 }
+function pendingResultAckKey(){return LOCAL_DATA_CACHE+'_pending_result_acks'}
+function readPendingResultAcks(){
+  try{return [...new Set(JSON.parse(localStorage.getItem(pendingResultAckKey())||'[]'))]}catch(_){return []}
+}
+function rememberPendingResultAcks(rids=[]){
+  if(!rids.length)return;
+  const all=[...new Set([...readPendingResultAcks(),...rids.filter(Boolean)])];
+  localStorage.setItem(pendingResultAckKey(),JSON.stringify(all));
+}
+function clearPendingResultAcks(){localStorage.removeItem(pendingResultAckKey())}
 function queueSave(){
   cacheLocalData();
   if(dropboxReady)setDropboxStatus('Dropbox · alterações não salvas');
@@ -3739,21 +3708,15 @@ async function bootstrapDropbox(){
           if(cs[k] && !DATA.settings[k]){DATA.settings[k]=cs[k];personalMerged=true}
         }
       }
-      const migrated=applyHistorical35Migration();
+      const migrated=
       cacheLocalData();
-      if((personalMerged||railwayMigrated) && !migrated){
-        dropboxReady=true;
-        await dbxUpload();
-      }
-      if(migrated){
-        dropboxReady=true;
-        await dbxUpload();
-      }
+      if(personalMerged||railwayMigrated) setDropboxStatus('Dropbox · alterações não salvas');
     }else{
       DATA=JSON.parse(document.getElementById('seedData').textContent);
       ensureRailwayMonitor();
       dropboxReady=true;
-      await dbxUpload();
+      cacheLocalData();
+      setDropboxStatus('Dropbox · base nova não salva');
     }
     dropboxReady=true;
     setDropboxStatus('Dropbox · sincronizado','ok');
@@ -3792,7 +3755,7 @@ function logoutDropbox(){
 }
 
 ensureAlertSettings();
-applyHistorical35Migration();
+
 document.body.classList.remove('auth-locked');
 render();
 renderDropboxRecovery();
