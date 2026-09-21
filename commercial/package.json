@@ -1,0 +1,12 @@
+{
+  "name": "viniswim-commercial",
+  "private": true,
+  "workspaces": ["apps/*","packages/*"],
+  "scripts": {
+    "dev:web": "npm --workspace @viniswim/web run dev",
+    "build:web": "npm --workspace @viniswim/shared run build && npm --workspace @viniswim/web run build",
+    "dev:monitor": "npm --workspace @viniswim/monitor run dev",
+    "build:monitor": "npm --workspace @viniswim/shared run build && npm --workspace @viniswim/monitor run build",
+    "typecheck": "npm run build:web && npm run build:monitor"
+  }
+}
