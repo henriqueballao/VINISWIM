@@ -28,13 +28,13 @@ jobs:
         run: |
           rm -rf /tmp/viniswim-commercial
           mkdir -p /tmp/viniswim-commercial
-          unzip -q commercial-deploy/commercial-src.zip -d /tmp/viniswim-commercial
+          tar -xzf commercial-deploy/web-src.tgz -C /tmp/viniswim-commercial
 
       - name: Adapt PWA to GitHub Pages subpath
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          root=Path('/tmp/viniswim-commercial/VINISWIM-COMMERCIAL/apps/web')
+          root=Path('/tmp/viniswim-commercial/viniswim-web-src/apps/web')
           p=root/'public/manifest.webmanifest'
           s=p.read_text()
           s=s.replace('"start_url":"/"', '"start_url":"./","scope":"./"')
@@ -51,7 +51,7 @@ jobs:
           PY
 
       - name: Install and build
-        working-directory: /tmp/viniswim-commercial/VINISWIM-COMMERCIAL
+        working-directory: /tmp/viniswim-commercial/viniswim-web-src
         run: |
           npm install --no-audit --no-fund
           npm --workspace @viniswim/shared run build
@@ -61,7 +61,7 @@ jobs:
         run: |
           rm -rf commercial
           mkdir commercial
-          cp -a /tmp/viniswim-commercial/VINISWIM-COMMERCIAL/apps/web/dist/. commercial/
+          cp -a /tmp/viniswim-commercial/viniswim-web-src/apps/web/dist/. commercial/
           touch commercial/.nojekyll
 
       - name: Commit compiled app
