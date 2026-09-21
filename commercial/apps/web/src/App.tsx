@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useState} from 'react'
-import {Activity,Bell,ChartNoAxesCombined,Gauge,LogOut,Medal,Menu,Plus,Settings,ShieldCheck,Trophy,Users,X} from 'lucide-react'
+import {Activity,Bell,ChartNoAxesCombined,Eye,EyeOff,Gauge,LogOut,Medal,Menu,Plus,Settings,ShieldCheck,Trophy,Users,X} from 'lucide-react'
 import {LineChart,Line,ResponsiveContainer,XAxis,YAxis,Tooltip,CartesianGrid} from 'recharts'
 import {formatSwimTime,parseSwimTime} from '@viniswim/shared'
 import {supabase} from './supabase'
@@ -10,9 +10,38 @@ const d=(x:string)=>new Date(x+'T12:00:00').toLocaleDateString('pt-BR')
 const statusLabel=(s:string,t:number|null)=>s==='valid'?formatSwimTime(t):s.toUpperCase()
 
 function Auth(){
- const [mode,setMode]=useState<'login'|'signup'>('login'),[name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[msg,setMsg]=useState('')
- async function submit(e:any){e.preventDefault();setMsg('');if(mode==='login'){const {error}=await supabase.auth.signInWithPassword({email,password});if(error)setMsg(error.message)}else{const {error}=await supabase.auth.signUp({email,password,options:{data:{full_name:name}}});setMsg(error?error.message:'Cadastro criado. Se a confirmação de e-mail estiver ativa, confirme o endereço informado.')}}
- return <div className="auth"><div className="auth-card"><img className="auth-logo" src="../apple-touch-icon.png" alt="VINISWIM"/><h1>VINISWIM</h1><div className="performance-tracker">PERFORMANCE TRACKER</div><p>Resultados, evolução e campeonatos em um único perfil por atleta.</p><form onSubmit={submit}>{mode==='signup'&&<label>Nome completo<input value={name} onChange={e=>setName(e.target.value)} required/></label>}<label>E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label><label>Senha<input type="password" value={password} onChange={e=>setPassword(e.target.value)} minLength={6} required/></label><button className="btn primary">{mode==='login'?'Entrar':'Criar conta'}</button></form>{msg&&<div className="notice">{msg}</div>}<button className="link" onClick={()=>setMode(mode==='login'?'signup':'login')}>{mode==='login'?'Primeiro acesso? Criar conta':'Voltar para o login'}</button></div></div>
+ const [mode,setMode]=useState<'login'|'signup'>('login')
+ const [name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState('')
+ const [msg,setMsg]=useState(''),[showPassword,setShowPassword]=useState(false),[busy,setBusy]=useState(false),[cooldown,setCooldown]=useState(0)
+ useEffect(()=>{if(cooldown<=0)return;const timer=window.setInterval(()=>setCooldown(v=>Math.max(0,v-1)),1000);return()=>window.clearInterval(timer)},[cooldown])
+ function authMessage(error:any){
+  const raw=String(error?.message||'')
+  const wait=raw.match(/after\s+(\d+)\s+seconds?/i)
+  if(wait){setCooldown(Number(wait[1]));return `Aguarde ${wait[1]} segundos antes de tentar novamente.`}
+  if(/rate limit|security purposes|too many requests/i.test(raw)){setCooldown(60);return 'Muitas tentativas em sequência. Aguarde 1 minuto e tente novamente.'}
+  if(/invalid login credentials/i.test(raw))return 'E-mail ou senha incorretos.'
+  if(/user already registered|already been registered/i.test(raw))return 'Este e-mail já possui cadastro. Volte para o login.'
+  if(/password should be at least/i.test(raw))return 'A senha precisa ter pelo menos 6 caracteres.'
+  return raw||'Não foi possível concluir a operação.'
+ }
+ async function submit(e:any){
+  e.preventDefault()
+  if(busy||cooldown>0)return
+  setMsg('');setBusy(true)
+  try{
+   if(mode==='login'){
+    const {error}=await supabase.auth.signInWithPassword({email:email.trim(),password})
+    if(error)setMsg(authMessage(error))
+   }else{
+    const {data,error}=await supabase.auth.signUp({email:email.trim(),password,options:{data:{full_name:name.trim()}}})
+    if(error){setMsg(authMessage(error));return}
+    if(data.session)setMsg('Conta criada. Entrando no VINISWIM...')
+    else setMsg('Conta criada. Confira seu e-mail para confirmar o cadastro e depois volte ao login.')
+   }
+  }finally{setBusy(false)}
+ }
+ const buttonDisabled=busy||cooldown>0
+ return <div className="auth"><div className="auth-card"><img className="auth-logo" src="../apple-touch-icon.png" alt="VINISWIM"/><h1>VINISWIM</h1><div className="performance-tracker">PERFORMANCE TRACKER</div><p>Resultados, evolução e campeonatos em um único perfil por atleta.</p><form onSubmit={submit}>{mode==='signup'&&<label>Nome completo<input value={name} onChange={e=>setName(e.target.value)} required autoComplete="name"/></label>}<label>E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label><label>Senha<div className="password-field"><input type={showPassword?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} minLength={6} required autoComplete={mode==='login'?'current-password':'new-password'}/><button type="button" className="password-toggle" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?'Ocultar senha':'Mostrar senha'}>{showPassword?<EyeOff size={21}/>:<Eye size={21}/>}</button></div></label><button className="btn primary" disabled={buttonDisabled}>{busy?'Processando...':cooldown>0?`Aguarde ${cooldown}s`:mode==='login'?'Entrar':'Criar conta'}</button></form>{msg&&<div className="notice">{msg}</div>}<button className="link" disabled={busy} onClick={()=>{setMode(mode==='login'?'signup':'login');setMsg('');setCooldown(0)}}>{mode==='login'?'Primeiro acesso? Criar conta':'Voltar para o login'}</button></div></div>
 }
 
 function AthleteForm({accountId,onDone}:{accountId:string,onDone:()=>void}){const [name,setName]=useState(''),[birth,setBirth]=useState(''),[club,setClub]=useState(''),[msg,setMsg]=useState('');async function save(e:any){e.preventDefault();const {error}=await supabase.from('athletes').insert({account_id:accountId,full_name:name,preferred_name:name.split(' ')[0],birth_date:birth||null,club_name:club||null,status:'pending_source'});if(error)setMsg(error.message);else onDone()}return <div className="empty"><h2>Cadastre o primeiro atleta</h2><p>Os dados ficam vinculados somente à sua conta.</p><form className="form" onSubmit={save}><label>Nome completo<input value={name} onChange={e=>setName(e.target.value)} required/></label><label>Data de nascimento<input type="date" value={birth} onChange={e=>setBirth(e.target.value)}/></label><label>Clube<input value={club} onChange={e=>setClub(e.target.value)}/></label><button className="btn primary">Cadastrar atleta</button></form>{msg&&<div className="notice">{msg}</div>}</div>}
