@@ -1,0 +1,8 @@
+{
+  "name":"viniswim-commercial-deploy",
+  "private":true,
+  "version":"0.2.0",
+  "scripts":{
+    "unpack":"rm -rf runtime && mkdir runtime && unzip -q commercial-src.zip -d runtime"
+  }
+}
