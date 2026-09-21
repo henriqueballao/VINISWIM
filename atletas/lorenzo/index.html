@@ -1268,12 +1268,24 @@ tbody tr:hover{background:#f8fbfc}
   <div class="modal-foot"><button class="btn" onclick="meetModal.close()">Cancelar</button><button class="btn primary" onclick="saveMeet()">Salvar</button></div>
 </dialog>
 
-<script id="seedData" type="application/json">{
+<script id="seedData" type="application/json">
+{
   "schemaVersion": 2,
   "app": "VINISWIM",
   "athlete": {
     "name": "Lorenzo Azevedo FORTES",
-    "aliases": ["Lorenzo de Azevedo FORTES", "Lorenzo Azevedo FORTES", "Lorenzo De Fortes", "Lorenzo De Zevedo Fortes", "Lourenço Fortes", "Lourenço de Azevedo Fortes", "Lourenço De Fortes", "Lourenco Fortes", "Lourenco de Azevedo Fortes", "Lourenco De Fortes"],
+    "aliases": [
+      "Lorenzo de Azevedo FORTES",
+      "Lorenzo Azevedo FORTES",
+      "Lorenzo De Fortes",
+      "Lorenzo De Zevedo Fortes",
+      "Lourenço Fortes",
+      "Lourenço de Azevedo Fortes",
+      "Lourenço De Fortes",
+      "Lourenco Fortes",
+      "Lourenco de Azevedo Fortes",
+      "Lourenco De Fortes"
+    ],
     "registration": "399680",
     "birthYear": 2015,
     "club": "Clube Curitibano",
@@ -1300,84 +1312,7 @@ tbody tr:hover{background:#f8fbfc}
       "kind": "official"
     }
   ],
-  "results": [
-    {
-      "id": "399680|m-202609|100 Livre|1'14\"56",
-      "date": "2026-09-18",
-      "event": "100 Livre",
-      "timeSeconds": 74.56,
-      "time": "1'14\"56",
-      "poolMeters": 50,
-      "venue": "Santa Mônica Clube de Campo",
-      "city": "Colombo",
-      "meet": "Campeonato Paranaense de Verão (Mirim/Petiz)",
-      "meetId": "m-202609",
-      "sourceId": "swimsystem-auto",
-      "sourceUrl": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
-      "seed": "1'13\"87",
-      "series": 8,
-      "lane": 2,
-      "status": "official",
-      "category": "Petiz I"
-    },
-    {
-      "id": "399680|m-202609|400 Livre|6'09\"12",
-      "date": "2026-09-18",
-      "event": "400 Livre",
-      "timeSeconds": 369.12,
-      "time": "6'09\"12",
-      "poolMeters": 50,
-      "venue": "Santa Mônica Clube de Campo",
-      "city": "Colombo",
-      "meet": "Campeonato Paranaense de Verão (Mirim/Petiz)",
-      "meetId": "m-202609",
-      "sourceId": "swimsystem-auto",
-      "sourceUrl": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0",
-      "seed": "NT",
-      "series": 2,
-      "lane": 2,
-      "status": "official",
-      "category": "Petiz I"
-    },
-    {
-      "id": "399680|m-202609|50 Costas|41\"31",
-      "date": "2026-09-18",
-      "event": "50 Costas",
-      "timeSeconds": 41.31,
-      "time": "41\"31",
-      "poolMeters": 50,
-      "venue": "Santa Mônica Clube de Campo",
-      "city": "Colombo",
-      "meet": "Campeonato Paranaense de Verão (Mirim/Petiz)",
-      "meetId": "m-202609",
-      "sourceId": "swimsystem-auto",
-      "sourceUrl": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0/results?e=8f48b7d8-67bb-45be-ad84-43ae2048e08c",
-      "seed": "41\"89",
-      "series": 6,
-      "lane": 1,
-      "status": "official",
-      "category": "Petiz I"
-    },
-    {
-      "id": "399680|m-202609|200 Livre|2'46\"54",
-      "date": "2026-09-19",
-      "event": "200 Livre",
-      "timeSeconds": 166.54,
-      "time": "2'46\"54",
-      "poolMeters": 50,
-      "venue": "Santa Mônica Clube de Campo",
-      "city": "Colombo",
-      "meet": "Campeonato Paranaense de Verão (Mirim/Petiz)",
-      "meetId": "m-202609",
-      "sourceId": "swimsystem-auto",
-      "sourceUrl": "https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0/results?e=32ad25f4-1cfb-476a-8019-8afff3772117",
-      "seed": "2'45\"54",
-      "series": 7,
-      "lane": 6,
-      "status": "official",
-      "category": "Petiz I"
-    }
-  ],
+  "results": [],
   "meets": [
     {
       "id": "m-202609",
@@ -1477,9 +1412,10 @@ tbody tr:hover{background:#f8fbfc}
     "basis": "Base individual independente. Sem dados do Vinícius.",
     "categoryAnalysis": "Evolução esportiva observada deve ser analisada separadamente da mudança de faixa etária/categoria."
   }
-}</script>
+}
+</script>
 <script>
-const VINISWIM_BUILD='80';
+const VINISWIM_BUILD='81';
 const VINISWIM_MONITOR_BASE='https://viniswim-monitor-live-production.up.railway.app';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='x7hepfpb668fhs5';
@@ -1707,23 +1643,11 @@ function normalizeKnownVenues(){
   }
   return changed;
 }
-function ensureLorenzoIdentityAndCurrentResults(){
+function ensureLorenzoIdentity(){
   DATA.athlete=DATA.athlete||{};
   DATA.settings=DATA.settings||{};
   DATA.athlete.aliases=[...new Set([...(DATA.athlete.aliases||[]),'Lorenzo Azevedo FORTES','Lorenzo de Azevedo FORTES','Lorenzo De Fortes','Lorenzo De Zevedo Fortes','Lourenço Fortes','Lourenço de Azevedo Fortes','Lourenço De Fortes','Lourenco Fortes','Lourenco de Azevedo Fortes','Lourenco De Fortes'])];
-  const official=[
-    {id:'lor-20260918-50costas',date:'2026-09-18',category:'Petiz I',competitionType:'Estadual',meet:'Campeonato Paranaense de Verão (Mirim/Petiz)',meetId:'m-202609',venue:'Santa Mônica Clube de Campo',city:'Colombo',poolMeters:50,event:'50 Costas',timeSeconds:41.31,time:'41"31',seed:'41"89',series:6,lane:1,status:'official',sourceId:'swimsystem-auto',sourceUrl:'https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0/results?e=8f48b7d8-67bb-45be-ad84-43ae2048e08c'},
-    {id:'lor-20260919-200livre',date:'2026-09-19',category:'Petiz I',competitionType:'Estadual',meet:'Campeonato Paranaense de Verão (Mirim/Petiz)',meetId:'m-202609',venue:'Santa Mônica Clube de Campo',city:'Colombo',poolMeters:50,event:'200 Livre',timeSeconds:166.54,time:'2\'46"54',seed:'2\'45"54',series:7,lane:6,status:'official',sourceId:'swimsystem-auto',sourceUrl:'https://www.swimsystem.app/meets/sw/9b002997-591e-4f74-8492-ef595b4705c0/results?e=32ad25f4-1cfb-476a-8019-8afff3772117'}
-  ];
-  DATA.results=DATA.results||[];
-  const key=r=>[r.date,eventKey(r.event||''),Math.round(Number(r.timeSeconds||parseTime(r.time)||0)*100)].join('|');
-  const seen=new Set(DATA.results.map(key));
-  let added=0;
-  for(const r of official){if(!seen.has(key(r))){DATA.results.push(r);seen.add(key(r));added++}}
-  DATA.audit=DATA.audit||{};
-  DATA.audit.lorenzoIdentityMigrationVersion=1;
-  DATA.audit.lorenzoCurrentOfficialAdded=(DATA.audit.lorenzoCurrentOfficialAdded||0)+added;
-  return added>0;
+  return false;
 }
 
 function ensureHistoricalSources(){
@@ -1750,48 +1674,8 @@ function ensureHistoricalSources(){
     if(x)Object.assign(x,p);
   }
 }
-const LORENZO_OFFICIAL_ROWS=[
-  {id:'lor-20240301-100livre',date:'2024-03-01',category:'Mirim I',competitionType:'Regional',meet:'Torneio Regional da 1ª Região',venue:'Clube Curitibano',city:'Curitiba',poolMeters:25,event:'100 Livre',timeSeconds:113.21,time:'1\'53"21',status:'official',sourceUrl:'https://sge-aquaticos.bigmidia.com/_uploads/relatorios/05b73294eb774778fa295ffdf8ed422c.pdf'},
-  {id:'lor-20240817-100livre',date:'2024-08-17',category:'Mirim I',competitionType:'Regional',meet:'Torneio Regional da 1ª Região',venue:'Clube Curitibano',city:'Curitiba',poolMeters:null,event:'100 Livre',timeSeconds:91.62,time:'1\'31"62',status:'official',sourceUrl:'https://sge-aquaticos.bigmidia.com/_uploads/relatorios/f98cc5ba40f09d1c50ff31ef0bddda26.pdf'},
-  {id:'lor-20240817-50borbo',date:'2024-08-17',category:'Mirim I',competitionType:'Regional',meet:'Torneio Regional da 1ª Região',venue:'Clube Curitibano',city:'Curitiba',poolMeters:null,event:'50 Borboleta',timeSeconds:47.21,time:'47"21',status:'official',sourceUrl:'https://sge-aquaticos.bigmidia.com/_uploads/relatorios/f98cc5ba40f09d1c50ff31ef0bddda26.pdf'},
-  {id:'lor-20241018-50livre',date:'2024-10-18',category:'Mirim I',competitionType:'Estadual',meet:'Troféu Germano Bayer',venue:'Clube Curitibano',city:'Curitiba',poolMeters:null,event:'50 Livre',timeSeconds:37.40,time:'37"40',status:'official',sourceUrl:'https://sge-aquaticos.bigmidia.com/_uploads/relatorios/a2e6e9d63ffa205c166269d1516ebe12.pdf'},
-  {id:'lor-20251108-200livre',date:'2025-11-08',category:'Mirim II',competitionType:'Sul-Brasileiro',meet:'Campeonato Sul-Brasileiro Mirim & Petiz',venue:'Clube Curitibano',city:'Curitiba',poolMeters:50,event:'200 Livre',timeSeconds:169.34,time:'2\'49"34',status:'official',sourceUrl:'https://sge-aquaticos.bigmidia.com/_uploads/relatorios/5bfc55a6e1b13d2dd1312f0b8f13d0c9.pdf'},
-  {id:'lor-20260308-200livre',date:'2026-03-08',category:'Petiz I',competitionType:'Regional',meet:'Torneio Regional da 1ª Região',venue:'Clube Curitibano',city:'Curitiba',poolMeters:25,event:'200 Livre',timeSeconds:168.59,time:'2\'48"59',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/40595/ResultList_38.pdf'},
-  {id:'lor-20260417-50borbo',date:'2026-04-17',category:'Petiz I',competitionType:'Estadual',meet:'Campeonato Paranaense de Inverno',venue:'Santa Mônica Clube de Campo',city:'Colombo',poolMeters:25,event:'50 Borboleta',timeSeconds:38.84,time:'38"84',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/40602/ResultList_8.pdf'},
-  {id:'lor-20240622-200livre',date:'2024-06-22',category:'Mirim I',competitionType:'Sul-Brasileiro',meet:'Campeonato Sul-Brasileiro Mirim e Petiz',venue:'Curitiba/PR',city:'Curitiba',poolMeters:25,event:'200 Livre',timeSeconds:228.07,time:'3\'48"07',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/38468/ProgressionDetails.pdf'},
-  {id:'lor-20240622-50costas',date:'2024-06-22',category:'Mirim I',competitionType:'Sul-Brasileiro',meet:'Campeonato Sul-Brasileiro Mirim e Petiz',venue:'Curitiba/PR',city:'Curitiba',poolMeters:25,event:'50 Costas',timeSeconds:50.17,time:'50"17',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/38468/ProgressionDetails.pdf'},
-  {id:'lor-20240622-50borbo',date:'2024-06-22',category:'Mirim I',competitionType:'Sul-Brasileiro',meet:'Campeonato Sul-Brasileiro Mirim e Petiz',venue:'Curitiba/PR',city:'Curitiba',poolMeters:25,event:'50 Borboleta',timeSeconds:49.02,time:'49"02',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/38468/ProgressionDetails.pdf'},
-  {id:'lor-20240622-100medley',date:'2024-06-22',category:'Mirim I',competitionType:'Sul-Brasileiro',meet:'Campeonato Sul-Brasileiro Mirim e Petiz',venue:'Curitiba/PR',city:'Curitiba',poolMeters:25,event:'100 Medley',timeSeconds:105.32,time:'1\'45"32',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/38468/ProgressionDetails.pdf'},
-  {id:'lor-20260419-50livre',date:'2026-04-19',category:'Petiz I',competitionType:'Estadual',meet:'Campeonato Paranaense de Inverno',venue:'Santa Mônica Clube de Campo',city:'Colombo',poolMeters:25,event:'50 Livre',timeSeconds:33.55,time:'33"55',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/40602/ProgressionDetails.pdf'},
-  {id:'lor-20260417-100livre',date:'2026-04-17',category:'Petiz I',competitionType:'Estadual',meet:'Campeonato Paranaense de Inverno',venue:'Santa Mônica Clube de Campo',city:'Colombo',poolMeters:25,event:'100 Livre',timeSeconds:74.54,time:'1\'14"54',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/40602/ProgressionDetails.pdf'},
-  {id:'lor-20260418-200livre',date:'2026-04-18',category:'Petiz I',competitionType:'Estadual',meet:'Campeonato Paranaense de Inverno',venue:'Santa Mônica Clube de Campo',city:'Colombo',poolMeters:25,event:'200 Livre',timeSeconds:164.12,time:'2\'44"12',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/40602/ProgressionDetails.pdf'},
-  {id:'lor-20260418-50costas',date:'2026-04-18',category:'Petiz I',competitionType:'Estadual',meet:'Campeonato Paranaense de Inverno',venue:'Santa Mônica Clube de Campo',city:'Colombo',poolMeters:25,event:'50 Costas',timeSeconds:40.55,time:'40"55',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/40602/ResultList_36.pdf'},
-  {id:'lor-20260419-100borbo',date:'2026-04-19',category:'Petiz I',competitionType:'Estadual',meet:'Campeonato Paranaense de Inverno',venue:'Santa Mônica Clube de Campo',city:'Colombo',poolMeters:25,event:'100 Borboleta',timeSeconds:89.19,time:'1\'29"19',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/40602/ResultList_58.pdf'},
-  {id:'lor-20250705-100medley',date:'2025-07-05',category:'Mirim II',competitionType:'Estadual',meet:'Troféu Ossami Fukuda 2025',venue:'Santa Mônica Clube de Campo',city:'Colombo',poolMeters:25,event:'100 Medley',timeSeconds:93.43,time:'1\'33"43',status:'official',sourceUrl:'https://es.scribd.com/document/995263041/Resultados-Finais-4%C2%AA-Etapa'},
-  {id:'lor-20250816-50costas',date:'2025-08-16',category:'Mirim II',competitionType:'Regional',meet:'Torneio Regional da 1ª Região',venue:'Clube Curitibano',city:'Curitiba',poolMeters:25,event:'50 Costas',timeSeconds:42.09,time:'42"09',status:'official',sourceUrl:'https://6b0aef99-6aaa-49a7-b861-8ad0a205467c.filesusr.com/ugd/d1ef58_503cf0e6a45a438599386d89c81c5e79.pdf'},
-  {id:'lor-20251011-50livre',date:'2025-10-11',category:'Mirim II',competitionType:'Estadual',meet:'Troféu Germano Bayer (Mirim/Petiz) 2025',venue:'Clube Curitibano',city:'Curitiba',poolMeters:50,event:'50 Livre',timeSeconds:35.10,time:'35"10',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/39533/ProgressionDetails.pdf'},
-  {id:'lor-20251012-100livre',date:'2025-10-12',category:'Mirim II',competitionType:'Estadual',meet:'Troféu Germano Bayer (Mirim/Petiz) 2025',venue:'Clube Curitibano',city:'Curitiba',poolMeters:50,event:'100 Livre',timeSeconds:77.13,time:'1\'17"13',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/39533/ProgressionDetails.pdf'},
-  {id:'lor-20251011-200livre',date:'2025-10-11',category:'Mirim II',competitionType:'Estadual',meet:'Troféu Germano Bayer (Mirim/Petiz) 2025',venue:'Clube Curitibano',city:'Curitiba',poolMeters:50,event:'200 Livre',timeSeconds:169.34,time:'2\'49"34',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/39533/ProgressionDetails.pdf'},
-  {id:'lor-20251011-50borbo',date:'2025-10-11',category:'Mirim II',competitionType:'Estadual',meet:'Troféu Germano Bayer (Mirim/Petiz) 2025',venue:'Clube Curitibano',city:'Curitiba',poolMeters:50,event:'50 Borboleta',timeSeconds:41.44,time:'41"44',status:'official',sourceUrl:'https://swimsystem.swimtimebrasil.com/39533/ProgressionDetails.pdf'}
-];
-function applyHistorical35Migration(){
-  DATA.settings=DATA.settings||{};
-  DATA.audit=DATA.audit||{};
-  DATA.settings.categoryByYear={...(DATA.settings.categoryByYear||{}),'2024':'Mirim I','2025':'Mirim II','2026':'Petiz I'};
-  DATA.settings.fdapUrl=DATA.settings.fdapUrl||'https://fdap.org.br/';
-  DATA.settings.fgdaUrl=DATA.settings.fgdaUrl||'https://fgda.org.br/';
-  const existing=Array.isArray(DATA.results)?DATA.results:[];
-  const key=r=>[r.date,eventKey(r.event),Number(r.timeSeconds).toFixed(2)].join('|');
-  const seen=new Set(existing.map(key));
-  let added=0;
-  for(const r of LORENZO_OFFICIAL_ROWS){
-    if(!seen.has(key(r))){existing.push({...r,sourceId:'federation-history'});seen.add(key(r));added++}
-  }
-  DATA.results=existing;
-  DATA.audit.lorenzoFederationMigrationVersion=2;
-  DATA.audit.lorenzoFederationMigrationAdded=(DATA.audit.lorenzoFederationMigrationAdded||0)+added;
-  return added>0;
-}
+function applyHistorical35Migration(){return false;}
+
 function sourceById(id){return DATA.sources.find(x=>x.id===id)||{}}
 function eventList(){return [...new Set(DATA.results.map(r=>r.event))].sort((a,b)=>{let na=parseInt(a),nb=parseInt(b);return na-nb||a.localeCompare(b)})}
 function confirmed(){return DATA.results.filter(r=>(r.status==='official'||r.status==='manual')&&Number.isFinite(Number(r.timeSeconds))&&Number(r.timeSeconds)>0)}
@@ -1885,10 +1769,7 @@ async function handlePhotoUpload(file){
   DATA.settings=DATA.settings||{};
   DATA.settings.photoDataUrl=dataUrl;
   queueSave();
-  if(dropboxReady){
-    try{await dbxUpload()}catch(e){console.warn('VINISWIM photo sync',e)}
-  }
-  
+
   $('#photoPreview').src=dataUrl;
   renderAthleteHero();
   syncCompetitionImportUI();
@@ -2681,7 +2562,7 @@ async function syncPushSubscription(){
   DATA.settings.vapidPublicKey=cfg.publicKey;
   DATA.settings.pushServerUrl=VINISWIM_MONITOR_BASE;
   cacheLocalData();
-  if(vapidChanged && dropboxReady) dbxUpload().catch(e=>console.warn('push migration save',e));
+  if(vapidChanged && dropboxReady)setDropboxStatus('Dropbox · alterações não salvas');
   const payload={
     subscription:sub.toJSON(),
     athlete:{
@@ -2795,20 +2676,23 @@ function normalizeServerResult(x){
   };
 }
 async function ackServerResults(base,registration,rids){
-  if(!rids.length)return;
+  if(!rids.length)return true;
   try{
     const r=await fetch(base+'/pending-results/ack',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({registration,rids})
     });
-    if(r.ok)return;
+    if(r.ok)return true;
   }catch(_){}
   try{
     await jsonpRequest(
       base+'/pending-results/ack-simple?registration='+encodeURIComponent(registration)+'&rids='+encodeURIComponent(rids.join('|')),
       30000
     );
-  }catch(_){}
+    return true;
+  }catch(_){
+    return false;
+  }
 }
 
 function setSwimUpdateStatus(text,state=''){
@@ -2968,19 +2852,12 @@ async function applyIncomingSwimResults(base,registration,incoming,{manual=false
   render();
   renderLastSwimSync();
 
-  if(dropboxReady){
-    let saved=false;
-    try{
-      await dbxUpload();
-      saved=true;
-    }catch(e){
-      // O resultado já foi recebido do Railway e fica preservado localmente.
-      // Não transforma uma falha transitória do Dropbox em falha da atualização.
-      cacheLocalData();
-      setDropboxStatus('Dropbox · pendente','err');
-      console.warn('Dropbox pendente após atualização de resultados',e);
-    }
-    if(saved)await ackServerResults(base,registration,ack);
+  // Resultados detectados entram imediatamente no frontend e no cache local,
+  // mas só são persistidos no Dropbox quando o usuário aciona Salvar.
+  cacheLocalData();
+  rememberPendingResultAcks(ack);
+  if(dropboxReady && (changed || ack.length)){
+    setDropboxStatus('Dropbox · alterações não salvas');
   }
 
   DATA.pendingOfficialResults=[];
@@ -3608,6 +3485,14 @@ async function actionSaveNow(){
     collectSettingsFromForm();
     renderAthleteHero();
     await dbxUpload();
+
+    const registration=DATA.settings?.athleteRegistration||DATA.athlete?.registration||'';
+    const pendingAcks=readPendingResultAcks();
+    if(registration && pendingAcks.length){
+      const acked=await ackServerResults(VINISWIM_MONITOR_BASE,registration,pendingAcks);
+      if(acked)clearPendingResultAcks();
+    }
+
     alert('Dados salvos no Dropbox.');
   }catch(e){
     setDropboxStatus('Dropbox · erro ao salvar','err');
@@ -3773,6 +3658,16 @@ async function dbxUpload(){
   setDropboxStatus('Dropbox · sincronizado','ok');
   return true;
 }
+function pendingResultAckKey(){return LOCAL_DATA_CACHE+'_pending_result_acks'}
+function readPendingResultAcks(){
+  try{return [...new Set(JSON.parse(localStorage.getItem(pendingResultAckKey())||'[]'))]}catch(_){return []}
+}
+function rememberPendingResultAcks(rids=[]){
+  if(!rids.length)return;
+  const all=[...new Set([...readPendingResultAcks(),...rids.filter(Boolean)])];
+  localStorage.setItem(pendingResultAckKey(),JSON.stringify(all));
+}
+function clearPendingResultAcks(){localStorage.removeItem(pendingResultAckKey())}
 function queueSave(){
   cacheLocalData();
   if(dropboxReady)setDropboxStatus('Dropbox · alterações não salvas');
@@ -3846,22 +3741,15 @@ async function bootstrapDropbox(){
           if(cs[k] && !DATA.settings[k]){DATA.settings[k]=cs[k];personalMerged=true}
         }
       }
-      const identityMigrated=ensureLorenzoIdentityAndCurrentResults();
-      const migrated=applyHistorical35Migration();
+      ensureLorenzoIdentity();
       cacheLocalData();
-      if((personalMerged||identityMigrated||railwayMigrated) && !migrated){
-        dropboxReady=true;
-        await dbxUpload();
-      }
-      if(migrated){
-        dropboxReady=true;
-        await dbxUpload();
-      }
+      if(personalMerged||railwayMigrated) setDropboxStatus('Dropbox · alterações não salvas');
     }else{
       DATA=JSON.parse(document.getElementById('seedData').textContent);
       ensureRailwayMonitor();
       dropboxReady=true;
-      await dbxUpload();
+      cacheLocalData();
+      setDropboxStatus('Dropbox · base nova não salva');
     }
     dropboxReady=true;
     setDropboxStatus('Dropbox · sincronizado','ok');
@@ -3900,8 +3788,8 @@ function logoutDropbox(){
 }
 
 ensureAlertSettings();
-ensureLorenzoIdentityAndCurrentResults();
-applyHistorical35Migration();
+ensureLorenzoIdentity();
+
 document.body.classList.remove('auth-locked');
 render();
 renderDropboxRecovery();
