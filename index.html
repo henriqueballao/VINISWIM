@@ -1268,7 +1268,8 @@ tbody tr:hover{background:#f8fbfc}
   <div class="modal-foot"><button class="btn" onclick="meetModal.close()">Cancelar</button><button class="btn primary" onclick="saveMeet()">Salvar</button></div>
 </dialog>
 
-<script id="seedData" type="application/json">{
+<script id="seedData" type="application/json">
+{
   "schemaVersion": 2,
   "app": "VINISWIM",
   "athlete": {},
@@ -1297,9 +1298,10 @@ tbody tr:hover{background:#f8fbfc}
     "createdAt": "2026-09-17",
     "basis": "Base mestre carregada do Dropbox. O HTML público não contém dados pessoais do atleta."
   }
-}</script>
+}
+</script>
 <script>
-const VINISWIM_BUILD='80';
+const VINISWIM_BUILD='81';
 const VINISWIM_MONITOR_BASE='https://viniswim-monitor-live-production.up.railway.app';
 document.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('footerBuild');if(el)el.textContent=VINISWIM_BUILD;});
 const DROPBOX_APP_KEY='gjjbdta3z2fvv15';
@@ -1529,18 +1531,6 @@ function normalizeKnownVenues(){
 }
 function reconcileViniCurrentOfficialResults(){return false;}
 function applyHistorical35Migration(){return false;}
-function sourceById(id){return DATA.sources.find(x=>x.id===id)||{}}
-function eventList(){return [...new Set(DATA.results.map(r=>r.event))].sort((a,b)=>{let na=parseInt(a),nb=parseInt(b);return na-nb||a.localeCompare(b)})}
-function confirmed(){return DATA.results.filter(r=>(r.status==='official'||r.status==='manual')&&Number.isFinite(Number(r.timeSeconds))&&Number(r.timeSeconds)>0)}
-function bestFor(event,pool){let a=confirmed().filter(r=>r.event===event&&(pool==null||r.poolMeters===pool));return a.sort((x,y)=>x.timeSeconds-y.timeSeconds)[0]}
-function officialCount(){return DATA.results.filter(r=>r.status==='official'&&Number.isFinite(Number(r.timeSeconds))&&Number(r.timeSeconds)>0).length}
-
-const NAV_PAGES=['dashboard','history','evolution','meets','predictions','alerts','audit','settings'];
-function pageFromHash(){
-  const h=String(location.hash||'').replace(/^#/,'').toLowerCase();
-  const aliases={results:'history',resultado:'history',resultados:'history',history:'history',meets:'meets',campeonatos:'meets',predictions:'predictions',expectativas:'predictions',alerts:'alerts',alertas:'alerts',audit:'audit',auditoria:'audit',settings:'settings',configuracoes:'settings',evolution:'evolution',evolucao:'evolution',dashboard:'dashboard'};
-  return aliases[h]||null;
-}
 function nav(page,{persist=true,updateHash=false}={}){
   if(!NAV_PAGES.includes(page))page='dashboard';
   if(page==='history')resetResultFilters();
@@ -1622,10 +1612,7 @@ async function handlePhotoUpload(file){
   DATA.settings=DATA.settings||{};
   DATA.settings.photoDataUrl=dataUrl;
   queueSave();
-  if(dropboxReady){
-    try{await dbxUpload()}catch(e){console.warn('VINISWIM photo sync',e)}
-  }
-  
+
   $('#photoPreview').src=dataUrl;
   renderAthleteHero();
   syncCompetitionImportUI();
@@ -2418,7 +2405,7 @@ async function syncPushSubscription(){
   DATA.settings.vapidPublicKey=cfg.publicKey;
   DATA.settings.pushServerUrl=VINISWIM_MONITOR_BASE;
   cacheLocalData();
-  if(vapidChanged && dropboxReady) dbxUpload().catch(e=>console.warn('push migration save',e));
+  if(vapidChanged && dropboxReady)setDropboxStatus('Dropbox · alterações não salvas');
   const payload={
     subscription:sub.toJSON(),
     athlete:{
@@ -2532,20 +2519,23 @@ function normalizeServerResult(x){
   };
 }
 async function ackServerResults(base,registration,rids){
-  if(!rids.length)return;
+  if(!rids.length)return true;
   try{
     const r=await fetch(base+'/pending-results/ack',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({registration,rids})
     });
-    if(r.ok)return;
+    if(r.ok)return true;
   }catch(_){}
   try{
     await jsonpRequest(
       base+'/pending-results/ack-simple?registration='+encodeURIComponent(registration)+'&rids='+encodeURIComponent(rids.join('|')),
       30000
     );
-  }catch(_){}
+    return true;
+  }catch(_){
+    return false;
+  }
 }
 
 function setSwimUpdateStatus(text,state=''){
@@ -2705,19 +2695,12 @@ async function applyIncomingSwimResults(base,registration,incoming,{manual=false
   render();
   renderLastSwimSync();
 
-  if(dropboxReady){
-    let saved=false;
-    try{
-      await dbxUpload();
-      saved=true;
-    }catch(e){
-      // O resultado já foi recebido do Railway e fica preservado localmente.
-      // Não transforma uma falha transitória do Dropbox em falha da atualização.
-      cacheLocalData();
-      setDropboxStatus('Dropbox · pendente','err');
-      console.warn('Dropbox pendente após atualização de resultados',e);
-    }
-    if(saved)await ackServerResults(base,registration,ack);
+  // Resultados detectados entram imediatamente no frontend e no cache local,
+  // mas só são persistidos no Dropbox quando o usuário aciona Salvar.
+  cacheLocalData();
+  rememberPendingResultAcks(ack);
+  if(dropboxReady && (changed || ack.length)){
+    setDropboxStatus('Dropbox · alterações não salvas');
   }
 
   DATA.pendingOfficialResults=[];
@@ -3339,6 +3322,14 @@ async function actionSaveNow(){
     collectSettingsFromForm();
     renderAthleteHero();
     await dbxUpload();
+
+    const registration=DATA.settings?.athleteRegistration||DATA.athlete?.registration||'';
+    const pendingAcks=readPendingResultAcks();
+    if(registration && pendingAcks.length){
+      const acked=await ackServerResults(VINISWIM_MONITOR_BASE,registration,pendingAcks);
+      if(acked)clearPendingResultAcks();
+    }
+
     alert('Dados salvos no Dropbox.');
   }catch(e){
     setDropboxStatus('Dropbox · erro ao salvar','err');
@@ -3504,6 +3495,16 @@ async function dbxUpload(){
   setDropboxStatus('Dropbox · sincronizado','ok');
   return true;
 }
+function pendingResultAckKey(){return LOCAL_DATA_CACHE+'_pending_result_acks'}
+function readPendingResultAcks(){
+  try{return [...new Set(JSON.parse(localStorage.getItem(pendingResultAckKey())||'[]'))]}catch(_){return []}
+}
+function rememberPendingResultAcks(rids=[]){
+  if(!rids.length)return;
+  const all=[...new Set([...readPendingResultAcks(),...rids.filter(Boolean)])];
+  localStorage.setItem(pendingResultAckKey(),JSON.stringify(all));
+}
+function clearPendingResultAcks(){localStorage.removeItem(pendingResultAckKey())}
 function queueSave(){
   cacheLocalData();
   if(dropboxReady)setDropboxStatus('Dropbox · alterações não salvas');
@@ -3563,22 +3564,16 @@ async function bootstrapDropbox(){
           if(cs[k] && !DATA.settings[k]){DATA.settings[k]=cs[k];personalMerged=true}
         }
       }
-      const migrated=applyHistorical35Migration();
-      reconcileViniCurrentOfficialResults();
+      const migrated=
+      
       cacheLocalData();
-      if((personalMerged||railwayMigrated) && !migrated){
-        dropboxReady=true;
-        await dbxUpload();
-      }
-      if(migrated){
-        dropboxReady=true;
-        await dbxUpload();
-      }
+      if(personalMerged||railwayMigrated) setDropboxStatus('Dropbox · alterações não salvas');
     }else{
       DATA=JSON.parse(document.getElementById('seedData').textContent);
       ensureRailwayMonitor();
       dropboxReady=true;
-      await dbxUpload();
+      cacheLocalData();
+      setDropboxStatus('Dropbox · base nova não salva');
     }
     dropboxReady=true;
     setDropboxStatus('Dropbox · sincronizado','ok');
@@ -3617,8 +3612,8 @@ function logoutDropbox(){
 }
 
 ensureAlertSettings();
-applyHistorical35Migration();
-reconcileViniCurrentOfficialResults();
+
+
 document.body.classList.remove('auth-locked');
 render();
 renderDropboxRecovery();
