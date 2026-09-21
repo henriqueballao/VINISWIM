@@ -1,0 +1,8 @@
+{
+  "name": "viniswim-commercial-launcher",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "unpack": "rm -rf commercial-runtime && mkdir commercial-runtime && unzip -q commercial-src.zip -d commercial-runtime"
+  }
+}
