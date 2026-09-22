@@ -10,7 +10,8 @@ const d=(x:string)=>new Date(x+'T12:00:00').toLocaleDateString('pt-BR')
 const statusLabel=(s:string,t:number|null)=>s==='valid'?formatSwimTime(t):s.toUpperCase()
 
 function Auth(){
- const [mode,setMode]=useState<'login'|'signup'>('login')
+ const [mode,setMode]=useState<'login'|'activate'>('login')
+ const [step,setStep]=useState<'email'|'password'>('email')
  const [name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState('')
  const [msg,setMsg]=useState(''),[showPassword,setShowPassword]=useState(false),[busy,setBusy]=useState(false),[cooldown,setCooldown]=useState(0)
  useEffect(()=>{if(cooldown<=0)return;const timer=window.setInterval(()=>setCooldown(v=>Math.max(0,v-1)),1000);return()=>window.clearInterval(timer)},[cooldown])
@@ -21,8 +22,19 @@ function Auth(){
   if(/rate limit|security purposes|too many requests/i.test(raw)){setCooldown(60);return 'Muitas tentativas em sequência. Aguarde 1 minuto e tente novamente.'}
   if(/invalid login credentials/i.test(raw))return 'E-mail ou senha incorretos.'
   if(/user already registered|already been registered/i.test(raw))return 'Este e-mail já possui cadastro. Volte para o login.'
+  if(/VINISWIM_SIGNUP_NOT_AUTHORIZED|not authorized|Database error saving new user/i.test(raw))return 'Este e-mail não está autorizado para ativar o VINISWIM.'
   if(/password should be at least/i.test(raw))return 'A senha precisa ter pelo menos 6 caracteres.'
   return raw||'Não foi possível concluir a operação.'
+ }
+ async function validateAccess(){
+  if(!email.trim()){setMsg('Informe o e-mail comercializado.');return}
+  setBusy(true);setMsg('')
+  try{
+   const {data,error}=await supabase.rpc('check_commercial_access',{p_email:email.trim().toLowerCase()})
+   if(error){setMsg('Não foi possível validar o acesso agora.');return}
+   if(!data){setMsg('Este e-mail não está autorizado. Solicite a liberação comercial do VINISWIM.');return}
+   setStep('password')
+  }finally{setBusy(false)}
  }
  async function submit(e:any){
   e.preventDefault()
@@ -33,15 +45,29 @@ function Auth(){
     const {error}=await supabase.auth.signInWithPassword({email:email.trim(),password})
     if(error)setMsg(authMessage(error))
    }else{
-    const {data,error}=await supabase.auth.signUp({email:email.trim(),password,options:{data:{full_name:name.trim()}}})
+    if(step==='email'){setBusy(false);await validateAccess();return}
+    const {data,error}=await supabase.auth.signUp({email:email.trim().toLowerCase(),password,options:{data:{full_name:name.trim()}}})
     if(error){setMsg(authMessage(error));return}
-    if(data.session)setMsg('Conta criada. Entrando no VINISWIM...')
-    else setMsg('Conta criada. Confira seu e-mail para confirmar o cadastro e depois volte ao login.')
+    if(data.session)setMsg('Acesso ativado. Entrando no VINISWIM...')
+    else setMsg('Acesso ativado. Confira seu e-mail para confirmar o cadastro e depois volte ao login.')
    }
   }finally{setBusy(false)}
  }
  const buttonDisabled=busy||cooldown>0
- return <div className="auth"><div className="auth-card"><img className="auth-logo" src="../apple-touch-icon.png" alt="VINISWIM"/><h1>VINISWIM</h1><div className="performance-tracker">PERFORMANCE TRACKER</div><p>Resultados, evolução e campeonatos em um único perfil por atleta.</p><form onSubmit={submit}>{mode==='signup'&&<label>Nome completo<input value={name} onChange={e=>setName(e.target.value)} required autoComplete="name"/></label>}<label>E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label><label>Senha<div className="password-field"><input type={showPassword?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} minLength={6} required autoComplete={mode==='login'?'current-password':'new-password'}/><button type="button" className="password-toggle" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?'Ocultar senha':'Mostrar senha'}>{showPassword?<EyeOff size={21}/>:<Eye size={21}/>}</button></div></label><button className="btn primary" disabled={buttonDisabled}>{busy?'Processando...':cooldown>0?`Aguarde ${cooldown}s`:mode==='login'?'Entrar':'Criar conta'}</button></form>{msg&&<div className="notice">{msg}</div>}<button className="link" disabled={busy} onClick={()=>{setMode(mode==='login'?'signup':'login');setMsg('');setCooldown(0)}}>{mode==='login'?'Primeiro acesso? Criar conta':'Voltar para o login'}</button></div></div>
+ function switchMode(next:'login'|'activate'){setMode(next);setStep('email');setMsg('');setPassword('');setShowPassword(false);setCooldown(0)}
+ return <div className="auth"><div className="auth-card"><img className="auth-logo" src="../apple-touch-icon.png" alt="VINISWIM"/><h1>VINISWIM</h1><div className="performance-tracker">PERFORMANCE TRACKER</div><p>Resultados, evolução e campeonatos em um único perfil por atleta.</p>
+ <form onSubmit={submit}>
+  {mode==='activate'&&step==='password'&&<label>Nome completo<input value={name} onChange={e=>setName(e.target.value)} required autoComplete="name"/></label>}
+  <label>E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email" disabled={mode==='activate'&&step==='password'}/></label>
+  {(mode==='login'||step==='password')&&<label>Senha<div className="password-field"><input type={showPassword?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} minLength={6} required autoComplete={mode==='login'?'current-password':'new-password'}/><button type="button" className="password-toggle" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?'Ocultar senha':'Mostrar senha'}>{showPassword?<EyeOff size={21}/>:<Eye size={21}/>}</button></div></label>}
+  <button className="btn primary" disabled={buttonDisabled}>{busy?'Processando...':cooldown>0?`Aguarde ${cooldown}s`:mode==='login'?'Entrar':step==='email'?'Validar e-mail autorizado':'Criar minha senha'}</button>
+ </form>
+ {mode==='activate'&&step==='password'&&<div className="access-ok">E-mail autorizado para ativação.</div>}
+ {msg&&<div className="notice">{msg}</div>}
+ {mode==='login'
+   ?<button className="link" onClick={()=>switchMode('activate')}>Primeiro acesso? Ativar conta</button>
+   :<button className="link" onClick={()=>switchMode('login')}>Voltar para o login</button>}
+ </div></div>
 }
 
 function AthleteForm({accountId,onDone}:{accountId:string,onDone:()=>void}){const [name,setName]=useState(''),[birth,setBirth]=useState(''),[club,setClub]=useState(''),[msg,setMsg]=useState('');async function save(e:any){e.preventDefault();const {error}=await supabase.from('athletes').insert({account_id:accountId,full_name:name,preferred_name:name.split(' ')[0],birth_date:birth||null,club_name:club||null,status:'pending_source'});if(error)setMsg(error.message);else onDone()}return <div className="empty"><h2>Cadastre o primeiro atleta</h2><p>Os dados ficam vinculados somente à sua conta.</p><form className="form" onSubmit={save}><label>Nome completo<input value={name} onChange={e=>setName(e.target.value)} required/></label><label>Data de nascimento<input type="date" value={birth} onChange={e=>setBirth(e.target.value)}/></label><label>Clube<input value={club} onChange={e=>setClub(e.target.value)}/></label><button className="btn primary">Cadastrar atleta</button></form>{msg&&<div className="notice">{msg}</div>}</div>}
@@ -117,4 +143,42 @@ function Alerts({athleteId,userId}:{athleteId:string,userId:string}){const types
 
 function Audit({rows}:{rows:any[]}){return <section className="section"><h3>Auditoria</h3><p className="muted">Alterações e ingestões rastreadas no banco.</p>{rows.map(r=><div className="audit" key={r.id}><b>{r.action.toUpperCase()}</b><span>{r.entity_type}</span><small>{new Date(r.created_at).toLocaleString('pt-BR')} · {r.source}</small></div>)}{!rows.length&&<p className="muted">Nenhum evento registrado.</p>}</section>}
 
-function SettingsPage({athlete,userId,reload}:{athlete:any,userId:string,reload:()=>void}){const [club,setClub]=useState(athlete.club_name||''),[registration,setRegistration]=useState(''),[url,setUrl]=useState(''),[link,setLink]=useState<any>(null),[msg,setMsg]=useState('');useEffect(()=>{setClub(athlete.club_name||'');supabase.from('source_link_requests').select('*,sources(name,code)').eq('athlete_id',athlete.id).order('created_at',{ascending:false}).limit(1).maybeSingle().then(({data})=>{setLink(data);if(data){setRegistration(data.external_id||'');setUrl(data.current_meet_url||'')}})},[athlete.id]);async function save(){const {error}=await supabase.from('athletes').update({club_name:club}).eq('id',athlete.id);setMsg(error?error.message:'Dados salvos.');if(!error)reload()}async function linkSource(e:any){e.preventDefault();const {data:src}=await supabase.from('sources').select('id').eq('code','swimsystem').single();if(!src){setMsg('Fonte indisponível.');return}const {error}=await supabase.from('source_link_requests').upsert({athlete_id:athlete.id,source_id:src.id,external_id:registration,current_meet_url:url,status:'pending',message:null,requested_by:userId,processed_at:null},{onConflict:'athlete_id,source_id'});setMsg(error?error.message:'Solicitação enviada para validação pelo backend.');if(!error){const {data}=await supabase.from('source_link_requests').select('*').eq('athlete_id',athlete.id).eq('source_id',src.id).single();setLink(data)}}return <><section className="section"><h3>Configurações do atleta</h3><div className="form-grid"><label>Nome<input value={athlete.full_name} disabled/></label><label>Clube<input value={club} onChange={e=>setClub(e.target.value)}/></label></div><button className="btn primary" onClick={save}>Salvar</button></section><section className="section"><h3>Fonte oficial</h3><p className="muted">O vínculo só fica ativo após o monitor localizar o registro informado na fonte.</p><form className="form" onSubmit={linkSource}><label>Registro SwimSystem<input value={registration} onChange={e=>setRegistration(e.target.value)} required/></label><label>URL do campeonato atual<input type="url" value={url} onChange={e=>setUrl(e.target.value)} required placeholder="https://www.swimsystem.app/meets/sw/..."/></label><button className="btn primary">Validar vínculo</button></form>{link&&<div className="source-state"><b>Status: {String(link.status).toUpperCase()}</b><small>{link.message||'Aguardando monitor'}</small></div>}{msg&&<div className="notice">{msg}</div>}</section></>}
+function CommercialAdmin(){
+ const [isAdmin,setIsAdmin]=useState(false),[rows,setRows]=useState<any[]>([]),[plans,setPlans]=useState<any[]>([])
+ const [email,setEmail]=useState(''),[customer,setCustomer]=useState(''),[planId,setPlanId]=useState(''),[expires,setExpires]=useState(''),[notes,setNotes]=useState(''),[msg,setMsg]=useState('')
+ useEffect(()=>{void load()},[])
+ async function load(){
+  const {data:admin}=await supabase.rpc('is_platform_admin')
+  setIsAdmin(!!admin)
+  if(!admin)return
+  const [{data:r},{data:p}]=await Promise.all([
+   supabase.from('commercial_access').select('*,plans(code,name)').order('created_at',{ascending:false}),
+   supabase.from('plans').select('id,code,name').eq('active',true).order('name')
+  ])
+  setRows(r||[]);setPlans(p||[])
+  if(!planId&&p?.length)setPlanId((p.find((x:any)=>x.code==='individual')||p[0]).id)
+ }
+ async function authorize(e:any){
+  e.preventDefault();setMsg('')
+  const normalized=email.trim().toLowerCase()
+  const payload={email:normalized,customer_name:customer.trim()||null,plan_id:planId||null,status:'authorized',expires_at:expires?new Date(expires+'T23:59:59').toISOString():null,notes:notes.trim()||null,user_id:null,used_at:null}
+  const {error}=await supabase.from('commercial_access').upsert(payload,{onConflict:'email'})
+  if(error)setMsg(error.message);else{setMsg('E-mail autorizado para ativação.');setEmail('');setCustomer('');setExpires('');setNotes('');await load()}
+ }
+ async function revoke(id:string){const {error}=await supabase.from('commercial_access').update({status:'revoked'}).eq('id',id);if(error)setMsg(error.message);else await load()}
+ if(!isAdmin)return null
+ return <section className="section admin-commercial"><div className="section-head"><div><h3>Admin Comercial</h3><p className="muted">Somente e-mails cadastrados aqui podem criar uma conta VINISWIM.</p></div><span className="admin-badge">ADMIN</span></div>
+ <form className="form-grid" onSubmit={authorize}>
+  <label>Nome do cliente<input value={customer} onChange={e=>setCustomer(e.target.value)} placeholder="Responsável / cliente"/></label>
+  <label>E-mail comercializado<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required placeholder="cliente@email.com"/></label>
+  <label>Plano<select value={planId} onChange={e=>setPlanId(e.target.value)} required>{plans.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+  <label>Validade da autorização<input type="date" value={expires} onChange={e=>setExpires(e.target.value)}/></label>
+  <label className="wide">Observação<input value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Opcional"/></label>
+  <div className="wide"><button className="btn primary">Autorizar e-mail</button></div>
+ </form>
+ {msg&&<div className="notice">{msg}</div>}
+ <div className="table-wrap"><table><thead><tr><th>Cliente</th><th>E-mail</th><th>Plano</th><th>Status</th><th>Autorizado</th><th></th></tr></thead><tbody>{rows.map(r=><tr key={r.id}><td>{r.customer_name||'—'}</td><td>{r.email}</td><td>{r.plans?.name||'—'}</td><td><span className={'tag '+(r.status==='authorized'?'official':'manual')}>{String(r.status).toUpperCase()}</span></td><td>{new Date(r.authorized_at).toLocaleDateString('pt-BR')}</td><td>{r.status==='authorized'&&<button className="danger-link" onClick={()=>revoke(r.id)}>Revogar</button>}</td></tr>)}</tbody></table></div>
+ </section>
+}
+
+function SettingsPage({athlete,userId,reload}:{athlete:any,userId:string,reload:()=>void}){const [club,setClub]=useState(athlete.club_name||''),[registration,setRegistration]=useState(''),[url,setUrl]=useState(''),[link,setLink]=useState<any>(null),[msg,setMsg]=useState('');useEffect(()=>{setClub(athlete.club_name||'');supabase.from('source_link_requests').select('*,sources(name,code)').eq('athlete_id',athlete.id).order('created_at',{ascending:false}).limit(1).maybeSingle().then(({data})=>{setLink(data);if(data){setRegistration(data.external_id||'');setUrl(data.current_meet_url||'')}})},[athlete.id]);async function save(){const {error}=await supabase.from('athletes').update({club_name:club}).eq('id',athlete.id);setMsg(error?error.message:'Dados salvos.');if(!error)reload()}async function linkSource(e:any){e.preventDefault();const {data:src}=await supabase.from('sources').select('id').eq('code','swimsystem').single();if(!src){setMsg('Fonte indisponível.');return}const {error}=await supabase.from('source_link_requests').upsert({athlete_id:athlete.id,source_id:src.id,external_id:registration,current_meet_url:url,status:'pending',message:null,requested_by:userId,processed_at:null},{onConflict:'athlete_id,source_id'});setMsg(error?error.message:'Solicitação enviada para validação pelo backend.');if(!error){const {data}=await supabase.from('source_link_requests').select('*').eq('athlete_id',athlete.id).eq('source_id',src.id).single();setLink(data)}}return <><section className="section"><h3>Configurações do atleta</h3><div className="form-grid"><label>Nome<input value={athlete.full_name} disabled/></label><label>Clube<input value={club} onChange={e=>setClub(e.target.value)}/></label></div><button className="btn primary" onClick={save}>Salvar</button></section><section className="section"><h3>Fonte oficial</h3><p className="muted">O vínculo só fica ativo após o monitor localizar o registro informado na fonte.</p><form className="form" onSubmit={linkSource}><label>Registro SwimSystem<input value={registration} onChange={e=>setRegistration(e.target.value)} required/></label><label>URL do campeonato atual<input type="url" value={url} onChange={e=>setUrl(e.target.value)} required placeholder="https://www.swimsystem.app/meets/sw/..."/></label><button className="btn primary">Validar vínculo</button></form>{link&&<div className="source-state"><b>Status: {String(link.status).toUpperCase()}</b><small>{link.message||'Aguardando monitor'}</small></div>}{msg&&<div className="notice">{msg}</div>}</section><CommercialAdmin/></>}
