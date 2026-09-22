@@ -12,3 +12,8 @@
 .password-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;background:transparent;color:#60717f;display:grid;place-items:center;border-radius:8px}
 .password-toggle:active{background:#eef3f6}
 .btn:disabled,.link:disabled{opacity:.58;cursor:not-allowed}
+
+.access-ok{margin-top:10px;padding:10px 12px;border-radius:9px;background:#e9f7f0;color:#146b4d;font-size:12px;font-weight:700}
+.admin-commercial{border-color:#b9d9dc}
+.admin-badge{font-size:10px;font-weight:900;letter-spacing:.12em;color:#0e7e87;background:#e5f5f6;padding:6px 8px;border-radius:999px}
+.danger-link{border:0;background:transparent;color:var(--bad);font-weight:700;padding:6px 0}
