@@ -122,3 +122,17 @@ button.kpi{appearance:none;text-align:left;color:inherit}
  .sidebar-actions button{width:100%}
  .logout{position:static!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%;margin-top:6px;padding:12px 14px!important;min-height:48px}
 }
+
+/* sidebar actions toggle + legal footer */
+.sidebar-actions{margin-top:auto;padding-top:12px;border-top:1px solid rgba(255,255,255,.09);display:grid;gap:5px}
+.sidebar-actions-toggle{width:100%;justify-content:space-between!important;font-weight:700;color:#d7e0e5!important}
+.sidebar-actions-toggle .rotated{transform:rotate(180deg)}
+.sidebar-actions-toggle svg{transition:transform .18s ease}
+.sidebar-actions-menu{display:grid;gap:3px}
+.sidebar-actions-menu button{width:100%;padding-left:20px!important}
+.sidebar-legal{padding:12px 12px 2px;color:#78909b;font-size:10px;line-height:1.45;border-top:1px solid rgba(255,255,255,.06);margin-top:6px}
+.sidebar-legal span{color:#607884}
+@media(max-width:900px){
+ .sidebar-actions{margin-top:auto}
+ .sidebar-legal{padding-bottom:max(2px,env(safe-area-inset-bottom))}
+}
