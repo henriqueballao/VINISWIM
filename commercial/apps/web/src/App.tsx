@@ -41,11 +41,14 @@ function Auth({onAuthenticated}:{onAuthenticated:(session:any)=>void}){
  async function validateAccess(){if(!email.trim()){setMsg('Informe o e-mail comercializado.');return}setBusy(true);setMsg('');try{const {data,error}=await supabase.rpc('check_commercial_access',{p_email:email.trim().toLowerCase()});if(error){setMsg('Não foi possível validar o acesso agora.');return}if(!data){setMsg('Este e-mail não está autorizado. Solicite a liberação comercial do VINISWIM.');return}setStep('password')}finally{setBusy(false)}}
  async function forgotPassword(){if(!email.trim()){setMsg('Informe seu e-mail para redefinir a senha.');return}setBusy(true);setMsg('');const redirectTo=window.location.origin+window.location.pathname+'?reset=1';const {error}=await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(),{redirectTo});setBusy(false);if(error)setMsg(authMessage(error));else setMsg('Enviamos um link para redefinir sua senha. Confira seu e-mail.');}
  async function fallbackAdminLogin(){
-  const endpoint=(import.meta.env.VITE_SUPABASE_URL as string)+'/functions/v1/admin-login-fallback'
-  const r=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:email.trim().toLowerCase(),password})})
-  const body=await r.json().catch(()=>({}))
-  if(!r.ok||!body?.session)return null
-  const {data,error}=await supabase.auth.setSession({access_token:body.session.access_token,refresh_token:body.session.refresh_token})
+  const {data:body,error:invokeError}=await supabase.functions.invoke('admin-login-fallback',{
+    body:{email:email.trim().toLowerCase(),password}
+  })
+  if(invokeError||!body?.session)return null
+  const {data,error}=await supabase.auth.setSession({
+    access_token:body.session.access_token,
+    refresh_token:body.session.refresh_token
+  })
   if(error||!data.session)return null
   return data.session
  }
