@@ -100,3 +100,25 @@ button.kpi{appearance:none;text-align:left;color:inherit}
  .sidebar,header,.mobile-nav,.sidebar-backdrop,.no-print,.results-actions,.switch-add{display:none!important}
  .app{display:block}.content{padding:0}.section,.kpi,.athlete-hero{box-shadow:none;break-inside:avoid}
 }
+
+/* sidebar structure fix */
+.sidebar{display:flex;flex-direction:column}
+.sidebar-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sidebar-close{display:none;border:0;background:transparent;color:#d7e0e5;width:40px;height:40px;border-radius:10px;place-items:center;flex:0 0 auto}
+.sidebar nav{width:100%}
+.sidebar nav button{width:100%}
+.logout{margin-top:8px}
+@media(max-width:900px){
+ .sidebar{flex-direction:column!important;align-items:stretch!important}
+ .sidebar-head{width:100%;padding:0 2px 8px}
+ .brand{padding:4px 6px 14px;min-width:0}
+ .brand b{display:block;font-size:17px}
+ .brand small{font-size:12px;line-height:1.2}
+ .brand-logo{width:44px;height:44px}
+ .sidebar-close{display:grid}
+ .sidebar nav{display:grid;gap:5px;width:100%;padding-top:2px}
+ .sidebar nav button{min-height:48px;padding:12px 14px;border-radius:11px;font-size:16px}
+ .sidebar-actions{margin-top:auto;width:100%;padding-top:10px}
+ .sidebar-actions button{width:100%}
+ .logout{position:static!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%;margin-top:6px;padding:12px 14px!important;min-height:48px}
+}
