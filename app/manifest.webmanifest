@@ -1,1 +1,13 @@
-{"name":"VINISWIM","short_name":"VINISWIM","description":"Acompanhamento de natação por atleta","start_url":"./","scope":"./","display":"standalone","background_color":"#f6f9fb","theme_color":"#0e2530"}
+{
+  "name":"VINISWIM Performance Tracker",
+  "short_name":"VINISWIM",
+  "description":"Resultados, evolução e campeonatos por atleta.",
+  "start_url":"./",
+  "scope":"./",
+  "display":"standalone",
+  "background_color":"#f6f9fb",
+  "theme_color":"#0e2530",
+  "icons":[
+    {"src":"../apple-touch-icon.png","sizes":"180x180","type":"image/png","purpose":"any"}
+  ]
+}
