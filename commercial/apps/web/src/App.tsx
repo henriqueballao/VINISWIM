@@ -195,7 +195,20 @@ export default function App(){
  if(!account)return <div className="loading">Preparando sua conta VINISWIM...</div>
  if(needsInitialAthlete)return <><AthleteModal accountId={account.id} onClose={()=>{}} onSaved={loadIdentity}/></>
  async function del(r:any){if(confirm('Excluir este resultado manual?')){await supabase.from('results').delete().eq('id',r.id);await loadAthlete()}}
- async function refresh(){setRefreshMsg('Solicitando atualização...');const {data,error}=await supabase.rpc('request_result_refresh',{p_athlete_id:athleteId,p_source_codes:searchSources});if(error)setRefreshMsg(error.message);else setRefreshMsg(data?.message||'Atualização solicitada.');setTimeout(()=>void loadAthlete(),4000)}
+ async function refresh(){
+  setRefreshMsg('Solicitando atualização...')
+  const {data,error}=await supabase.rpc('request_result_refresh',{p_athlete_id:athleteId,p_source_codes:searchSources})
+  if(error){setRefreshMsg(error.message);return}
+  setRefreshMsg(data?.message||'Atualização solicitada.')
+  let tries=0
+  const poll=async()=>{
+   tries++
+   await loadAthlete()
+   if(tries<12)setTimeout(()=>void poll(),5000)
+   else setRefreshMsg('Busca processada. Resultados disponíveis foram atualizados.')
+  }
+  setTimeout(()=>void poll(),2500)
+ }
  const title=nav.find(x=>x[0]===page)?.[1]||'VINISWIM',age=calcAge(athlete?.birth_date),lastSync=monitorJobs.map(x=>x.last_run_at).filter(Boolean).sort().at(-1)
  return <div className="app">
   <aside className={open?'sidebar open':'sidebar'}><div className="sidebar-head"><div className="brand"><img className="brand-logo" src="../apple-touch-icon.png"/><div><b>VINISWIM</b><small>Performance Tracker</small></div></div><button className="sidebar-close" onClick={()=>setOpen(false)} aria-label="Fechar menu"><X size={22}/></button></div><nav>{nav.map(([id,label,Icon])=><button className={page===id?'active':''} onClick={()=>{setPage(id);setOpen(false)}} key={id}><Icon size={18}/>{label}</button>)}</nav><div className="sidebar-actions"><button className="sidebar-actions-toggle" onClick={()=>setActionsOpen(v=>!v)} aria-expanded={actionsOpen}><span>Ações</span><ChevronDown size={18} className={actionsOpen?'rotated':''}/></button>{actionsOpen&&<div className="sidebar-actions-menu"><button onClick={()=>{setTutorial(true);setOpen(false)}}>Como usar</button><button onClick={()=>{setAlertsModal(true);setOpen(false)}}><Bell size={16}/> Alertas</button><button onClick={()=>{setAuditModal(true);setOpen(false)}}><ShieldCheck size={16}/> Auditoria</button><button onClick={()=>window.print()}><Printer size={16}/> Imprimir / PDF</button><button onClick={logout}><LogOut size={17}/> Sair</button></div>}</div><div className="sidebar-legal">© 2026 VINISWIM<br/><span>Todos os direitos reservados · v0.1.0</span></div></aside><div className={open?'sidebar-backdrop open':'sidebar-backdrop'} onClick={()=>setOpen(false)}/>
