@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useState} from 'react'
+import {useEffect,useMemo,useRef,useState} from 'react'
 import {Activity,Bell,Camera,ChartNoAxesCombined,ChevronDown,Eye,EyeOff,Gauge,LogOut,Medal,Menu,MoreHorizontal,Plus,Printer,RefreshCw,Settings,ShieldCheck,Trophy,UserPlus,X} from 'lucide-react'
 import {CartesianGrid,Legend,Line,LineChart,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
 import {formatSwimTime,parseSwimTime} from '@viniswim/shared'
@@ -138,19 +138,47 @@ function Tutorial({onClose}:{onClose:()=>void}){
 function Kpi({k,v,s,onClick}:{k:string,v:any,s?:string,onClick?:()=>void}){return <button className="kpi" onClick={onClick}><span>{k}</span><b>{v}</b>{s&&<small>{s}</small>}</button>}
 
 export default function App(){
- const [session,setSession]=useState<any>(null),[authReady,setAuthReady]=useState(false),[identityLoading,setIdentityLoading]=useState(false),[identityLoaded,setIdentityLoaded]=useState(false),[recovery,setRecovery]=useState(()=>new URLSearchParams(window.location.search).get('reset')==='1'),[page,setPage]=useState<Page>('dashboard'),[open,setOpen]=useState(false),[actionsOpen,setActionsOpen]=useState(false),[profile,setProfile]=useState<any>(null),[account,setAccount]=useState<any>(null),[athletes,setAthletes]=useState<any[]>([]),[athleteId,setAthleteId]=useState(localStorage.getItem('viniswim-athlete')||''),[events,setEvents]=useState<any[]>([]),[results,setResults]=useState<any[]>([]),[overview,setOverview]=useState<any>(null),[pbs,setPbs]=useState<any[]>([]),[meets,setMeets]=useState<any[]>([]),[entries,setEntries]=useState<any[]>([]),[audit,setAudit]=useState<any[]>([]),[sources,setSources]=useState<any[]>([]),[sourceConfigs,setSourceConfigs]=useState<any[]>([]),[searchSources,setSearchSources]=useState<string[]>([]),[monitorJobs,setMonitorJobs]=useState<any[]>([]),[modal,setModal]=useState<any>(null),[athleteModal,setAthleteModal]=useState(false),[meetModal,setMeetModal]=useState(false),[tutorial,setTutorial]=useState(false),[alertsModal,setAlertsModal]=useState(false),[auditModal,setAuditModal]=useState(false),[filters,setFilters]=useState({event:[] as string[],course:[] as string[],category:[] as string[],origin:[] as string[]}),[refreshMsg,setRefreshMsg]=useState('')
+ const identityRun=useRef(0)
+ const [session,setSession]=useState<any>(null),[authReady,setAuthReady]=useState(false),[identityLoading,setIdentityLoading]=useState(false),[identityLoaded,setIdentityLoaded]=useState(false),[needsInitialAthlete,setNeedsInitialAthlete]=useState(false),[recovery,setRecovery]=useState(()=>new URLSearchParams(window.location.search).get('reset')==='1'),[page,setPage]=useState<Page>('dashboard'),[open,setOpen]=useState(false),[actionsOpen,setActionsOpen]=useState(false),[profile,setProfile]=useState<any>(null),[account,setAccount]=useState<any>(null),[athletes,setAthletes]=useState<any[]>([]),[athleteId,setAthleteId]=useState(localStorage.getItem('viniswim-athlete')||''),[events,setEvents]=useState<any[]>([]),[results,setResults]=useState<any[]>([]),[overview,setOverview]=useState<any>(null),[pbs,setPbs]=useState<any[]>([]),[meets,setMeets]=useState<any[]>([]),[entries,setEntries]=useState<any[]>([]),[audit,setAudit]=useState<any[]>([]),[sources,setSources]=useState<any[]>([]),[sourceConfigs,setSourceConfigs]=useState<any[]>([]),[searchSources,setSearchSources]=useState<string[]>([]),[monitorJobs,setMonitorJobs]=useState<any[]>([]),[modal,setModal]=useState<any>(null),[athleteModal,setAthleteModal]=useState(false),[meetModal,setMeetModal]=useState(false),[tutorial,setTutorial]=useState(false),[alertsModal,setAlertsModal]=useState(false),[auditModal,setAuditModal]=useState(false),[filters,setFilters]=useState({event:[] as string[],course:[] as string[],category:[] as string[],origin:[] as string[]}),[refreshMsg,setRefreshMsg]=useState('')
  useEffect(()=>{supabase.auth.getSession().then(x=>{setSession(x.data.session);setAuthReady(true)});const {data:{subscription}}=supabase.auth.onAuthStateChange((e,s)=>{setSession(s);setAuthReady(true);if(e==='PASSWORD_RECOVERY')setRecovery(true);if(!s){setIdentityLoading(false);setIdentityLoaded(false)}});return()=>subscription.unsubscribe()},[])
- useEffect(()=>{if(session)void loadIdentity();else{setIdentityLoading(false);setIdentityLoaded(false)}},[session?.user?.id])
+ useEffect(()=>{identityRun.current++;setNeedsInitialAthlete(false);if(session)void loadIdentity();else{setIdentityLoading(false);setIdentityLoaded(false)}},[session?.user?.id])
  useEffect(()=>{if(athleteId){localStorage.setItem('viniswim-athlete',athleteId);void loadAthlete()}},[athleteId])
  async function logout(){
-  setSession(null);setIdentityLoading(false);setIdentityLoaded(false)
+  identityRun.current++;setNeedsInitialAthlete(false);setSession(null);setIdentityLoading(false);setIdentityLoaded(false)
   setOpen(false);setActionsOpen(false);setTutorial(false);setAlertsModal(false);setAuditModal(false);setModal(null);setAthleteModal(false);setMeetModal(false)
   localStorage.removeItem('viniswim-athlete')
   setAthleteId('');setProfile(null);setAccount(null);setAthletes([]);setEvents([]);setResults([]);setOverview(null);setPbs([]);setMeets([]);setEntries([]);setAudit([]);setSources([]);setSourceConfigs([]);setSearchSources([]);setMonitorJobs([]);setRefreshMsg('');setPage('dashboard')
   const {error}=await supabase.auth.signOut()
   if(error)console.error('VINISWIM signOut:',error.message)
  }
- async function loadIdentity(){setIdentityLoading(true);setIdentityLoaded(false);try{const uid=session.user.id;const [{data:p},{data:m},{data:e}]=await Promise.all([supabase.from('profiles').select('*').eq('id',uid).maybeSingle(),supabase.from('account_members').select('account_id,role,accounts(*)').eq('user_id',uid).eq('status','active').limit(1).maybeSingle(),supabase.from('events').select('*').order('sort_order')]);setProfile(p);setAccount((m as any)?.accounts||null);setEvents(e||[]);let nextAthletes:any[]=[];if((m as any)?.account_id){const {data:a}=await supabase.from('athletes').select('*').eq('account_id',(m as any).account_id).eq('active',true).order('created_at');nextAthletes=a||[];setAthletes(nextAthletes);if(!athleteId&&nextAthletes[0])setAthleteId(nextAthletes[0].id)}else setAthletes([])}finally{setIdentityLoading(false);setIdentityLoaded(true)}}
+ async function loadIdentity(){
+  const run=++identityRun.current
+  setIdentityLoading(true);setIdentityLoaded(false);setNeedsInitialAthlete(false)
+  try{
+   const uid=session.user.id
+   const [{data:p},{data:m},{data:e}]=await Promise.all([
+    supabase.from('profiles').select('*').eq('id',uid).maybeSingle(),
+    supabase.from('account_members').select('account_id,role,accounts(*)').eq('user_id',uid).eq('status','active').limit(1).maybeSingle(),
+    supabase.from('events').select('*').order('sort_order')
+   ])
+   if(run!==identityRun.current)return
+   setProfile(p);setAccount((m as any)?.accounts||null);setEvents(e||[])
+   let nextAthletes:any[]=[]
+   if((m as any)?.account_id){
+    const {data:a}=await supabase.from('athletes').select('*').eq('account_id',(m as any).account_id).eq('active',true).order('created_at')
+    if(run!==identityRun.current)return
+    nextAthletes=a||[]
+    setAthletes(nextAthletes)
+    if(!athleteId&&nextAthletes[0])setAthleteId(nextAthletes[0].id)
+   }else{
+    setAthletes([])
+   }
+   if(run!==identityRun.current)return
+   setNeedsInitialAthlete(!!(m as any)?.account_id&&nextAthletes.length===0)
+  }finally{
+   if(run===identityRun.current){setIdentityLoading(false);setIdentityLoaded(true)}
+  }
+ }
  async function loadAthlete(){const [{data:r},{data:o},{data:pb},{data:en},{data:au},{data:rs},{data:sc},{data:mj}]=await Promise.all([supabase.from('v_result_timeline').select('*').eq('athlete_id',athleteId).order('result_date',{ascending:false}).order('created_at',{ascending:false}),supabase.from('v_athlete_overview').select('*').eq('athlete_id',athleteId).maybeSingle(),supabase.from('personal_bests').select('*,results(*)').eq('athlete_id',athleteId),supabase.from('meet_entries').select('*,meets(*)').eq('athlete_id',athleteId),supabase.from('audit_log').select('*').eq('athlete_id',athleteId).order('created_at',{ascending:false}).limit(120),supabase.from('result_sources').select('*,sources(name,code)').in('result_id',(results||[]).map(x=>x.id).length?(results||[]).map(x=>x.id):['00000000-0000-0000-0000-000000000000']),supabase.from('athlete_source_configs').select('*,sources(code,name)').eq('athlete_id',athleteId).eq('active',true).order('sort_order').order('display_name'),supabase.from('monitor_jobs').select('*').eq('athlete_id',athleteId)]);setResults(r||[]);setOverview(o||null);setPbs((pb||[]).map((x:any)=>({...x.results,pb_id:x.id})));setEntries(en||[]);setMeets([...new Map((en||[]).map((x:any)=>[x.meets?.id,x.meets])).values()].filter(Boolean));setAudit(au||[]);setSources(rs||[]);setSourceConfigs(sc||[]);const codes=(sc||[]).map((x:any)=>x.sources?.code).filter(Boolean);setSearchSources(prev=>{const kept=prev.filter(x=>codes.includes(x));return kept.length?kept:codes});setMonitorJobs(mj||[])}
  useEffect(()=>{if(results.length&&athleteId)void supabase.from('result_sources').select('*,sources(name,code)').in('result_id',results.map(x=>x.id)).then(({data})=>setSources(data||[]))},[results.length,athleteId])
  const athlete=athletes.find(x=>x.id===athleteId),ev=new Map(events.map(x=>[x.id,x.label]))
@@ -162,10 +190,10 @@ export default function App(){
  )
  if(!authReady)return <div className="loading">Carregando VINISWIM...</div>
  if(recovery&&session)return <PasswordRecovery onDone={()=>{window.history.replaceState({},'',window.location.pathname);setRecovery(false);setSession(null)}}/>
- if(!session)return <Auth onAuthenticated={s=>{setIdentityLoaded(false);setSession(s)}}/>
+ if(!session)return <Auth onAuthenticated={s=>{identityRun.current++;setNeedsInitialAthlete(false);setIdentityLoaded(false);setSession(s)}}/>
  if(identityLoading||!identityLoaded)return <div className="loading">Preparando sua conta VINISWIM...</div>
  if(!account)return <div className="loading">Preparando sua conta VINISWIM...</div>
- if(identityLoaded&&!athletes.length)return <><AthleteModal accountId={account.id} onClose={()=>{}} onSaved={loadIdentity}/></>
+ if(needsInitialAthlete)return <><AthleteModal accountId={account.id} onClose={()=>{}} onSaved={loadIdentity}/></>
  async function del(r:any){if(confirm('Excluir este resultado manual?')){await supabase.from('results').delete().eq('id',r.id);await loadAthlete()}}
  async function refresh(){setRefreshMsg('Solicitando atualização...');const {data,error}=await supabase.rpc('request_result_refresh',{p_athlete_id:athleteId,p_source_codes:searchSources});if(error)setRefreshMsg(error.message);else setRefreshMsg(data?.message||'Atualização solicitada.');setTimeout(()=>void loadAthlete(),4000)}
  const title=nav.find(x=>x[0]===page)?.[1]||'VINISWIM',age=calcAge(athlete?.birth_date),lastSync=monitorJobs.map(x=>x.last_run_at).filter(Boolean).sort().at(-1)
