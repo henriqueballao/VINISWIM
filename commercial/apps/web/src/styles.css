@@ -255,3 +255,84 @@ button.kpi{appearance:none;text-align:left;color:inherit}
   .source-search-filter label{flex:1 1 auto}
   .configured-source{align-items:flex-start}
 }
+
+.source-config-list{
+  display:grid;
+  gap:12px;
+  margin-top:14px;
+}
+.source-config-card{
+  display:grid;
+  gap:12px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+}
+.source-config-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.source-config-head>div:first-child{
+  display:grid;
+  gap:3px;
+}
+.source-config-head small{
+  color:var(--muted);
+  font-size:11px;
+}
+.source-config-head .actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.source-config-head a,
+.source-config-head button{
+  font-size:12px;
+}
+.source-config-head a{
+  color:var(--accent2);
+  text-decoration:none;
+  font-weight:700;
+}
+.source-config-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.source-config-grid label{
+  display:grid;
+  gap:6px;
+}
+.source-config-grid .wide{
+  grid-column:1/-1;
+}
+.source-config-actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.source-config-actions small{
+  color:var(--muted);
+}
+@media(max-width:700px){
+  .source-config-head{
+    align-items:flex-start;
+  }
+  .source-config-head .actions{
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+  .source-config-grid{
+    grid-template-columns:1fr;
+  }
+  .source-config-grid .wide{
+    grid-column:auto;
+  }
+  .source-config-actions .btn{
+    width:100%;
+  }
+}
