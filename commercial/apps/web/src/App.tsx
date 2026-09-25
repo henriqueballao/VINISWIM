@@ -416,6 +416,15 @@ function CommercialAdmin(){
   else{setMsg('E-mail autorizado.');setEmail('');setCustomer('');setWhatsapp('');setAthleteLimit(1);setExpires('');await load()}
  }
  async function revoke(id:string){await supabase.from('commercial_access').update({status:'revoked'}).eq('id',id);await load()}
+ async function deleteCommercial(r:any){
+  const customerName=r.customer_name||'—'
+  if(!confirm('Excluir o cadastro comercial de '+customerName+' ('+r.email+')?\n\nEsta ação é irreversível e exclui somente este cadastro comercial. A conta, atletas e resultados não serão apagados.'))return
+  setMsg('')
+  const {error}=await supabase.from('commercial_access').delete().eq('id',r.id)
+  if(error){setMsg(error.message);return}
+  setMsg('Cadastro comercial excluído.')
+  await load()
+ }
  function openEdit(r:any){
   setEditRow(r)
   setEditCustomer(r.customer_name||'')
@@ -536,6 +545,7 @@ No primeiro acesso, escolha *“Primeiro acesso? Ativar conta”*, informe o e-m
      <button type="button" onClick={()=>openEdit(r)}>Editar</button>
      {r.status==='used'&&<button type="button" onClick={()=>issueReset(r.email)}>Gerar código de senha</button>}
      {r.status==='authorized'&&<button type="button" className="danger-link" onClick={()=>revoke(r.id)}>Revogar</button>}
+     <button type="button" className="danger-link" onClick={()=>deleteCommercial(r)}>Excluir</button>
     </div></td>
    </tr>)}</tbody>
   </table></div>
