@@ -205,16 +205,21 @@ export default function App(){
   await loadAthlete()
  }
  async function refresh(){
-  setRefreshMsg('Solicitando atualização...')
-  const {data,error}=await supabase.rpc('request_result_refresh',{p_athlete_id:athleteId,p_source_codes:searchSources})
+  const beforeCount=results.length
+  setRefreshMsg('Atualização iniciada. Buscando novos resultados oficiais.')
+  const {error}=await supabase.rpc('request_result_refresh',{p_athlete_id:athleteId,p_source_codes:searchSources})
   if(error){setRefreshMsg(error.message);return}
-  setRefreshMsg(data?.message||'Atualização solicitada.')
   let tries=0
   const poll=async()=>{
    tries++
+   const {data:rows}=await supabase.from('v_result_timeline').select('id').eq('athlete_id',athleteId)
+   const {data:jobs}=await supabase.from('monitor_jobs').select('status').eq('athlete_id',athleteId)
+   const total=rows?.length??beforeCount
+   const busy=(jobs||[]).some((j:any)=>j.status==='pending'||j.status==='running')
+   if(busy&&tries<24){await loadAthlete();setTimeout(()=>void poll(),5000);return}
    await loadAthlete()
-   if(tries<12)setTimeout(()=>void poll(),5000)
-   else setRefreshMsg('Busca processada. Resultados disponíveis foram atualizados.')
+   const added=Math.max(0,total-beforeCount)
+   setRefreshMsg(added>0?'Atualização concluída. '+added+' novo(s) resultado(s) oficial(is) encontrado(s). Total: '+total+'.':'Atualização concluída. Nenhum resultado novo encontrado. Total: '+total+'.')
   }
   setTimeout(()=>void poll(),2500)
  }
