@@ -486,3 +486,18 @@ button.kpi{appearance:none;text-align:left;color:inherit}
   padding-bottom:max(24px,env(safe-area-inset-bottom))!important;
  }
 }
+
+/* Results actions: keep delete/edit visible on desktop */
+.desktop-results th.result-actions-col,
+.desktop-results td.result-actions-col{
+  position:sticky;
+  right:0;
+  z-index:2;
+  background:#fff;
+  min-width:92px;
+  width:92px;
+  white-space:nowrap;
+  box-shadow:-8px 0 12px rgba(14,37,48,.04);
+}
+.desktop-results th.result-actions-col{z-index:3}
+.desktop-results td.result-actions-col .actions{justify-content:flex-end}
