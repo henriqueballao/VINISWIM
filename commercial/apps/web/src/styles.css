@@ -445,3 +445,44 @@ button.kpi{appearance:none;text-align:left;color:inherit}
  .tutorial-step b{font-size:17px}
  .tutorial-step p{font-size:14px;margin-top:5px}
 }
+
+/* Touch-safe scrolling for tutorial/actions */
+.tutorial{
+ display:flex!important;
+ flex-direction:column!important;
+ max-height:calc(100dvh - 24px)!important;
+ overflow:hidden!important;
+}
+.tutorial .modal-head{
+ flex:0 0 auto;
+}
+.tutorial .tutorial-list{
+ flex:1 1 auto!important;
+ min-height:0!important;
+ overflow-y:auto!important;
+ overflow-x:hidden!important;
+ -webkit-overflow-scrolling:touch!important;
+ overscroll-behavior:contain;
+ touch-action:pan-y!important;
+}
+.action-modal-card{
+ min-height:0;
+}
+.action-modal-body{
+ flex:1 1 auto;
+ min-height:0;
+ overflow-y:auto;
+ -webkit-overflow-scrolling:touch;
+ touch-action:pan-y;
+}
+.result-filter-checks .source-option{
+ min-height:48px;
+}
+@media(max-width:650px){
+ .tutorial{
+  max-height:calc(100dvh - max(24px,env(safe-area-inset-top)) - max(16px,env(safe-area-inset-bottom)))!important;
+ }
+ .tutorial .tutorial-list{
+  padding-bottom:max(24px,env(safe-area-inset-bottom))!important;
+ }
+}
