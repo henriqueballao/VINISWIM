@@ -394,7 +394,7 @@ function Alerts({athleteId,userId,entries}:{athleteId:string,userId:string,entri
 function Audit({rows,sources,overview}:{rows:any[],sources:any[],overview:any}){const unique=[...new Map(sources.map((s:any)=>[s.source_id,s.sources])).values()].filter(Boolean);return <><div className="kpi-grid audit-kpis"><Kpi k="Total" v={overview?.total_results||0}/><Kpi k="Oficiais" v={overview?.official_results||0}/><Kpi k="Manuais" v={overview?.manual_results||0}/><Kpi k="Ocorrências" v={overview?.occurrences||0}/></div><section className="section"><h3>Fontes utilizadas</h3><div className="source-list">{unique.map((s:any)=><span className="source-chip" key={s.code}>{s.name||s.code}</span>)}{!unique.length&&<p className="muted">Nenhuma fonte oficial gravada ainda.</p>}</div></section><section className="section"><h3>Auditoria</h3>{rows.map(r=><div className="audit" key={r.id}><b>{r.action.toUpperCase()}</b><span>{r.entity_type}</span><small>{new Date(r.created_at).toLocaleString('pt-BR')} · {r.source}</small></div>)}{!rows.length&&<p className="muted">Nenhum evento registrado.</p>}</section></>}
 
 function CommercialAdmin(){
- const [isAdmin,setIsAdmin]=useState(false),[rows,setRows]=useState<any[]>([]),[plans,setPlans]=useState<any[]>([]),[email,setEmail]=useState(''),[customer,setCustomer]=useState(''),[planId,setPlanId]=useState(''),[athleteLimit,setAthleteLimit]=useState(1),[expires,setExpires]=useState(''),[msg,setMsg]=useState(''),[resetCode,setResetCode]=useState(''),[resetEmail,setResetEmail]=useState(''),[editRow,setEditRow]=useState<any>(null),[editCustomer,setEditCustomer]=useState(''),[editEmail,setEditEmail]=useState(''),[editPlanId,setEditPlanId]=useState(''),[editAthleteLimit,setEditAthleteLimit]=useState(1),[editExpires,setEditExpires]=useState(''),[editBusy,setEditBusy]=useState(false)
+ const [isAdmin,setIsAdmin]=useState(false),[rows,setRows]=useState<any[]>([]),[plans,setPlans]=useState<any[]>([]),[email,setEmail]=useState(''),[customer,setCustomer]=useState(''),[whatsapp,setWhatsapp]=useState(''),[planId,setPlanId]=useState(''),[athleteLimit,setAthleteLimit]=useState(1),[expires,setExpires]=useState(''),[msg,setMsg]=useState(''),[resetCode,setResetCode]=useState(''),[resetEmail,setResetEmail]=useState(''),[editRow,setEditRow]=useState<any>(null),[editCustomer,setEditCustomer]=useState(''),[editEmail,setEditEmail]=useState(''),[editWhatsapp,setEditWhatsapp]=useState(''),[editPlanId,setEditPlanId]=useState(''),[editAthleteLimit,setEditAthleteLimit]=useState(1),[editExpires,setEditExpires]=useState(''),[editBusy,setEditBusy]=useState(false)
  useEffect(()=>{void load()},[])
  async function load(){
   const {data:admin}=await supabase.rpc('is_platform_admin');setIsAdmin(!!admin);if(!admin)return
@@ -408,18 +408,19 @@ function CommercialAdmin(){
  async function authorize(e:any){
   e.preventDefault()
   const {error}=await supabase.from('commercial_access').upsert({
-   email:email.trim().toLowerCase(),customer_name:customer.trim()||null,plan_id:planId||null,
+   email:email.trim().toLowerCase(),customer_name:customer.trim()||null,whatsapp:whatsapp.trim()||null,plan_id:planId||null,
    athlete_limit:athleteLimit,status:'authorized',
    expires_at:expires?new Date(expires+'T23:59:59').toISOString():null,user_id:null,used_at:null
   },{onConflict:'email'})
   if(error)setMsg(error.message)
-  else{setMsg('E-mail autorizado.');setEmail('');setCustomer('');setAthleteLimit(1);setExpires('');await load()}
+  else{setMsg('E-mail autorizado.');setEmail('');setCustomer('');setWhatsapp('');setAthleteLimit(1);setExpires('');await load()}
  }
  async function revoke(id:string){await supabase.from('commercial_access').update({status:'revoked'}).eq('id',id);await load()}
  function openEdit(r:any){
   setEditRow(r)
   setEditCustomer(r.customer_name||'')
   setEditEmail(r.email||'')
+  setEditWhatsapp(r.whatsapp||'')
   setEditPlanId(r.plan_id||'')
   setEditAthleteLimit(Number(r.athlete_limit||1))
   setEditExpires(r.expires_at?new Date(r.expires_at).toISOString().slice(0,10):'')
@@ -432,6 +433,7 @@ function CommercialAdmin(){
   const {error}=await supabase.from('commercial_access').update({
    customer_name:editCustomer.trim()||null,
    email:editEmail.trim().toLowerCase(),
+   whatsapp:editWhatsapp.trim()||null,
    plan_id:editPlanId||null,
    athlete_limit:editAthleteLimit,
    expires_at:editExpires?new Date(editExpires+'T23:59:59').toISOString():null
@@ -515,6 +517,7 @@ No primeiro acesso, escolha *“Primeiro acesso? Ativar conta”*, informe o e-m
   <form className="form-grid" onSubmit={authorize}>
    <label>Cliente<input value={customer} onChange={e=>setCustomer(e.target.value)}/></label>
    <label>E-mail comercializado<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label>
+   <label>WhatsApp<input type="tel" value={whatsapp} onChange={e=>setWhatsapp(e.target.value)} placeholder="(41) 99999-9999"/></label>
    <label>Plano<select value={planId} onChange={e=>setPlanId(e.target.value)}>{plans.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
    <label>Perfis de atleta autorizados<input type="number" min="1" max="100" value={athleteLimit} onChange={e=>setAthleteLimit(Math.max(1,Math.min(100,Number(e.target.value)||1)))}/></label>
    <label>Validade<input type="date" value={expires} onChange={e=>setExpires(e.target.value)}/></label>
@@ -523,9 +526,9 @@ No primeiro acesso, escolha *“Primeiro acesso? Ativar conta”*, informe o e-m
   {msg&&<div className="sync-msg">{msg}</div>}
   {resetCode&&<div className="reset-code-box"><small>Código para {resetEmail}</small><div className="reset-code-row"><input readOnly value={resetCode} onFocus={e=>e.currentTarget.select()} aria-label="Código de recuperação"/><button type="button" className="btn" onClick={copyResetCode}>Copiar código</button></div><small>Válido por 30 minutos.</small></div>}
   <div className="table-wrap"><table>
-   <thead><tr><th>Cliente</th><th>E-mail</th><th>Plano</th><th>Perfis</th><th>Validade</th><th>Status</th><th>Ações</th></tr></thead>
+   <thead><tr><th>Cliente</th><th>E-mail</th><th>WhatsApp</th><th>Plano</th><th>Perfis</th><th>Validade</th><th>Status</th><th>Ações</th></tr></thead>
    <tbody>{rows.map(r=><tr key={r.id}>
-    <td>{r.customer_name||'—'}</td><td>{r.email}</td><td>{r.plans?.name||'—'}</td><td>{r.athlete_limit||1}</td>
+    <td>{r.customer_name||'—'}</td><td>{r.email}</td><td>{r.whatsapp||'—'}</td><td>{r.plans?.name||'—'}</td><td>{r.athlete_limit||1}</td>
     <td>{accessDate(r)}</td><td>{String(r.status).toUpperCase()}</td>
     <td><div className="actions">
      <button type="button" onClick={()=>copyCommercialMessage(r,'invite')}>Copiar acesso</button>
@@ -540,6 +543,7 @@ No primeiro acesso, escolha *“Primeiro acesso? Ativar conta”*, informe o e-m
    <form className="form-grid" onSubmit={saveEdit}>
     <label>Cliente<input value={editCustomer} onChange={e=>setEditCustomer(e.target.value)}/></label>
     <label>E-mail<input type="email" value={editEmail} onChange={e=>setEditEmail(e.target.value)} required/></label>
+    <label>WhatsApp<input type="tel" value={editWhatsapp} onChange={e=>setEditWhatsapp(e.target.value)} placeholder="(41) 99999-9999"/></label>
     <label>Plano<select value={editPlanId} onChange={e=>setEditPlanId(e.target.value)}>{plans.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
     <label>Perfis de atleta autorizados<input type="number" min="1" max="100" value={editAthleteLimit} onChange={e=>setEditAthleteLimit(Math.max(1,Math.min(100,Number(e.target.value)||1)))}/></label>
     <label>Validade<input type="date" value={editExpires} onChange={e=>setEditExpires(e.target.value)}/></label>
