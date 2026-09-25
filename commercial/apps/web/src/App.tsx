@@ -194,7 +194,16 @@ export default function App(){
  if(identityLoading||!identityLoaded)return <div className="loading">Preparando sua conta VINISWIM...</div>
  if(!account)return <div className="loading">Preparando sua conta VINISWIM...</div>
  if(needsInitialAthlete)return <><AthleteModal accountId={account.id} onClose={()=>{}} onSaved={loadIdentity}/></>
- async function del(r:any){if(confirm('Excluir este resultado manual?')){await supabase.from('results').delete().eq('id',r.id);await loadAthlete()}}
+ async function del(r:any){
+  const label=ev.get(r.event_id)||'prova'
+  const when=d(r.result_date)
+  const time=statusLabel(r.status,r.time_ms)
+  const kind=r.is_official?'oficial/importado':'manual'
+  if(!confirm(`Excluir este resultado ${kind}?\n\n${label} · ${when} · ${time}\n\nEsta ação não pode ser desfeita.`))return
+  const {error}=await supabase.from('results').delete().eq('id',r.id)
+  if(error){setRefreshMsg(error.message);return}
+  await loadAthlete()
+ }
  async function refresh(){
   setRefreshMsg('Solicitando atualização...')
   const {data,error}=await supabase.rpc('request_result_refresh',{p_athlete_id:athleteId,p_source_codes:searchSources})
@@ -280,8 +289,8 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
    <ResultMultiFilter label="Categoria" values={filters.category} allLabel="Todas as categorias" options={categories.map((x:any)=>({value:String(x),label:String(x)}))} onChange={v=>setFilters({...filters,category:v})}/>
    <ResultMultiFilter label="Origem" values={filters.origin} allLabel="Todas as origens" options={[...(hasOfficial?[{value:'official',label:'Oficial'}]:[]),...(hasManual?[{value:'manual',label:'Manual'}]:[]),...(hasOccurrences?[{value:'occurrence',label:'DNS / DSQ / DNF / Parcial'}]:[])]} onChange={v=>setFilters({...filters,origin:v})}/>
   </div>
-  <div className="table-wrap desktop-results"><table><thead><tr><th>#</th><th>Data</th><th>Categoria</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody>{filtered.map(r=><tr key={r.id}><td>#{r.chronological_number}</td><td>{d(r.result_date)}</td><td>{r.category||'—'}</td><td>{ev.get(r.event_id)}</td><td><strong>{statusLabel(r.status,r.time_ms)}</strong></td><td>{poolLabel(r.course)}</td><td>{r.venue||r.city||'—'}</td><td>{mt.get(r.meet_id)||r.meet_name||'—'}</td><td><span className={r.is_official?'tag official':'tag manual'}>{resultOrigin(r)}</span></td><td>{r.origin==='manual'&&<div className="actions"><button onClick={()=>onEdit(r)}>Editar</button><button className="danger" onClick={()=>onDelete(r)}>Excluir</button></div>}</td></tr>)}</tbody></table></div>
-  <div className="mobile-results">{filtered.map(r=><div className="result-card" key={r.id}><div className="result-card-top"><div><span className="result-number">#{r.chronological_number}</span><b>{ev.get(r.event_id)}</b><small>{d(r.result_date)} · {poolLabel(r.course)} · {r.category||'categoria —'}</small></div><strong>{statusLabel(r.status,r.time_ms)}</strong></div><div className="result-card-meta">{r.venue||r.city||'Local não informado'}{(mt.get(r.meet_id)||r.meet_name)?' · '+(mt.get(r.meet_id)||r.meet_name):''}</div><div className="result-card-foot"><span className={r.is_official?'tag official':'tag manual'}>{resultOrigin(r)}</span>{r.origin==='manual'&&<div className="actions"><button onClick={()=>onEdit(r)}>Editar</button><button className="danger" onClick={()=>onDelete(r)}>Excluir</button></div>}</div></div>)}</div>
+  <div className="table-wrap desktop-results"><table><thead><tr><th>#</th><th>Data</th><th>Categoria</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody>{filtered.map(r=><tr key={r.id}><td>#{r.chronological_number}</td><td>{d(r.result_date)}</td><td>{r.category||'—'}</td><td>{ev.get(r.event_id)}</td><td><strong>{statusLabel(r.status,r.time_ms)}</strong></td><td>{poolLabel(r.course)}</td><td>{r.venue||r.city||'—'}</td><td>{mt.get(r.meet_id)||r.meet_name||'—'}</td><td><span className={r.is_official?'tag official':'tag manual'}>{resultOrigin(r)}</span></td><td><div className="actions">{r.origin==='manual'&&<button onClick={()=>onEdit(r)}>Editar</button>}<button className="danger" onClick={()=>onDelete(r)}>Excluir</button></div></td></tr>)}</tbody></table></div>
+  <div className="mobile-results">{filtered.map(r=><div className="result-card" key={r.id}><div className="result-card-top"><div><span className="result-number">#{r.chronological_number}</span><b>{ev.get(r.event_id)}</b><small>{d(r.result_date)} · {poolLabel(r.course)} · {r.category||'categoria —'}</small></div><strong>{statusLabel(r.status,r.time_ms)}</strong></div><div className="result-card-meta">{r.venue||r.city||'Local não informado'}{(mt.get(r.meet_id)||r.meet_name)?' · '+(mt.get(r.meet_id)||r.meet_name):''}</div><div className="result-card-foot"><span className={r.is_official?'tag official':'tag manual'}>{resultOrigin(r)}</span><div className="actions">{r.origin==='manual'&&<button onClick={()=>onEdit(r)}>Editar</button>}<button className="danger" onClick={()=>onDelete(r)}>Excluir</button></div></div></div>)}</div>
  </section>
 }
 
