@@ -371,7 +371,126 @@ function Alerts({athleteId,userId,entries}:{athleteId:string,userId:string,entri
 
 function Audit({rows,sources,overview}:{rows:any[],sources:any[],overview:any}){const unique=[...new Map(sources.map((s:any)=>[s.source_id,s.sources])).values()].filter(Boolean);return <><div className="kpi-grid audit-kpis"><Kpi k="Total" v={overview?.total_results||0}/><Kpi k="Oficiais" v={overview?.official_results||0}/><Kpi k="Manuais" v={overview?.manual_results||0}/><Kpi k="Ocorrências" v={overview?.occurrences||0}/></div><section className="section"><h3>Fontes utilizadas</h3><div className="source-list">{unique.map((s:any)=><span className="source-chip" key={s.code}>{s.name||s.code}</span>)}{!unique.length&&<p className="muted">Nenhuma fonte oficial gravada ainda.</p>}</div></section><section className="section"><h3>Auditoria</h3>{rows.map(r=><div className="audit" key={r.id}><b>{r.action.toUpperCase()}</b><span>{r.entity_type}</span><small>{new Date(r.created_at).toLocaleString('pt-BR')} · {r.source}</small></div>)}{!rows.length&&<p className="muted">Nenhum evento registrado.</p>}</section></>}
 
-function CommercialAdmin(){const [isAdmin,setIsAdmin]=useState(false),[rows,setRows]=useState<any[]>([]),[plans,setPlans]=useState<any[]>([]),[email,setEmail]=useState(''),[customer,setCustomer]=useState(''),[planId,setPlanId]=useState(''),[athleteLimit,setAthleteLimit]=useState(1),[expires,setExpires]=useState(''),[msg,setMsg]=useState(''),[resetCode,setResetCode]=useState(''),[resetEmail,setResetEmail]=useState('');useEffect(()=>{void load()},[]);async function load(){const {data:admin}=await supabase.rpc('is_platform_admin');setIsAdmin(!!admin);if(!admin)return;const [{data:r},{data:p}]=await Promise.all([supabase.from('commercial_access').select('*,plans(code,name)').order('created_at',{ascending:false}),supabase.from('plans').select('id,code,name').eq('active',true).order('name')]);setRows(r||[]);setPlans(p||[]);if(!planId&&p?.length)setPlanId((p.find((x:any)=>x.code==='family')||p[0]).id)}async function authorize(e:any){e.preventDefault();const {error}=await supabase.from('commercial_access').upsert({email:email.trim().toLowerCase(),customer_name:customer.trim()||null,plan_id:planId||null,athlete_limit:athleteLimit,status:'authorized',expires_at:expires?new Date(expires+'T23:59:59').toISOString():null,user_id:null,used_at:null},{onConflict:'email'});if(error)setMsg(error.message);else{setMsg('E-mail autorizado.');setEmail('');setCustomer('');setAthleteLimit(1);setExpires('');await load()}}async function revoke(id:string){await supabase.from('commercial_access').update({status:'revoked'}).eq('id',id);await load()}async function issueReset(targetEmail:string){setMsg('');setResetCode('');setResetEmail('');const {data,error}=await supabase.rpc('admin_issue_password_reset',{p_email:targetEmail});if(error){setMsg(error.message);return}setResetCode(String(data||''));setResetEmail(targetEmail);setMsg('Código gerado. Válido por 30 minutos.')}async function copyResetCode(){if(!resetCode)return;try{await navigator.clipboard.writeText(resetCode);setMsg('Código copiado para a área de transferência.')}catch{setMsg('Não foi possível copiar automaticamente. Selecione o código abaixo.')}}if(!isAdmin)return null;return <section className="section admin-commercial"><div className="section-head"><div><h3>Admin Comercial</h3><p className="muted">Somente e-mails cadastrados aqui podem ativar o VINISWIM.</p></div><span className="admin-badge">ADMIN</span></div><form className="form-grid" onSubmit={authorize}><label>Cliente<input value={customer} onChange={e=>setCustomer(e.target.value)}/></label><label>E-mail comercializado<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label><label>Plano<select value={planId} onChange={e=>setPlanId(e.target.value)}>{plans.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label>Perfis de atleta autorizados<input type="number" min="1" max="100" value={athleteLimit} onChange={e=>setAthleteLimit(Math.max(1,Math.min(100,Number(e.target.value)||1)))}/></label><label>Validade<input type="date" value={expires} onChange={e=>setExpires(e.target.value)}/></label><div className="wide"><button className="btn primary">Autorizar e-mail</button></div></form>{msg&&<div className="sync-msg">{msg}</div>}{resetCode&&<div className="reset-code-box"><small>Código para {resetEmail}</small><div className="reset-code-row"><input readOnly value={resetCode} onFocus={e=>e.currentTarget.select()} aria-label="Código de recuperação"/><button type="button" className="btn" onClick={copyResetCode}>Copiar código</button></div><small>Válido por 30 minutos.</small></div>}<div className="table-wrap"><table><thead><tr><th>Cliente</th><th>E-mail</th><th>Plano</th><th>Perfis</th><th>Status</th><th></th></tr></thead><tbody>{rows.map(r=><tr key={r.id}><td>{r.customer_name||'—'}</td><td>{r.email}</td><td>{r.plans?.name||'—'}</td><td>{r.athlete_limit||1}</td><td>{String(r.status).toUpperCase()}</td><td><div className="actions">{r.status==='used'&&<button onClick={()=>issueReset(r.email)}>Gerar código de senha</button>}{r.status==='authorized'&&<button className="danger-link" onClick={()=>revoke(r.id)}>Revogar</button>}</div></td></tr>)}</tbody></table></div></section>}
+function CommercialAdmin(){
+ const [isAdmin,setIsAdmin]=useState(false),[rows,setRows]=useState<any[]>([]),[plans,setPlans]=useState<any[]>([]),[email,setEmail]=useState(''),[customer,setCustomer]=useState(''),[planId,setPlanId]=useState(''),[athleteLimit,setAthleteLimit]=useState(1),[expires,setExpires]=useState(''),[msg,setMsg]=useState(''),[resetCode,setResetCode]=useState(''),[resetEmail,setResetEmail]=useState('')
+ useEffect(()=>{void load()},[])
+ async function load(){
+  const {data:admin}=await supabase.rpc('is_platform_admin');setIsAdmin(!!admin);if(!admin)return
+  const [{data:r},{data:p}]=await Promise.all([
+   supabase.from('commercial_access').select('*,plans(code,name)').order('created_at',{ascending:false}),
+   supabase.from('plans').select('id,code,name').eq('active',true).order('name')
+  ])
+  setRows(r||[]);setPlans(p||[])
+  if(!planId&&p?.length)setPlanId((p.find((x:any)=>x.code==='family')||p[0]).id)
+ }
+ async function authorize(e:any){
+  e.preventDefault()
+  const {error}=await supabase.from('commercial_access').upsert({
+   email:email.trim().toLowerCase(),customer_name:customer.trim()||null,plan_id:planId||null,
+   athlete_limit:athleteLimit,status:'authorized',
+   expires_at:expires?new Date(expires+'T23:59:59').toISOString():null,user_id:null,used_at:null
+  },{onConflict:'email'})
+  if(error)setMsg(error.message)
+  else{setMsg('E-mail autorizado.');setEmail('');setCustomer('');setAthleteLimit(1);setExpires('');await load()}
+ }
+ async function revoke(id:string){await supabase.from('commercial_access').update({status:'revoked'}).eq('id',id);await load()}
+ async function issueReset(targetEmail:string){
+  setMsg('');setResetCode('');setResetEmail('')
+  const {data,error}=await supabase.rpc('admin_issue_password_reset',{p_email:targetEmail})
+  if(error){setMsg(error.message);return}
+  setResetCode(String(data||''));setResetEmail(targetEmail);setMsg('Código gerado. Válido por 30 minutos.')
+ }
+ async function copyResetCode(){
+  if(!resetCode)return
+  try{await navigator.clipboard.writeText(resetCode);setMsg('Código copiado para a área de transferência.')}
+  catch{setMsg('Não foi possível copiar automaticamente. Selecione o código abaixo.')}
+ }
+ function accessDate(r:any){
+  if(!r?.expires_at)return 'Sem vencimento'
+  return new Date(r.expires_at).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})
+ }
+ function commercialMessage(r:any,type:'invite'|'welcome'){
+  const name=r.customer_name||'Olá'
+  const plan=r.plans?.name||'Família'
+  const limit=Number(r.athlete_limit||1)
+  const validity=accessDate(r)
+  if(type==='welcome')return `*VINISWIM — Bem-vindo à nossa comunidade*
+
+Olá, ${name}.
+
+Obrigado por aceitar fazer parte da *comunidade VINISWIM*.
+
+Seu acesso já foi liberado e o e-mail *${r.email}* está cadastrado no sistema.
+
+*Plano:* ${plan}
+*Perfis de atleta autorizados:* ${limit}
+*Validade do acesso:* ${validity}
+
+Para ativar sua conta, acesse:
+
+*https://viniswim.com.br/app/*
+
+No primeiro acesso, escolha *“Primeiro acesso? Ativar conta”*, informe o e-mail cadastrado e crie sua senha.
+
+A partir daí, você poderá cadastrar até *${limit} atleta(s)* e configurar as fontes de resultados.
+
+*Bem-vindo ao VINISWIM.*
+
+*Saudações Alviverdes,*
+*VINISWIM CO*`
+  return `*VINISWIM — Acesso liberado*
+
+Olá, ${name}.
+
+Seu acesso ao *VINISWIM — Performance Tracker* já está autorizado.
+
+*E-mail cadastrado:* ${r.email}
+*Plano:* ${plan}
+*Perfis de atleta autorizados:* ${limit}
+*Validade do acesso:* ${validity}
+
+Acesse:
+
+*https://viniswim.com.br/app/*
+
+No primeiro acesso, escolha *“Primeiro acesso? Ativar conta”*, informe o e-mail cadastrado e crie sua senha.
+
+*VINISWIM CO*`
+ }
+ async function copyCommercialMessage(r:any,type:'invite'|'welcome'){
+  try{
+   await navigator.clipboard.writeText(commercialMessage(r,type))
+   setMsg(type==='welcome'?'Mensagem de boas-vindas copiada.':'Mensagem de acesso copiada.')
+  }catch{setMsg('Não foi possível copiar a mensagem automaticamente.')}
+ }
+ if(!isAdmin)return null
+ return <section className="section admin-commercial">
+  <div className="section-head"><div><h3>Admin Comercial</h3><p className="muted">Somente e-mails cadastrados aqui podem ativar o VINISWIM.</p></div><span className="admin-badge">ADMIN</span></div>
+  <form className="form-grid" onSubmit={authorize}>
+   <label>Cliente<input value={customer} onChange={e=>setCustomer(e.target.value)}/></label>
+   <label>E-mail comercializado<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label>
+   <label>Plano<select value={planId} onChange={e=>setPlanId(e.target.value)}>{plans.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+   <label>Perfis de atleta autorizados<input type="number" min="1" max="100" value={athleteLimit} onChange={e=>setAthleteLimit(Math.max(1,Math.min(100,Number(e.target.value)||1)))}/></label>
+   <label>Validade<input type="date" value={expires} onChange={e=>setExpires(e.target.value)}/></label>
+   <div className="wide"><button className="btn primary">Autorizar e-mail</button></div>
+  </form>
+  {msg&&<div className="sync-msg">{msg}</div>}
+  {resetCode&&<div className="reset-code-box"><small>Código para {resetEmail}</small><div className="reset-code-row"><input readOnly value={resetCode} onFocus={e=>e.currentTarget.select()} aria-label="Código de recuperação"/><button type="button" className="btn" onClick={copyResetCode}>Copiar código</button></div><small>Válido por 30 minutos.</small></div>}
+  <div className="table-wrap"><table>
+   <thead><tr><th>Cliente</th><th>E-mail</th><th>Plano</th><th>Perfis</th><th>Validade</th><th>Status</th><th>Ações</th></tr></thead>
+   <tbody>{rows.map(r=><tr key={r.id}>
+    <td>{r.customer_name||'—'}</td><td>{r.email}</td><td>{r.plans?.name||'—'}</td><td>{r.athlete_limit||1}</td>
+    <td>{accessDate(r)}</td><td>{String(r.status).toUpperCase()}</td>
+    <td><div className="actions">
+     <button type="button" onClick={()=>copyCommercialMessage(r,'invite')}>Copiar acesso</button>
+     <button type="button" onClick={()=>copyCommercialMessage(r,'welcome')}>Copiar boas-vindas</button>
+     {r.status==='used'&&<button type="button" onClick={()=>issueReset(r.email)}>Gerar código de senha</button>}
+     {r.status==='authorized'&&<button type="button" className="danger-link" onClick={()=>revoke(r.id)}>Revogar</button>}
+    </div></td>
+   </tr>)}</tbody>
+  </table></div>
+ </section>
+}
 
 function SourceConfigEditor({athleteId,cfg,onSaved,onDeleted,onMessage,isNew,onCancel}:{athleteId:string,cfg?:any,onSaved:()=>void,onDeleted?:()=>void,onMessage:(m:string)=>void,isNew?:boolean,onCancel?:()=>void}){
  const [label,setLabel]=useState(cfg?.display_name||''),[url,setUrl]=useState(cfg?.source_url||''),[externalId,setExternalId]=useState(cfg?.external_id||''),[externalName,setExternalName]=useState(cfg?.external_name||''),[busy,setBusy]=useState(false)
