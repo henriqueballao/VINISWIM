@@ -149,7 +149,7 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
  const ev=new Map(events.map(x=>[x.id,x.label])),mt=new Map(meets.map(x=>[x.id,x.name]))
  const eventIds=[...new Set(allResults.map(r=>r.event_id).filter(Boolean))]
  const athleteEvents=events.filter(e=>eventIds.includes(e.id))
- const courses=[...new Set(allResults.map(r=>r.course).filter(Boolean))]
+ const courses=['SCM','LCM']
  const categories=[...new Set(allResults.map(r=>r.category).filter(Boolean))].sort()
  const hasOfficial=allResults.some(r=>r.is_official)
  const hasManual=allResults.some(r=>r.origin==='manual')
@@ -187,7 +187,7 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
   </div>
   <div className="filters">
    <select value={filters.event} onChange={e=>setFilters({...filters,event:e.target.value})}><option value="">Todas as provas</option>{athleteEvents.map(e=><option key={e.id} value={e.id}>{e.label}</option>)}</select>
-   <select value={filters.course} onChange={e=>setFilters({...filters,course:e.target.value})}><option value="">Todas as piscinas</option>{courses.map((x:any)=><option key={x} value={x}>{poolLabel(x)}</option>)}</select>
+   <select value={filters.course} onChange={e=>setFilters({...filters,course:e.target.value})}><option value="">Ambas as piscinas</option><option value="SCM">25 m</option><option value="LCM">50 m</option></select>
    <select value={filters.category} onChange={e=>setFilters({...filters,category:e.target.value})}><option value="">Todas as categorias</option>{categories.map((x:any)=><option key={x} value={x}>{x}</option>)}</select>
    <select value={filters.origin} onChange={e=>setFilters({...filters,origin:e.target.value})}><option value="">Todas as origens</option>{hasOfficial&&<option value="official">Oficial</option>}{hasManual&&<option value="manual">Manual</option>}{hasOccurrences&&<option value="occurrence">DNS / DSQ / DNF / Parcial</option>}</select>
   </div>
