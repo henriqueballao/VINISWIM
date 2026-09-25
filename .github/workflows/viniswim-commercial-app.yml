@@ -22,7 +22,7 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm --workspace @viniswim/shared run build
-          npm --workspace @viniswim/web run build -- --base=/VINISWIM/app/
+          npm --workspace @viniswim/web run build -- --base=./
       - name: Publish isolated app path
         run: |
           rm -rf app
