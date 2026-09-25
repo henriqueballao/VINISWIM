@@ -136,3 +136,37 @@ button.kpi{appearance:none;text-align:left;color:inherit}
  .sidebar-actions{margin-top:auto}
  .sidebar-legal{padding-bottom:max(2px,env(safe-area-inset-bottom))}
 }
+
+.category-select{
+  width:100%;
+  appearance:auto;
+  -webkit-appearance:menulist;
+  cursor:pointer;
+}
+.source-links{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:10px 0 14px;
+}
+.source-links .source-action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-height:40px;
+  padding:9px 12px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fff;
+  color:var(--accent2);
+  font-size:13px;
+  font-weight:700;
+  text-decoration:none;
+}
+.source-links .source-action:hover{
+  background:#f4f7f9;
+}
+@media(max-width:700px){
+  .source-links .source-action{width:100%}
+}
