@@ -104,17 +104,20 @@ function ActionModal({title,onClose,children}:{title:string,onClose:()=>void,chi
  return <div className="modal action-modal"><div className="modal-card action-modal-card"><div className="modal-head"><h3>{title}</h3><button className="icon-btn" onClick={onClose} aria-label="Fechar"><X/></button></div><div className="modal-body action-modal-body">{children}</div></div></div>
 }
 
-function ResultFilterMenu({label,value,allLabel,options,onChange}:{label:string,value:string,allLabel:string,options:{value:string,label:string}[],onChange:(v:string)=>void}){
+function ResultMultiFilter({label,values,allLabel,options,onChange}:{label:string,values:string[],allLabel:string,options:{value:string,label:string}[],onChange:(v:string[])=>void}){
  const [open,setOpen]=useState(false)
- const current=value?(options.find(x=>x.value===value)?.label||allLabel):allLabel
- function choose(v:string){onChange(v);setOpen(false)}
+ const allValues=options.map(x=>x.value)
+ const allSelected=options.length>0&&allValues.every(x=>values.includes(x))
+ const summary=allSelected||!values.length?allLabel:values.length===1?(options.find(x=>x.value===values[0])?.label||'1 selecionado'):values.length+' selecionados'
+ function toggle(v:string){onChange(values.includes(v)?values.filter(x=>x!==v):[...values,v])}
+ function toggleAll(){onChange(allSelected||values.length===0?[]:allValues)}
  return <div className="result-filter-control">
   <button type="button" className="result-filter-button" onClick={()=>setOpen(v=>!v)} aria-expanded={open}>
-   <span>{label}</span><b>{current}</b><ChevronDown size={18} className={open?'rotated':''}/>
+   <span>{label}</span><b>{summary}</b><ChevronDown size={18} className={open?'rotated':''}/>
   </button>
-  {open&&<div className="result-filter-menu">
-   <button type="button" className={!value?'active':''} onClick={()=>choose('')}><span>{allLabel}</span><b>{!value?'✓':''}</b></button>
-   {options.map(x=><button type="button" key={x.value} className={value===x.value?'active':''} onClick={()=>choose(x.value)}><span>{x.label}</span><b>{value===x.value?'✓':''}</b></button>)}
+  {open&&<div className="result-filter-menu result-filter-checks">
+   <label className="source-option all"><input type="checkbox" checked={allSelected||values.length===0} onChange={toggleAll}/><span>{allLabel}</span></label>
+   {options.map(x=>{const checked=values.includes(x.value)||values.length===0;return <label className="source-option" key={x.value}><input type="checkbox" checked={checked} onChange={()=>toggle(x.value)}/><span>{x.label}</span></label>})}
   </div>}
  </div>
 }
@@ -135,7 +138,7 @@ function Tutorial({onClose}:{onClose:()=>void}){
 function Kpi({k,v,s,onClick}:{k:string,v:any,s?:string,onClick?:()=>void}){return <button className="kpi" onClick={onClick}><span>{k}</span><b>{v}</b>{s&&<small>{s}</small>}</button>}
 
 export default function App(){
- const [session,setSession]=useState<any>(null),[recovery,setRecovery]=useState(()=>new URLSearchParams(window.location.search).get('reset')==='1'),[page,setPage]=useState<Page>('dashboard'),[open,setOpen]=useState(false),[actionsOpen,setActionsOpen]=useState(false),[profile,setProfile]=useState<any>(null),[account,setAccount]=useState<any>(null),[athletes,setAthletes]=useState<any[]>([]),[athleteId,setAthleteId]=useState(localStorage.getItem('viniswim-athlete')||''),[events,setEvents]=useState<any[]>([]),[results,setResults]=useState<any[]>([]),[overview,setOverview]=useState<any>(null),[pbs,setPbs]=useState<any[]>([]),[meets,setMeets]=useState<any[]>([]),[entries,setEntries]=useState<any[]>([]),[audit,setAudit]=useState<any[]>([]),[sources,setSources]=useState<any[]>([]),[sourceConfigs,setSourceConfigs]=useState<any[]>([]),[searchSources,setSearchSources]=useState<string[]>([]),[monitorJobs,setMonitorJobs]=useState<any[]>([]),[modal,setModal]=useState<any>(null),[athleteModal,setAthleteModal]=useState(false),[meetModal,setMeetModal]=useState(false),[tutorial,setTutorial]=useState(false),[alertsModal,setAlertsModal]=useState(false),[auditModal,setAuditModal]=useState(false),[filters,setFilters]=useState({event:'',course:'',category:'',origin:''}),[refreshMsg,setRefreshMsg]=useState('')
+ const [session,setSession]=useState<any>(null),[recovery,setRecovery]=useState(()=>new URLSearchParams(window.location.search).get('reset')==='1'),[page,setPage]=useState<Page>('dashboard'),[open,setOpen]=useState(false),[actionsOpen,setActionsOpen]=useState(false),[profile,setProfile]=useState<any>(null),[account,setAccount]=useState<any>(null),[athletes,setAthletes]=useState<any[]>([]),[athleteId,setAthleteId]=useState(localStorage.getItem('viniswim-athlete')||''),[events,setEvents]=useState<any[]>([]),[results,setResults]=useState<any[]>([]),[overview,setOverview]=useState<any>(null),[pbs,setPbs]=useState<any[]>([]),[meets,setMeets]=useState<any[]>([]),[entries,setEntries]=useState<any[]>([]),[audit,setAudit]=useState<any[]>([]),[sources,setSources]=useState<any[]>([]),[sourceConfigs,setSourceConfigs]=useState<any[]>([]),[searchSources,setSearchSources]=useState<string[]>([]),[monitorJobs,setMonitorJobs]=useState<any[]>([]),[modal,setModal]=useState<any>(null),[athleteModal,setAthleteModal]=useState(false),[meetModal,setMeetModal]=useState(false),[tutorial,setTutorial]=useState(false),[alertsModal,setAlertsModal]=useState(false),[auditModal,setAuditModal]=useState(false),[filters,setFilters]=useState({event:[] as string[],course:[] as string[],category:[] as string[],origin:[] as string[]}),[refreshMsg,setRefreshMsg]=useState('')
  useEffect(()=>{supabase.auth.getSession().then(x=>setSession(x.data.session));const {data:{subscription}}=supabase.auth.onAuthStateChange((e,s)=>{setSession(s);if(e==='PASSWORD_RECOVERY')setRecovery(true)});return()=>subscription.unsubscribe()},[])
  useEffect(()=>{if(session)void loadIdentity()},[session?.user?.id])
  useEffect(()=>{if(athleteId){localStorage.setItem('viniswim-athlete',athleteId);void loadAthlete()}},[athleteId])
@@ -143,7 +146,12 @@ export default function App(){
  async function loadAthlete(){const [{data:r},{data:o},{data:pb},{data:en},{data:au},{data:rs},{data:sc},{data:mj}]=await Promise.all([supabase.from('v_result_timeline').select('*').eq('athlete_id',athleteId).order('result_date',{ascending:false}).order('created_at',{ascending:false}),supabase.from('v_athlete_overview').select('*').eq('athlete_id',athleteId).maybeSingle(),supabase.from('personal_bests').select('*,results(*)').eq('athlete_id',athleteId),supabase.from('meet_entries').select('*,meets(*)').eq('athlete_id',athleteId),supabase.from('audit_log').select('*').eq('athlete_id',athleteId).order('created_at',{ascending:false}).limit(120),supabase.from('result_sources').select('*,sources(name,code)').in('result_id',(results||[]).map(x=>x.id).length?(results||[]).map(x=>x.id):['00000000-0000-0000-0000-000000000000']),supabase.from('athlete_source_configs').select('*,sources(code,name)').eq('athlete_id',athleteId).eq('active',true).order('sort_order').order('display_name'),supabase.from('monitor_jobs').select('*').eq('athlete_id',athleteId)]);setResults(r||[]);setOverview(o||null);setPbs((pb||[]).map((x:any)=>({...x.results,pb_id:x.id})));setEntries(en||[]);setMeets([...new Map((en||[]).map((x:any)=>[x.meets?.id,x.meets])).values()].filter(Boolean));setAudit(au||[]);setSources(rs||[]);setSourceConfigs(sc||[]);const codes=(sc||[]).map((x:any)=>x.sources?.code).filter(Boolean);setSearchSources(prev=>{const kept=prev.filter(x=>codes.includes(x));return kept.length?kept:codes});setMonitorJobs(mj||[])}
  useEffect(()=>{if(results.length&&athleteId)void supabase.from('result_sources').select('*,sources(name,code)').in('result_id',results.map(x=>x.id)).then(({data})=>setSources(data||[]))},[results.length,athleteId])
  const athlete=athletes.find(x=>x.id===athleteId),ev=new Map(events.map(x=>[x.id,x.label]))
- const filtered=results.filter(r=>(!filters.event||r.event_id===filters.event)&&(!filters.course||r.course===filters.course)&&(!filters.category||r.category===filters.category)&&(!filters.origin||(filters.origin==='official'?r.is_official:filters.origin==='manual'?r.origin==='manual':['dns','dsq','dnf','partial'].includes(r.status))))
+ const filtered=results.filter(r=>
+  (!filters.event.length||filters.event.includes(r.event_id))&&
+  (!filters.course.length||filters.course.includes(r.course))&&
+  (!filters.category.length||filters.category.includes(r.category))&&
+  (!filters.origin.length||filters.origin.some((o:string)=>o==='official'?r.is_official:o==='manual'?r.origin==='manual':['dns','dsq','dnf','partial'].includes(r.status)))
+ )
  if(recovery&&session)return <PasswordRecovery onDone={()=>{window.history.replaceState({},'',window.location.pathname);setRecovery(false);setSession(null)}}/>
  if(!session)return <Auth onAuthenticated={s=>setSession(s)}/>
  if(!account)return <div className="loading">Preparando sua conta VINISWIM...</div>
@@ -216,10 +224,10 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
    </div>}
   </div>
   <div className="result-filter-grid">
-   <ResultFilterMenu label="Prova" value={filters.event} allLabel="Todas as provas" options={athleteEvents.map((e:any)=>({value:e.id,label:e.label}))} onChange={v=>setFilters({...filters,event:v})}/>
-   <ResultFilterMenu label="Piscina" value={filters.course} allLabel="Ambas" options={[{value:'SCM',label:'25 m'},{value:'LCM',label:'50 m'}]} onChange={v=>setFilters({...filters,course:v})}/>
-   <ResultFilterMenu label="Categoria" value={filters.category} allLabel="Todas as categorias" options={categories.map((x:any)=>({value:String(x),label:String(x)}))} onChange={v=>setFilters({...filters,category:v})}/>
-   <ResultFilterMenu label="Origem" value={filters.origin} allLabel="Todas as origens" options={[...(hasOfficial?[{value:'official',label:'Oficial'}]:[]),...(hasManual?[{value:'manual',label:'Manual'}]:[]),...(hasOccurrences?[{value:'occurrence',label:'DNS / DSQ / DNF / Parcial'}]:[])]} onChange={v=>setFilters({...filters,origin:v})}/>
+   <ResultMultiFilter label="Prova" values={filters.event} allLabel="Todas as provas" options={athleteEvents.map((e:any)=>({value:e.id,label:e.label}))} onChange={v=>setFilters({...filters,event:v})}/>
+   <ResultMultiFilter label="Piscina" values={filters.course} allLabel="Ambas" options={[{value:'SCM',label:'25 m'},{value:'LCM',label:'50 m'}]} onChange={v=>setFilters({...filters,course:v})}/>
+   <ResultMultiFilter label="Categoria" values={filters.category} allLabel="Todas as categorias" options={categories.map((x:any)=>({value:String(x),label:String(x)}))} onChange={v=>setFilters({...filters,category:v})}/>
+   <ResultMultiFilter label="Origem" values={filters.origin} allLabel="Todas as origens" options={[...(hasOfficial?[{value:'official',label:'Oficial'}]:[]),...(hasManual?[{value:'manual',label:'Manual'}]:[]),...(hasOccurrences?[{value:'occurrence',label:'DNS / DSQ / DNF / Parcial'}]:[])]} onChange={v=>setFilters({...filters,origin:v})}/>
   </div>
   <div className="table-wrap desktop-results"><table><thead><tr><th>#</th><th>Data</th><th>Categoria</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th></th></tr></thead><tbody>{filtered.map(r=><tr key={r.id}><td>#{r.chronological_number}</td><td>{d(r.result_date)}</td><td>{r.category||'—'}</td><td>{ev.get(r.event_id)}</td><td><strong>{statusLabel(r.status,r.time_ms)}</strong></td><td>{poolLabel(r.course)}</td><td>{r.venue||r.city||'—'}</td><td>{mt.get(r.meet_id)||'—'}</td><td><span className={r.is_official?'tag official':'tag manual'}>{resultOrigin(r)}</span></td><td>{r.origin==='manual'&&<div className="actions"><button onClick={()=>onEdit(r)}>Editar</button><button className="danger" onClick={()=>onDelete(r)}>Excluir</button></div>}</td></tr>)}</tbody></table></div>
   <div className="mobile-results">{filtered.map(r=><div className="result-card" key={r.id}><div className="result-card-top"><div><span className="result-number">#{r.chronological_number}</span><b>{ev.get(r.event_id)}</b><small>{d(r.result_date)} · {poolLabel(r.course)} · {r.category||'categoria —'}</small></div><strong>{statusLabel(r.status,r.time_ms)}</strong></div><div className="result-card-meta">{r.venue||r.city||'Local não informado'}{mt.get(r.meet_id)?' · '+mt.get(r.meet_id):''}</div><div className="result-card-foot"><span className={r.is_official?'tag official':'tag manual'}>{resultOrigin(r)}</span>{r.origin==='manual'&&<div className="actions"><button onClick={()=>onEdit(r)}>Editar</button><button className="danger" onClick={()=>onDelete(r)}>Excluir</button></div>}</div></div>)}</div>
