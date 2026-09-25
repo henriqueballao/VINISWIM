@@ -376,7 +376,7 @@ function SourceConfigEditor({athleteId,cfg,onSaved,onDeleted,onMessage,isNew,onC
    {isNew&&<label>Nome curto da fonte<input value={label} onChange={e=>setLabel(e.target.value)} placeholder="Ex.: CBDA" required/></label>}
    <label className={isNew?'':'wide'}>URL<input type="url" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://..." required/></label>
    <label>Número / registro<input value={externalId} onChange={e=>setExternalId(e.target.value)} placeholder="Registro do atleta" required/></label>
-   <label>Nome nesta fonte<input value={externalName} onChange={e=>setExternalName(e.target.value)} placeholder="Ex.: Vinicius S. Ballao" required/></label>
+   <label>Nome nesta fonte<input value={externalName} onChange={e=>setExternalName(e.target.value)} placeholder="Ex.: nome do atleta nesta fonte" required/></label>
   </div>
   <div className="source-config-actions"><button className="btn primary" disabled={busy}>{busy?'Salvando...':'Salvar fonte'}</button>{!externalId||!externalName?<small>Complete nome e registro para habilitar a busca.</small>:<small>Pronta para busca.</small>}</div>
  </form>
