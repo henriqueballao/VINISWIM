@@ -520,3 +520,9 @@ button.kpi{appearance:none;text-align:left;color:inherit}
 @media(prefers-reduced-motion:reduce){.swimmer,.swim-arm,.swim-splash{animation-duration:8s}}
 
 .swim-timer{flex:0 0 auto;font-variant-numeric:tabular-nums;font-size:13px;font-weight:800;letter-spacing:.04em;color:#174c60;background:#fff;border:1px solid rgba(23,76,96,.12);border-radius:7px;padding:4px 7px}
+
+.swimmer.stopped,.swimmer.stopped .swim-arm,.swimmer.stopped .swim-splash{animation-play-state:paused!important}
+.swim-lane.alert{border-color:#d89b2b;background:linear-gradient(180deg,#fff7df 0%,#f5e4ae 52%,#e9cf7d 53%,#f7e8ba 100%)}
+.swim-alert-sign{position:absolute;right:-13px;top:-15px;width:27px;height:24px;display:grid;place-items:center;border:2px solid #744d00;border-radius:3px;background:#ffd45b;color:#744d00;transform:rotate(-4deg);box-shadow:0 2px 5px rgba(0,0,0,.15)}
+.swim-alert-sign:after{content:"";position:absolute;width:3px;height:12px;background:#744d00;left:4px;bottom:-11px;transform:rotate(12deg);transform-origin:top}
+.swim-alert-copy{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#744d00;background:#fff8df;border:1px solid #ecd28a;border-radius:8px;padding:7px 9px}
