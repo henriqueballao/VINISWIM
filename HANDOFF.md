@@ -19,6 +19,7 @@ Este arquivo é o registro vivo de decisões técnicas do projeto VINISWIM. Ele 
 5. Toda mudança de código roda em **commits pequenos e verificáveis**, separando limpeza de mudança funcional. Não misturar correção funcional, segurança e limpeza/refatoração no mesmo commit.
 6. Testes de importação/parser usam SELECT, fixtures ou dry-run — nunca escrita na base real sem autorização.
 7. **Testes com dados sintéticos em `monitor_jobs`/`historical_archive_jobs` NÃO são inertes**: existe um agendador automático real que invoca o `monitor-runner` periodicamente (ver seção de achados abaixo). Qualquer linha `pending` criada para teste pode ser processada de verdade. Usar sempre atletas sintéticos dedicados (nunca reaproveitar `athlete_id` real) e limpar tudo (jobs, `monitor_runs`, `athlete_source_configs`/`athlete_identifiers` auto-seedados, o atleta sintético) logo após o teste.
+8. **A partir da D-004 etapa D**: o código versionado em git (`commercial/apps/web/src/`, `commercial/supabase/functions/`) é a origem dos deploys — nunca transcrever manualmente Supabase→git ou vice-versa quando já existe uma cópia local/clonada para editar e verificar por diff.
 
 ## Onde as coisas vivem
 
@@ -39,15 +40,15 @@ Escopo: nome do módulo/função (`monitor-runner`, `results-page`, `handoff`, e
 
 Exemplo: `security(monitor-runner): remove delete automático em processArchiveJob [D-001]`
 
-## Estado atual conhecido (snapshot atualizado em 26/09/2026, pós D-004 etapas A+B+C)
+## Estado atual conhecido (snapshot atualizado em 26/09/2026, pós D-004 etapas A+B+C+D)
 
 - HEAD do GitHub (main): `7c26358703c9f0f4c9b427c850f7b8a228e97ba2`. A branch de trabalho está à frente com os commits de D-001/D-002/D-004/FIX-001, nada mergeado em `main` ainda.
-- Último deploy público confirmado: Pages run #503, 26/09 13:27:07Z. Nenhuma mudança de frontend desde então — D-004 ainda não chegou na etapa D (frontend).
-- `monitor-runner` (Edge Function): **versão 60 ACTIVE**, SHA `a590564ef67d6ac374d5513849e144860ffbbd41c089ff0d28134fc460382b0e` (v59 + guardas de concorrência da etapa C). Mirror em git verificado byte-a-byte igual ao deploy real (ver incidente de transcrição registrado na etapa C abaixo).
+- Último deploy público confirmado: Pages run #503, 26/09 13:27:07Z, sobre o frontend **anterior** à etapa D. A mudança de frontend da etapa D foi commitada e pushada para a branch de trabalho, mas **ainda não subiu para `main`/GitHub Pages** — nenhum novo deploy público aconteceu.
+- `monitor-runner` (Edge Function): **versão 60 ACTIVE**, SHA `a590564ef67d6ac374d5513849e144860ffbbd41c089ff0d28134fc460382b0e` (v59 + guardas de concorrência da etapa C). Mirror em git verificado byte-a-byte igual ao deploy real.
 - **RESOLVIDO (D-001)**: `DELETE` automático em `results` removido; RPCs de claim travadas para `anon`/`authenticated`.
 - **Confirmado como correto**: `request_result_refresh` e `cancel_result_refresh` (versões legadas de 1 argumento) validam `auth.uid()` + `account_members`.
-- **D-004 etapas A, B e C EXECUTADAS e VERIFICADAS** (ver log de decisões). Regra de agregação de estado **APROVADA e CONGELADA** pelo chat. RPCs novas (`request_result_refresh` reescrita, `cancel_result_refresh_request` nova) implantadas e testadas com dados sintéticos. `monitor-runner` com guardas de concorrência implantado como v60.
-- **Frontend (etapa D) ainda NÃO iniciado** — aguardando relatório de revisão cruzada deste ciclo antes de começar, por instrução explícita do chat.
+- **D-004 etapas A, B, C e D EXECUTADAS e VERIFICADAS** (ver log de decisões). Regra de agregação de estado **APROVADA e CONGELADA** pelo chat. Frontend (`ResultsPage`/`App.tsx`) reescrito para acompanhar exclusivamente o `request_id` ativo via `v_refresh_request_status`, com build (`tsc -b && vite build`) passando sem erros e comportamento validado contra o backend real com dados sintéticos.
+- **Etapas E (validação ampla) e F (limpeza de legado) ainda NÃO iniciadas** — aguardando revisão cruzada deste relatório.
 - `VINISWIM-MONITOR` (Render): serviço legado sem relação com o Supabase atual — pendente decisão do usuário sobre manter/arquivar.
 
 ## Achados/fixes independentes (fora da numeração D-XXX)
@@ -77,7 +78,7 @@ Exemplo: `security(monitor-runner): remove delete automático em processArchiveJ
 - **Status**: aprovada em arquitetura pelo chat, com uma correção: a parte que previa `refresh_requests.status` persistido + trigger de reconciliação **foi substituída** pela abordagem 100% derivada da D-004 (ver abaixo). O restante do desenho original (tabela `refresh_requests`, coluna `request_id`, RPC de cancelamento por request, frontend guardando `request_id`) segue valendo e foi incorporado à D-004.
 
 ### D-004 — Implementação da correlação por request_id (arquitetura simplificada, sem status persistido)
-- **Status**: etapas A, B e C EXECUTADAS e VERIFICADAS. Regra de agregação de estado **APROVADA e CONGELADA** pelo chat, incluindo a correção de concorrência na etapa C. Aguardando revisão cruzada deste relatório antes de iniciar a etapa D (frontend).
+- **Status**: etapas A, B, C e D EXECUTADAS e VERIFICADAS. Regra de agregação de estado **APROVADA e CONGELADA** pelo chat. Aguardando revisão cruzada deste relatório antes de iniciar etapa E (validação ampla) e etapa F (limpeza de legado).
 - **Decisões de produto já aprovadas pelo chat**: request_id é por atleta/conta (não por aba/dispositivo); duas abas enxergam o mesmo estado; pausar cancela só o request_id exibido; `request_result_refresh` reutiliza solicitação ativa em vez de criar concorrente; `cancel_result_refresh(p_athlete_id)` legado é preservado; nova RPC `cancel_result_refresh_request(p_request_id)` para o frontend novo; etapas em commits separados (A schema, B RPCs, C monitor-runner, D frontend, E validação, F limpeza de legado depois); zero linha de `results` tocada para testar; frontend novo só publica depois do backend validado.
 
 #### Etapa A — Migration aditiva de schema (EXECUTADA E VERIFICADA)
@@ -146,7 +147,49 @@ Justificativa completa da regra 1 e a tabela de combinações (pending/running/c
 
 **Deploy**: v59 → **v60**, SHA `a590564ef67d6ac374d5513849e144860ffbbd41c089ff0d28134fc460382b0e`. `verify_jwt: false` preservado (config original). Verificado via diff programático: o patch aplicado ao arquivo v59 localmente bate exatamente com o que foi buscado de volta do Supabase após o deploy — nenhuma outra linha mudou além das 7 guardas.
 
-**Incidente (transparência total, pedido explícito do protocolo do chat):** ao transcrever manualmente o arquivo completo (~41KB) para o commit git da etapa C (espelho do deploy, por decisão da D-002), introduzi um erro de digitação: um `\n` literal (dois caracteres, barra invertida + "n") em vez de uma quebra de linha real dentro da função `parseEntries`, logo depois de `let m;`. Encontrei esse erro eu mesmo, antes de reportar a etapa como concluída, comparando o arquivo commitado com meu arquivo de referência local (que já tinha sido conferido byte-a-byte contra o v60 real implantado no Supabase). **A Edge Function realmente implantada (v60) nunca teve esse problema** — o erro existiu só no espelho em git, e só entre o commit da etapa C e o commit de correção seguinte. Corrigido no commit `a9eb3545f4a7e388ea7f5463d5e6e5ab09e77cb1` (mensagem: "fix(handoff): corrige erro de transcricao no commit anterior (linha 223, sem mudanca de logica) [D-004]"). **Verificação final**: busquei o conteúdo do commit de correção de volta do GitHub e fiz diff byte-a-byte contra o arquivo de referência do v60 real — resultado idêntico, sem nenhuma diferença. O mirror em git agora reflete exatamente o que está em produção.
+**Incidente (transparência total, pedido explícito do protocolo do chat):** ao transcrever manualmente o arquivo completo (~41KB) para o commit git da etapa C (espelho do deploy, por decisão da D-002), introduzi um erro de digitação: um `\n` literal (dois caracteres, barra invertida + "n") em vez de uma quebra de linha real dentro da função `parseEntries`, logo depois de `let m;`. Encontrei esse erro eu mesmo, antes de reportar a etapa como concluída, comparando o arquivo commitado com meu arquivo de referência local (que já tinha sido conferido byte-a-byte contra o v60 real implantado no Supabase). **A Edge Function realmente implantada (v60) nunca teve esse problema** — o erro existiu só no espelho em git, e só entre o commit da etapa C e o commit de correção seguinte. Corrigido no commit `a9eb3545f4a7e388ea7f5463d5e6e5ab09e77cb1`. **Verificação final**: busquei o conteúdo do commit de correção de volta do GitHub e fiz diff byte-a-byte contra o arquivo de referência do v60 real — resultado idêntico, sem nenhuma diferença. O mirror em git agora reflete exatamente o que está em produção.
+
+**Lição aplicada na etapa D** (pedido do chat): em vez de transcrever manualmente, cloneei o repositório localmente (`git clone` com token, branch de trabalho), editei `App.tsx` com o editor de arquivos (substituições cirúrgicas, uma por vez), rodei o build real sobre esse clone, e fiz `git push` do próprio clone — sem digitação manual do arquivo inteiro em nenhum momento. Isso elimina a classe de erro do incidente da etapa C.
+
+#### Etapa D — Frontend: fluxo de Atualizar guiado por request_id (EXECUTADA, aguardando revisão cruzada)
+
+**Commit**: `15a833ac18d17b1d606fd1324f1b4016ee997e3f` — `feat(results-page): fluxo de atualizacao guiado por request_id [D-004]`, arquivo único alterado: `commercial/apps/web/src/App.tsx` (30 inserções, 23 remoções — mudança cirúrgica, sem tocar CSS/layout/outras páginas).
+
+**O que mudou:**
+- `App.tsx` mantinha o polling existente de `loadAthlete()` a cada 2s (já existia antes da D-004, não foi criado agora) — a etapa D só acrescentou mais uma consulta a esse `Promise.all` já existente: `select * from v_refresh_request_status where athlete_id=... order by created_at desc limit 1`. Esse único ponto agora é a única fonte de verdade de "qual é a busca ativa deste atleta", substituindo a antiga inferência via string (`refreshMsg.startsWith('Atualização iniciada')`) e a varredura genérica de `monitorJobs`/`archiveJobs` do atleta inteiro.
+- **Primeiro clique**: `refresh()` chama `request_result_refresh` e, na sequência, recarrega o estado via `loadAthlete()` — que já traz o `request_id` (novo ou reaproveitado, com `reused:true`) através da mesma consulta. Não existe mais nenhum texto fabricado tipo "Atualização iniciada..." — o que aparece na tela é sempre reflexo do que o backend retornou.
+- **Acompanhamento**: `ResultsPage` recebe `activeRequest` (a linha da view) em vez de `monitorJobs`/`archiveJobs`. Todas as variáveis de estado (`isPending`, `isRunning`, `isCancelled`, `isFailed`, `isNoSources`) derivam exclusivamente de `activeRequest.derived_status`. Jobs de solicitações antigas nunca mais entram no cálculo.
+- **Reload/remount**: um `ref` (`firstRequestPollRef`) marca a primeira leitura após montar/trocar de atleta. Nessa primeira leitura, só os estados `pending`/`running`/`cancelled` são exibidos (reconstrução real da busca em andamento); `completed`/`failed`/`no_sources` de uma solicitação antiga nunca aparecem sozinhos só porque a página foi recarregada. Leituras seguintes (a cada 2s, já rodando) podem exibir qualquer estado, inclusive `failed` ao vivo, sem depender de `localStorage` ou de estado React reconstruído no cliente — tudo vem de uma consulta nova ao backend.
+- **Cancelamento**: segundo clique durante `pending`/`running` chama `cancel_result_refresh_request(activeRequest.request_id)` — nunca mais `cancel_result_refresh(p_athlete_id)` (que cancelaria a conta inteira do atleta). "PAUSA SOLICITADA" só aparece quando `derived_status==='cancelled'`, isto é, quando `cancel_requested_at` realmente foi carimbado no backend.
+- **Estados na UI**: mapeamento direto e único da regra congelada — `cancelled`→"PAUSA SOLICITADA", `running` com mais de 20s→"BUSCA DEMORADA" (cronômetro calculado a partir de `running_started_at`, campo real da view, nunca mais de um job local), `failed`→"ERRO NA BUSCA", `no_sources`→mensagem informativa simples sem animação de nadador (sem simular processamento), `completed`→banner escondido automaticamente (não existe mais texto que "fica preso" na tela).
+- **Concorrência entre abas**: como a consulta é sempre "qual é a última solicitação deste atleta, segundo o backend" (sem estado local compartilhado), duas abas convergem trivialmente para o mesmo `request_id` e o mesmo `derived_status` a cada poll de 2s — inclusive um cancelamento feito em uma aba aparece na outra no poll seguinte.
+- **Escopo respeitado**: nenhuma mudança de layout/CSS, nenhuma RPC legada tocada ou removida, nenhuma etapa F antecipada, foto/logout intocados, responsividade preservada (nenhuma classe CSS nova foi criada; as mesmas classes `sync-msg`/`swim-lane`/`swimmer`/`swim-alert-*` são reaproveitadas).
+
+**Build**: repositório clonado localmente na branch de trabalho, `npm install` + `npm run build:web` (`tsc -b && vite build`) executado com sucesso, zero erros de tipo, bundle gerado normalmente (aviso de tamanho de chunk é pré-existente, não relacionado a esta mudança).
+
+**Validação contra o backend real (dados 100% sintéticos, sem tocar `results`)**: criado um único atleta sintético (`ETAPA D TESTE SINTETICO`, `id` descartável) sob uma conta real (apenas para satisfazer FK, mesmo padrão já usado e aprovado na etapa B). Para cada cenário abaixo, a consulta exata que o frontend executa (`v_refresh_request_status` filtrada por `athlete_id`, ordenada por `created_at desc`, limite 1) foi executada contra o Supabase real e o resultado conferido campo a campo:
+
+| Cenário pedido | Resultado observado no backend real | Conclusão |
+|---|---|---|
+| Primeiro clique | `request_result_refresh` real retornou `request_id` novo, `queued:13` | ✓ |
+| `reused:true` | segunda chamada da RPC com a busca ainda ativa retornou o **mesmo** `request_id`, `queued:0` | ✓ |
+| Pending | job inserido com `status='pending'` → view retornou `derived_status='pending'`, `running_started_at=null` | ✓ |
+| Running | job atualizado para `status='running'` → view retornou `derived_status='running'`, `running_started_at`= timestamp real do início | ✓ |
+| Running >20s | `running_started_at` 31s no passado → view continua `running` com o timestamp real (o limiar de 20s em si é aritmética pura no cliente, já revisada em código) | ✓ |
+| Completed | job atualizado para `completed` → view retornou `derived_status='completed'` | ✓ |
+| Failed | job com `status='failed'` e `last_error` → view retornou `derived_status='failed'`, `sample_error` preenchido | ✓ |
+| Cancelled (segundo clique) | `cancel_result_refresh_request(request_id)` real chamado sobre uma busca `pending` com 13 jobs (1 monitor_job + 12 historical_archive_jobs) → **todos os 13** viraram `cancelled`, `cancel_requested_at` carimbado, view retornou `derived_status='cancelled'` | ✓ |
+| Cancelamento não é genérico | as duas outras solicitações do mesmo atleta (uma `completed`, uma `failed`) permaneceram **inalteradas** depois do cancelamento acima — só os jobs do `request_id` cancelado foram tocados | ✓ |
+| Duas abas convergem | a mesma consulta, repetida de forma independente ("aba A" / "aba B"), retornou exatamente o mesmo `request_id`/`derived_status` antes e depois do cancelamento (leitura sem estado compartilhado no cliente) | ✓ |
+| Stale failed antigo não contamina | criada uma solicitação `failed` mais antiga e depois uma mais nova (`completed`); a consulta "última por `created_at`" ignorou corretamente a antiga | ✓ |
+| Solicitação anterior completed não persiste | mesmo cenário acima: a mais recente sendo `completed` é automaticamente ocultada pelo código (regra explícita: `completed` nunca aparece no banner) | ✓ (código + dado real) |
+| No_sources | atleta sem nenhuma fonte completa; `request_result_refresh` real criou o `request_id` com 0 jobs → view retornou `derived_status='no_sources'`, `job_count=0` | ✓ |
+
+**Limitação transparente**: esta validação exercitou o backend real (RPCs + view) e o exato formato de dado que o componente consome, e confirma por leitura de código que cada `derived_status` produz o estado de UI mapeado na tabela acima. **Não foi feito um teste de navegador ao vivo** (abrir a página publicada e clicar de fato) porque não há, dentro das ferramentas desta sessão, uma forma seguindo o protocolo de emitir um token de sessão de autenticação real sem usar credenciais de um usuário de verdade ou expor segredos de assinatura do JWT — e nenhuma dessas alternativas foi autorizada. Se o chat/usuário quiser esse nível adicional de confirmação visual antes de publicar, posso propor um caminho (por exemplo, um usuário de teste descartável criado via fluxo normal de signup) mediante autorização explícita.
+
+**Limpeza**: atleta sintético, `refresh_requests`, `monitor_jobs`, `historical_archive_jobs` e `athlete_source_configs` de teste apagados ao final; contagem zero confirmada em todas as tabelas. Nenhuma linha de `results` foi lida, criada ou alterada durante toda a etapa D.
+
+**Pendências para a etapa E (aguardando autorização)**: validar em navegador de verdade contra a versão publicada (após deploy), e revisar se há outros pontos do app (fora de `ResultsPage`) que ainda leem `monitorJobs`/`archiveJobs` do jeito antigo (não há — `App.tsx` continua carregando essas duas listas só para o cálculo de "Última atualização", que não faz parte do escopo da D-004).
 
 ---
 *Atualizado por Code em 26/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
