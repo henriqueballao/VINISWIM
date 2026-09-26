@@ -219,7 +219,8 @@ function parseEntries(html:string,i:any){
  const $=cheerio.load(html),out:any[]=[];
  $('body *').each((_,el)=>{
   const text=$(el).text().replace(/\s+/g,' ').trim(); if(text.length<20||text.length>1600||!match(text,i))return;
-  const rx=/(?:\d{1,2}:\d{2}\s+)?((?:\d+x)?\d{2,4})\s*m?\s+(Livre|Costas|Peito|Borboleta|Medley)(?:.*?S[eé]rie\s*(\d+))?(?:.*?Raia\s*(\d+))?/gi; let m;\n  while((m=rx.exec(text))){const eventLabel=m[1]+' '+m[2];if(out.some(e=>n(e.eventLabel)===n(eventLabel)))continue;out.push({eventLabel,seedTimeMs:null,heat:m[3]?Number(m[3]):null,lane:m[4]?Number(m[4]):null})}
+  const rx=/(?:\d{1,2}:\d{2}\s+)?((?:\d+x)?\d{2,4})\s*m?\s+(Livre|Costas|Peito|Borboleta|Medley)(?:.*?S[eé]rie\s*(\d+))?(?:.*?Raia\s*(\d+))?/gi; let m;
+  while((m=rx.exec(text))){const eventLabel=m[1]+' '+m[2];if(out.some(e=>n(e.eventLabel)===n(eventLabel)))continue;out.push({eventLabel,seedTimeMs:null,heat:m[3]?Number(m[3]):null,lane:m[4]?Number(m[4]):null})}
  });
  return out
 }
