@@ -139,9 +139,11 @@ function Kpi({k,v,s,onClick}:{k:string,v:any,s?:string,onClick?:()=>void}){retur
 
 export default function App(){
  const identityRun=useRef(0)
- const [session,setSession]=useState<any>(null),[authReady,setAuthReady]=useState(false),[identityLoading,setIdentityLoading]=useState(false),[identityLoaded,setIdentityLoaded]=useState(false),[needsInitialAthlete,setNeedsInitialAthlete]=useState(false),[recovery,setRecovery]=useState(()=>new URLSearchParams(window.location.search).get('reset')==='1'),[page,setPage]=useState<Page>('dashboard'),[open,setOpen]=useState(false),[actionsOpen,setActionsOpen]=useState(false),[profile,setProfile]=useState<any>(null),[account,setAccount]=useState<any>(null),[athletes,setAthletes]=useState<any[]>([]),[athleteId,setAthleteId]=useState(localStorage.getItem('viniswim-athlete')||''),[events,setEvents]=useState<any[]>([]),[results,setResults]=useState<any[]>([]),[overview,setOverview]=useState<any>(null),[pbs,setPbs]=useState<any[]>([]),[meets,setMeets]=useState<any[]>([]),[entries,setEntries]=useState<any[]>([]),[audit,setAudit]=useState<any[]>([]),[sources,setSources]=useState<any[]>([]),[sourceConfigs,setSourceConfigs]=useState<any[]>([]),[searchSources,setSearchSources]=useState<string[]>([]),[monitorJobs,setMonitorJobs]=useState<any[]>([]),[archiveJobs,setArchiveJobs]=useState<any[]>([]),[modal,setModal]=useState<any>(null),[athleteModal,setAthleteModal]=useState(false),[meetModal,setMeetModal]=useState(false),[tutorial,setTutorial]=useState(false),[alertsModal,setAlertsModal]=useState(false),[auditModal,setAuditModal]=useState(false),[filters,setFilters]=useState({event:[] as string[],course:[] as string[],category:[] as string[],origin:[] as string[]}),[refreshMsg,setRefreshMsg]=useState('')
+ const firstRequestPollRef=useRef(true)
+ const [session,setSession]=useState<any>(null),[authReady,setAuthReady]=useState(false),[identityLoading,setIdentityLoading]=useState(false),[identityLoaded,setIdentityLoaded]=useState(false),[needsInitialAthlete,setNeedsInitialAthlete]=useState(false),[recovery,setRecovery]=useState(()=>new URLSearchParams(window.location.search).get('reset')==='1'),[page,setPage]=useState<Page>('dashboard'),[open,setOpen]=useState(false),[actionsOpen,setActionsOpen]=useState(false),[profile,setProfile]=useState<any>(null),[account,setAccount]=useState<any>(null),[athletes,setAthletes]=useState<any[]>([]),[athleteId,setAthleteId]=useState(localStorage.getItem('viniswim-athlete')||''),[events,setEvents]=useState<any[]>([]),[results,setResults]=useState<any[]>([]),[overview,setOverview]=useState<any>(null),[pbs,setPbs]=useState<any[]>([]),[meets,setMeets]=useState<any[]>([]),[entries,setEntries]=useState<any[]>([]),[audit,setAudit]=useState<any[]>([]),[sources,setSources]=useState<any[]>([]),[sourceConfigs,setSourceConfigs]=useState<any[]>([]),[searchSources,setSearchSources]=useState<string[]>([]),[monitorJobs,setMonitorJobs]=useState<any[]>([]),[archiveJobs,setArchiveJobs]=useState<any[]>([]),[modal,setModal]=useState<any>(null),[athleteModal,setAthleteModal]=useState(false),[meetModal,setMeetModal]=useState(false),[tutorial,setTutorial]=useState(false),[alertsModal,setAlertsModal]=useState(false),[auditModal,setAuditModal]=useState(false),[filters,setFilters]=useState({event:[] as string[],course:[] as string[],category:[] as string[],origin:[] as string[]}),[refreshMsg,setRefreshMsg]=useState(''),[activeRequest,setActiveRequest]=useState<any>(null)
  useEffect(()=>{supabase.auth.getSession().then(x=>{setSession(x.data.session);setAuthReady(true)});const {data:{subscription}}=supabase.auth.onAuthStateChange((e,s)=>{setSession(s);setAuthReady(true);if(e==='PASSWORD_RECOVERY')setRecovery(true);if(!s){setIdentityLoading(false);setIdentityLoaded(false)}});return()=>subscription.unsubscribe()},[])
  useEffect(()=>{identityRun.current++;setNeedsInitialAthlete(false);if(session)void loadIdentity();else{setIdentityLoading(false);setIdentityLoaded(false)}},[session?.user?.id])
+ useEffect(()=>{firstRequestPollRef.current=true},[athleteId])
  useEffect(()=>{if(athleteId){localStorage.setItem('viniswim-athlete',athleteId);void loadAthlete()}},[athleteId])
  useEffect(()=>{if(!athleteId)return;const t=window.setInterval(()=>void loadAthlete(),2000);return()=>window.clearInterval(t)},[athleteId])
  async function logout(){
@@ -151,7 +153,7 @@ export default function App(){
   localStorage.removeItem('viniswim-athlete')
   setNeedsInitialAthlete(false);setSession(null);setIdentityLoading(false);setIdentityLoaded(false)
   setOpen(false);setActionsOpen(false);setTutorial(false);setAlertsModal(false);setAuditModal(false);setModal(null);setAthleteModal(false);setMeetModal(false)
-  setAthleteId('');setProfile(null);setAccount(null);setAthletes([]);setEvents([]);setResults([]);setOverview(null);setPbs([]);setMeets([]);setEntries([]);setAudit([]);setSources([]);setSourceConfigs([]);setSearchSources([]);setMonitorJobs([]);setArchiveJobs([]);setRefreshMsg('');setPage('dashboard')
+  setAthleteId('');setProfile(null);setAccount(null);setAthletes([]);setEvents([]);setResults([]);setOverview(null);setPbs([]);setMeets([]);setEntries([]);setAudit([]);setSources([]);setSourceConfigs([]);setSearchSources([]);setMonitorJobs([]);setArchiveJobs([]);setRefreshMsg('');setActiveRequest(null);setPage('dashboard')
   window.location.replace(window.location.pathname)
  }
  async function loadIdentity(){
@@ -182,7 +184,7 @@ export default function App(){
    if(run===identityRun.current){setIdentityLoading(false);setIdentityLoaded(true)}
   }
  }
- async function loadAthlete(){const [{data:r},{data:o},{data:pb},{data:en},{data:au},{data:rs},{data:sc},{data:mj},{data:hj}]=await Promise.all([supabase.from('v_result_timeline').select('*').eq('athlete_id',athleteId).order('result_date',{ascending:false}).order('created_at',{ascending:false}),supabase.from('v_athlete_overview').select('*').eq('athlete_id',athleteId).maybeSingle(),supabase.from('personal_bests').select('*,results(*)').eq('athlete_id',athleteId),supabase.from('meet_entries').select('*,meets(*)').eq('athlete_id',athleteId),supabase.from('audit_log').select('*').eq('athlete_id',athleteId).order('created_at',{ascending:false}).limit(120),supabase.from('result_sources').select('*,sources(name,code)').in('result_id',(results||[]).map(x=>x.id).length?(results||[]).map(x=>x.id):['00000000-0000-0000-0000-000000000000']),supabase.from('athlete_source_configs').select('*,sources(code,name)').eq('athlete_id',athleteId).eq('active',true).order('sort_order').order('display_name'),supabase.from('monitor_jobs').select('*').eq('athlete_id',athleteId),supabase.from('historical_archive_jobs').select('*').eq('athlete_id',athleteId)]);setResults(r||[]);setOverview(o||null);setPbs((pb||[]).map((x:any)=>({...x.results,pb_id:x.id})));setEntries(en||[]);setMeets([...new Map((en||[]).map((x:any)=>[x.meets?.id,x.meets])).values()].filter(Boolean));setAudit(au||[]);setSources(rs||[]);setSourceConfigs(sc||[]);const codes=(sc||[]).map((x:any)=>x.sources?.code).filter(Boolean);setSearchSources(prev=>{const kept=prev.filter(x=>codes.includes(x));return kept.length?kept:codes});setMonitorJobs(mj||[]);setArchiveJobs(hj||[])}
+ async function loadAthlete(){const [{data:r},{data:o},{data:pb},{data:en},{data:au},{data:rs},{data:sc},{data:mj},{data:hj},{data:rr}]=await Promise.all([supabase.from('v_result_timeline').select('*').eq('athlete_id',athleteId).order('result_date',{ascending:false}).order('created_at',{ascending:false}),supabase.from('v_athlete_overview').select('*').eq('athlete_id',athleteId).maybeSingle(),supabase.from('personal_bests').select('*,results(*)').eq('athlete_id',athleteId),supabase.from('meet_entries').select('*,meets(*)').eq('athlete_id',athleteId),supabase.from('audit_log').select('*').eq('athlete_id',athleteId).order('created_at',{ascending:false}).limit(120),supabase.from('result_sources').select('*,sources(name,code)').in('result_id',(results||[]).map(x=>x.id).length?(results||[]).map(x=>x.id):['00000000-0000-0000-0000-000000000000']),supabase.from('athlete_source_configs').select('*,sources(code,name)').eq('athlete_id',athleteId).eq('active',true).order('sort_order').order('display_name'),supabase.from('monitor_jobs').select('*').eq('athlete_id',athleteId),supabase.from('historical_archive_jobs').select('*').eq('athlete_id',athleteId),supabase.from('v_refresh_request_status').select('*').eq('athlete_id',athleteId).order('created_at',{ascending:false}).limit(1).maybeSingle()]);setResults(r||[]);setOverview(o||null);setPbs((pb||[]).map((x:any)=>({...x.results,pb_id:x.id})));setEntries(en||[]);setMeets([...new Map((en||[]).map((x:any)=>[x.meets?.id,x.meets])).values()].filter(Boolean));setAudit(au||[]);setSources(rs||[]);setSourceConfigs(sc||[]);const codes=(sc||[]).map((x:any)=>x.sources?.code).filter(Boolean);setSearchSources(prev=>{const kept=prev.filter(x=>codes.includes(x));return kept.length?kept:codes});setMonitorJobs(mj||[]);setArchiveJobs(hj||[]);const isFirstRequestPoll=firstRequestPollRef.current;firstRequestPollRef.current=false;if(!rr){setActiveRequest(null)}else if(isFirstRequestPoll){setActiveRequest(['pending','running','cancelled'].includes(rr.derived_status)?rr:null)}else{setActiveRequest(rr.derived_status==='completed'?null:rr)}}
  useEffect(()=>{if(results.length&&athleteId)void supabase.from('result_sources').select('*,sources(name,code)').in('result_id',results.map(x=>x.id)).then(({data})=>setSources(data||[]))},[results.length,athleteId])
  const athlete=athletes.find(x=>x.id===athleteId),ev=new Map(events.map(x=>[x.id,x.label]))
  const filtered=results.filter(r=>
@@ -208,10 +210,15 @@ export default function App(){
   await loadAthlete()
  }
  async function refresh(){
-  setRefreshMsg('Atualização iniciada. Buscando novos resultados oficiais.')
-  const {data,error}=await supabase.rpc('request_result_refresh',{p_athlete_id:athleteId,p_source_codes:searchSources})
+  setRefreshMsg('')
+  const {error}=await supabase.rpc('request_result_refresh',{p_athlete_id:athleteId,p_source_codes:searchSources})
   if(error){setRefreshMsg('Falha ao solicitar atualização: '+error.message);return}
-  if(!data?.queued){setRefreshMsg(data?.message||'Nenhuma busca foi enfileirada.');return}
+  await loadAthlete()
+ }
+ async function cancelActiveRequest(requestId:string){
+  setRefreshMsg('')
+  const {error}=await supabase.rpc('cancel_result_refresh_request',{p_request_id:requestId})
+  if(error){setRefreshMsg('Falha ao cancelar a busca: '+error.message);return}
   await loadAthlete()
  }
  const title=nav.find(x=>x[0]===page)?.[1]||'VINISWIM',age=calcAge(athlete?.birth_date),lastSync=monitorJobs.map(x=>x.last_run_at).filter(Boolean).sort().at(-1)
@@ -220,7 +227,7 @@ export default function App(){
   <main><header><div className="header-left"><button className="menu" onClick={()=>setOpen(v=>!v)} aria-label="Abrir menu"><Menu/></button><div><h1>{title}</h1><small>{profile?.full_name||session.user.email}</small></div></div><div className="athlete-switcher"><AthleteAvatar athlete={athlete} size="sm"/><select aria-label="Selecionar atleta" value={athleteId} onChange={e=>setAthleteId(e.target.value)}>{athletes.map(a=><option key={a.id} value={a.id}>{a.preferred_name||a.full_name}</option>)}</select><button className="switch-add" onClick={()=>setAthleteModal(true)} title="Adicionar atleta"><UserPlus size={18}/></button></div></header>
   <div className="content"><section className="athlete-hero"><AthleteAvatar athlete={athlete} size="lg"/><div className="athlete-main"><h2>{athlete?.full_name}</h2><p>{[athlete?.club_name,athlete?.status==='active'?'fonte oficial ativa':'fonte oficial pendente'].filter(Boolean).join(' · ')}</p><div className="athlete-meta"><span>Idade: {age==null?'—':age+' anos'}</span><span>Categoria: {athlete?.category||'—'}</span></div></div></section>
   {page==='dashboard'&&<Dashboard overview={overview} pbs={pbs} results={results} entries={entries} events={events} setPage={setPage}/>}
-  {page==='results'&&<ResultsPage filtered={filtered} allResults={results} events={events} filters={filters} setFilters={setFilters} meets={meets} sourceConfigs={sourceConfigs} selectedSources={searchSources} setSelectedSources={setSearchSources} onNew={()=>setModal({})} onEdit={setModal} onDelete={del} onRefresh={refresh} refreshMsg={refreshMsg} lastSync={lastSync} athlete={athlete} monitorJobs={monitorJobs} archiveJobs={archiveJobs}/>}
+  {page==='results'&&<ResultsPage filtered={filtered} allResults={results} events={events} filters={filters} setFilters={setFilters} meets={meets} sourceConfigs={sourceConfigs} selectedSources={searchSources} setSelectedSources={setSearchSources} onNew={()=>setModal({})} onEdit={setModal} onDelete={del} onRefresh={refresh} onCancelRefresh={cancelActiveRequest} refreshMsg={refreshMsg} lastSync={lastSync} athlete={athlete} activeRequest={activeRequest}/>}
   {page==='evolution'&&<Evolution results={results} events={events}/>}
   {page==='meets'&&<MeetsPage meets={meets} entries={entries} results={results} events={events} athlete={athlete} athleteId={athleteId} onNew={()=>setMeetModal(true)} reload={loadAthlete}/>}
   {page==='expectations'&&<Expectations results={results} entries={entries} events={events}/>}
@@ -238,22 +245,22 @@ export default function App(){
 
 function Dashboard({overview,pbs,results,entries,events,setPage}:{overview:any,pbs:any[],results:any[],entries:any[],events:any[],setPage:(p:Page)=>void}){const ev=new Map(events.map(x=>[x.id,x.label]));const next=entries.filter(e=>e.meets?.start_date>=new Date().toISOString().slice(0,10)).sort((a,b)=>a.meets.start_date.localeCompare(b.meets.start_date))[0];return <><div className="kpi-grid"><Kpi k="Total de resultados" v={overview?.total_results||0} s="Registros no histórico" onClick={()=>setPage('results')}/><Kpi k="Resultados manuais" v={overview?.manual_results||0} s="Lançamentos manuais" onClick={()=>setPage('results')}/><Kpi k="Resultados oficiais" v={overview?.official_results||0} s="Fontes oficiais" onClick={()=>setPage('results')}/><Kpi k="Ocorrências" v={overview?.occurrences||0} s="DNS · DSQ · DNF · Parcial" onClick={()=>setPage('results')}/></div><section className="section"><div className="section-head"><h3>Próximo campeonato</h3></div>{next?<div className="next-meet"><div><b>{next.meets.name}</b><small>{d(next.meets.start_date)} · {next.meets.venue||next.meets.city||'local não informado'} · {poolLabel(next.meets.course)}</small></div><div><b>{ev.get(next.event_id)}</b><small>Balizamento {formatSwimTime(next.seed_time_ms)} · Série {next.heat??'—'} · Raia {next.lane??'—'}</small></div></div>:<p className="muted">Nenhum campeonato futuro cadastrado.</p>}</section><section className="section"><div className="section-head"><h3>Melhores marcas confirmadas</h3><span>{pbs.length}</span></div><div className="pb-grid">{pbs.map((r:any,i)=><div className="pb" key={r.id}><span>#{i+1}</span><div><b>{ev.get(r.event_id)||'Prova'}</b><small>{poolLabel(r.course)} · {d(r.result_date)} · {r.venue||r.city||'local não informado'}</small></div><strong>{formatSwimTime(r.time_ms)}</strong></div>)}{!pbs.length&&<p className="muted">Ainda não há melhores marcas oficiais.</p>}</div></section></>}
 
-function ResultsPage({filtered,allResults,events,filters,setFilters,meets,sourceConfigs,selectedSources,setSelectedSources,onNew,onEdit,onDelete,onRefresh,refreshMsg,lastSync,athlete,monitorJobs,archiveJobs}:{filtered:any[],allResults:any[],events:any[],filters:any,setFilters:any,meets:any[],sourceConfigs:any[],selectedSources:string[],setSelectedSources:any,onNew:()=>void,onEdit:any,onDelete:any,onRefresh:()=>void,refreshMsg:string,lastSync?:string,athlete:any,monitorJobs:any[],archiveJobs:any[]}){
+function ResultsPage({filtered,allResults,events,filters,setFilters,meets,sourceConfigs,selectedSources,setSelectedSources,onNew,onEdit,onDelete,onRefresh,onCancelRefresh,refreshMsg,lastSync,athlete,activeRequest}:{filtered:any[],allResults:any[],events:any[],filters:any,setFilters:any,meets:any[],sourceConfigs:any[],selectedSources:string[],setSelectedSources:any,onNew:()=>void,onEdit:any,onDelete:any,onRefresh:()=>void,onCancelRefresh:(requestId:string)=>void,refreshMsg:string,lastSync?:string,athlete:any,activeRequest:any}){
  const [sourceOpen,setSourceOpen]=useState(false)
  const [syncSeconds,setSyncSeconds]=useState(0)
  const [clickActive,setClickActive]=useState(false)
- const [latchedAlert,setLatchedAlert]=useState<'timeout'|'error'|'paused'|null>(null)
- const requested=refreshMsg.startsWith('Atualização iniciada')
- const realJob=(archiveJobs||[]).find((j:any)=>j.status==='running'&&j.started_at)||(monitorJobs||[]).find((j:any)=>j.status==='running'&&j.locked_at)
- const syncing=!!realJob
- const activeJob=[...(monitorJobs||[]),...(archiveJobs||[])].some((j:any)=>j.status==='pending'||j.status==='running')
- const waiting=requested&&activeJob&&!syncing&&!latchedAlert
- const jobError=[...(monitorJobs||[]),...(archiveJobs||[])].find((j:any)=>j.status==='failed'&&j.last_error)?.last_error
- useEffect(()=>{if(requested&&jobError)setLatchedAlert('error');else if(syncing&&syncSeconds>=20)setLatchedAlert(x=>x||'timeout')},[syncing,syncSeconds,jobError])
- const syncAlert=!!latchedAlert
- useEffect(()=>{if(!requested&&latchedAlert==='error')setLatchedAlert(null)},[requested])
- useEffect(()=>{if(!syncing){setSyncSeconds(0);return}const started=new Date(realJob?.started_at||realJob?.locked_at||Date.now()).getTime();setSyncSeconds(Math.max(0,Math.floor((Date.now()-started)/1000)));const timer=window.setInterval(()=>setSyncSeconds(Math.floor((Date.now()-started)/1000)),1000);return()=>window.clearInterval(timer)},[syncing,realJob?.started_at,realJob?.locked_at])
- const shownSeconds=latchedAlert?Math.min(syncSeconds,20):syncSeconds
+ const [busy,setBusy]=useState(false)
+ const status=activeRequest?.derived_status as string|undefined
+ const isPending=status==='pending'
+ const isRunning=status==='running'
+ const isCancelled=status==='cancelled'
+ const isFailed=status==='failed'
+ const isNoSources=status==='no_sources'
+ const isActive=isPending||isRunning
+ useEffect(()=>{if(!isRunning){setSyncSeconds(0);return}const started=new Date(activeRequest?.running_started_at||Date.now()).getTime();setSyncSeconds(Math.max(0,Math.floor((Date.now()-started)/1000)));const timer=window.setInterval(()=>setSyncSeconds(Math.floor((Date.now()-started)/1000)),1000);return()=>window.clearInterval(timer)},[isRunning,activeRequest?.running_started_at])
+ const slow=isRunning&&syncSeconds>=20
+ const syncAlert=isCancelled||isFailed||slow
+ const shownSeconds=syncAlert?Math.min(syncSeconds,20):syncSeconds
  const syncClock=String(Math.floor(shownSeconds/60)).padStart(2,'0')+':'+String(shownSeconds%60).padStart(2,'0')
  const ev=new Map(events.map(x=>[x.id,x.label])),mt=new Map(meets.map(x=>[x.id,x.name]))
  const eventIds=[...new Set(allResults.map(r=>r.event_id).filter(Boolean))]
@@ -266,7 +273,7 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
  const allCodes=sourceConfigs.map((x:any)=>x.sources?.code).filter(Boolean)
  const allSelected=allCodes.length>0&&allCodes.every((x:string)=>selectedSources.includes(x))
  function toggleAll(){setSelectedSources(allSelected?[]:allCodes)}
- async function refreshFromButton(){setClickActive(true);window.setTimeout(()=>setClickActive(false),350);if(requested&&activeJob){const {error}=await supabase.rpc('cancel_result_refresh',{p_athlete_id:athlete.id});if(error){setLatchedAlert('error');return}setLatchedAlert('paused' as any);return}setLatchedAlert(null);onRefresh()}
+ async function refreshFromButton(){if(busy)return;setClickActive(true);window.setTimeout(()=>setClickActive(false),350);setBusy(true);try{if(isActive&&activeRequest?.request_id){await onCancelRefresh(activeRequest.request_id)}else{await onRefresh()}}finally{setBusy(false)}}
  return <section className="section">
   <div className="section-head">
    <h3>Resultados</h3>
@@ -282,8 +289,8 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
    </div>
   </div>
   <div className="results-sync-meta"><small>{lastSync?'Última atualização: '+new Date(lastSync).toLocaleString('pt-BR'):'Última atualização: —'}</small></div>
-  {(refreshMsg||latchedAlert)&&<div className={'sync-msg'+(syncing?' swimming':'')}>
-   {(syncing||waiting||latchedAlert)?<><div className="swim-status-copy"><div><b>Buscando novos resultados...</b><small>Consultando fontes oficiais e processando campeonatos.</small></div><strong className="swim-timer">{syncClock}</strong></div><div className={'swim-lane'+(syncAlert?' alert':'')} aria-label={syncAlert?'Busca paralisada':'Atualização em andamento'}><div className={'swimmer '+((athlete?.gender||'').toLowerCase().startsWith('f')?'female':'male')+(syncAlert?' stopped':'')}><span className="swim-head"/><span className="swim-body"/><span className="swim-arm arm-a"/><span className="swim-arm arm-b"/><span className="swim-splash">•••</span>{syncAlert&&<span className="swim-alert-sign"><AlertTriangle size={15}/></span>}</div></div>{syncAlert&&<div className="swim-alert-copy"><span>{latchedAlert==='error'?'ERRO NA BUSCA':latchedAlert==='paused'?'PAUSA SOLICITADA':'BUSCA DEMORADA'}</span></div>}</>:refreshMsg}
+  {(isPending||isRunning||isCancelled||isFailed||isNoSources||refreshMsg)&&<div className={'sync-msg'+(isRunning?' swimming':'')}>
+   {isNoSources?'Nenhuma fonte aplicável foi encontrada para esta busca.':(isPending||isRunning||isCancelled||isFailed)?<><div className="swim-status-copy"><div><b>Buscando novos resultados...</b><small>Consultando fontes oficiais e processando campeonatos.</small></div><strong className="swim-timer">{syncClock}</strong></div><div className={'swim-lane'+(syncAlert?' alert':'')} aria-label={syncAlert?'Busca paralisada':'Atualização em andamento'}><div className={'swimmer '+((athlete?.gender||'').toLowerCase().startsWith('f')?'female':'male')+(syncAlert?' stopped':'')}><span className="swim-head"/><span className="swim-body"/><span className="swim-arm arm-a"/><span className="swim-arm arm-b"/><span className="swim-splash">•••</span>{syncAlert&&<span className="swim-alert-sign"><AlertTriangle size={15}/></span>}</div></div>{syncAlert&&<div className="swim-alert-copy"><span>{isCancelled?'PAUSA SOLICITADA':isFailed?'ERRO NA BUSCA':'BUSCA DEMORADA'}</span></div>}</>:refreshMsg}
   </div>}
   <div className="search-source-control">
    <button type="button" className="source-select-button" onClick={()=>setSourceOpen(v=>!v)} aria-expanded={sourceOpen}>
