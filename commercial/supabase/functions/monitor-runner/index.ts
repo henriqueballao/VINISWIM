@@ -219,8 +219,7 @@ function parseEntries(html:string,i:any){
  const $=cheerio.load(html),out:any[]=[];
  $('body *').each((_,el)=>{
   const text=$(el).text().replace(/\s+/g,' ').trim(); if(text.length<20||text.length>1600||!match(text,i))return;
-  const rx=/(?:\d{1,2}:\d{2}\s+)?((?:\d+x)?\d{2,4})\s*m?\s+(Livre|Costas|Peito|Borboleta|Medley)(?:.*?S[eé]rie\s*(\d+))?(?:.*?Raia\s*(\d+))?/gi; let m;
-  while((m=rx.exec(text))){const eventLabel=m[1]+' '+m[2];if(out.some(e=>n(e.eventLabel)===n(eventLabel)))continue;out.push({eventLabel,seedTimeMs:null,heat:m[3]?Number(m[3]):null,lane:m[4]?Number(m[4]):null})}
+  const rx=/(?:\d{1,2}:\d{2}\s+)?((?:\d+x)?\d{2,4})\s*m?\s+(Livre|Costas|Peito|Borboleta|Medley)(?:.*?S[eé]rie\s*(\d+))?(?:.*?Raia\s*(\d+))?/gi; let m;\n  while((m=rx.exec(text))){const eventLabel=m[1]+' '+m[2];if(out.some(e=>n(e.eventLabel)===n(eventLabel)))continue;out.push({eventLabel,seedTimeMs:null,heat:m[3]?Number(m[3]):null,lane:m[4]?Number(m[4]):null})}
  });
  return out
 }
@@ -316,7 +315,7 @@ async function processArchiveJob(aj:any){
          status:'completed',records_found:0,records_inserted:0,records_promoted:0,
          heartbeat_at:null,finished_at:now(),updated_at:now(),
          cursor_index:0,cursor_payload:{meet,links:[]}
-       }).eq('id',aj.id);
+       }).eq('id',aj.id).eq('status','running');
        return
      }
      const year=Number(String(meet.startDate||'').slice(0,4))||new Date().getFullYear();
@@ -334,7 +333,7 @@ async function processArchiveJob(aj:any){
    if(!batch.length){
      await db.from('historical_archive_jobs').update({
        status:'completed',heartbeat_at:null,finished_at:now(),updated_at:now()
-     }).eq('id',aj.id);
+     }).eq('id',aj.id).eq('status','running');
      return
    }
 
@@ -420,12 +419,12 @@ async function processArchiveJob(aj:any){
      finished_at:done?now():null,
      last_error:null,
      updated_at:now()
-   }).eq('id',aj.id)
+   }).eq('id',aj.id).eq('status','running')
  }catch(e:any){
    await db.from('historical_archive_jobs').update({
      status:'failed',heartbeat_at:null,last_error:String(e?.message||e).slice(0,1000),
      finished_at:now(),updated_at:now()
-   }).eq('id',aj.id);
+   }).eq('id',aj.id).eq('status','running');
    throw e
  }
 }
@@ -520,7 +519,7 @@ async function processJob(j:any){
      }
      const {count:remaining}=await db.from('historical_archive_jobs').select('id',{count:'exact',head:true}).eq('athlete_id',j.athlete_id).in('status',['pending','running']);
      await db.from('monitor_runs').update({status:'completed',finished_at:new Date().toISOString(),records_found:0,records_inserted:0,records_duplicated:0}).eq('id',run.id);
-     await db.from('monitor_jobs').update({status:(remaining||0)>0?'pending':'completed',last_run_at:new Date().toISOString(),next_run_at:(remaining||0)>0?new Date(Date.now()+60000).toISOString():null,locked_at:null,last_error:null,attempts:0}).eq('id',j.id);
+     await db.from('monitor_jobs').update({status:(remaining||0)>0?'pending':'completed',last_run_at:new Date().toISOString(),next_run_at:(remaining||0)>0?new Date(Date.now()+60000).toISOString():null,locked_at:null,last_error:null,attempts:0}).eq('id',j.id).eq('status','running');
      return
      const packs=await scanHistoricalCatalog(j,i);
      const ev=await eventMap();let inserted=0,dups=0,found=0;
@@ -584,10 +583,10 @@ async function processJob(j:any){
      inserted++;await db.from('result_sources').insert({result_id:nr.id,source_id:j.source_id,source_url:r.sourceUrl,retrieved_at:new Date().toISOString(),monitor_run_id:run.id});await createNotifications(j.athlete_id,nr.id,eid,r.status,r.eventLabel,course)
    }
    await db.from('monitor_runs').update({status:'completed',finished_at:new Date().toISOString(),records_found:results.length,records_inserted:inserted,records_duplicated:dups}).eq('id',run.id);
-   await db.from('monitor_jobs').update({status:'completed',last_run_at:new Date().toISOString(),next_run_at:null,locked_at:null,last_error:null,attempts:0}).eq('id',j.id)
+   await db.from('monitor_jobs').update({status:'completed',last_run_at:new Date().toISOString(),next_run_at:null,locked_at:null,last_error:null,attempts:0}).eq('id',j.id).eq('status','running')
  }catch(e:any){
    await db.from('monitor_runs').update({status:'failed',finished_at:new Date().toISOString(),error_code:String(e.message||e).slice(0,240)}).eq('id',run.id);
-   await db.from('monitor_jobs').update({status:'failed',locked_at:null,last_error:String(e.message||e).slice(0,1000),next_run_at:null}).eq('id',j.id);throw e
+   await db.from('monitor_jobs').update({status:'failed',locked_at:null,last_error:String(e.message||e).slice(0,1000),next_run_at:null}).eq('id',j.id).eq('status','running');throw e
  }
 }
 
