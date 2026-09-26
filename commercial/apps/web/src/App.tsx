@@ -208,23 +208,11 @@ export default function App(){
   await loadAthlete()
  }
  async function refresh(){
-  const beforeCount=results.length
   setRefreshMsg('Atualização iniciada. Buscando novos resultados oficiais.')
-  const {error}=await supabase.rpc('request_result_refresh',{p_athlete_id:athleteId,p_source_codes:searchSources})
-  if(error){setRefreshMsg(error.message);return}
-  let tries=0
-  const poll=async()=>{
-   tries++
-   const {data:rows}=await supabase.from('v_result_timeline').select('id').eq('athlete_id',athleteId)
-   const {data:jobs}=await supabase.from('monitor_jobs').select('status').eq('athlete_id',athleteId)
-   const total=rows?.length??beforeCount
-   const busy=(jobs||[]).some((j:any)=>j.status==='pending'||j.status==='running')
-   if(busy&&tries<24){await loadAthlete();setTimeout(()=>void poll(),5000);return}
-   await loadAthlete()
-   const added=Math.max(0,total-beforeCount)
-   setRefreshMsg(added>0?'Atualização concluída. '+added+' novo(s) resultado(s) oficial(is) encontrado(s). Total: '+total+'.':'Atualização concluída. Nenhum resultado novo encontrado. Total: '+total+'.')
-  }
-  setTimeout(()=>void poll(),2500)
+  const {data,error}=await supabase.rpc('request_result_refresh',{p_athlete_id:athleteId,p_source_codes:searchSources})
+  if(error){setRefreshMsg('Falha ao solicitar atualização: '+error.message);return}
+  if(!data?.queued){setRefreshMsg(data?.message||'Nenhuma busca foi enfileirada.');return}
+  await loadAthlete()
  }
  const title=nav.find(x=>x[0]===page)?.[1]||'VINISWIM',age=calcAge(athlete?.birth_date),lastSync=monitorJobs.map(x=>x.last_run_at).filter(Boolean).sort().at(-1)
  return <div className="app">
@@ -258,7 +246,8 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
  const requested=refreshMsg.startsWith('Atualização iniciada')
  const realJob=(monitorJobs||[]).find((j:any)=>j.status==='running'&&j.locked_at)
  const syncing=!!realJob
- const waiting=requested&&!syncing&&!latchedAlert
+ const activeJob=(monitorJobs||[]).some((j:any)=>j.status==='pending'||j.status==='running')
+ const waiting=requested&&activeJob&&!syncing&&!latchedAlert
  const jobError=(monitorJobs||[]).find((j:any)=>j.status==='failed'&&j.last_error)?.last_error
  useEffect(()=>{if(requested&&jobError)setLatchedAlert('error');else if(syncing&&syncSeconds>=20)setLatchedAlert(x=>x||'timeout')},[syncing,syncSeconds,jobError])
  const syncAlert=!!latchedAlert
@@ -277,7 +266,7 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
  const allCodes=sourceConfigs.map((x:any)=>x.sources?.code).filter(Boolean)
  const allSelected=allCodes.length>0&&allCodes.every((x:string)=>selectedSources.includes(x))
  function toggleAll(){setSelectedSources(allSelected?[]:allCodes)}
- async function refreshFromButton(){setClickActive(true);window.setTimeout(()=>setClickActive(false),350);if(syncing){const {error}=await supabase.rpc('cancel_result_refresh',{p_athlete_id:athlete.id});if(error){setLatchedAlert('error');return}setLatchedAlert('paused' as any);return}setLatchedAlert(null);onRefresh()}
+ async function refreshFromButton(){setClickActive(true);window.setTimeout(()=>setClickActive(false),350);if(requested&&activeJob){const {error}=await supabase.rpc('cancel_result_refresh',{p_athlete_id:athlete.id});if(error){setLatchedAlert('error');return}setLatchedAlert('paused' as any);return}setLatchedAlert(null);onRefresh()}
  return <section className="section">
   <div className="section-head">
    <h3>Resultados</h3>
