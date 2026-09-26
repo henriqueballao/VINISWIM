@@ -251,11 +251,13 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
  const [sourceOpen,setSourceOpen]=useState(false)
  const [syncSeconds,setSyncSeconds]=useState(0)
  const [latchedAlert,setLatchedAlert]=useState<'timeout'|'error'|null>(null)
- const syncing=refreshMsg.startsWith('Atualização iniciada')
+ const requested=refreshMsg.startsWith('Atualização iniciada')
+ const realJob=(monitorJobs||[]).find((j:any)=>j.status==='running'&&j.locked_at)
+ const syncing=!!realJob
  const jobError=(monitorJobs||[]).find((j:any)=>j.status==='failed'||j.last_error)?.last_error
- useEffect(()=>{if(syncing&&jobError)setLatchedAlert('error');else if(syncing&&syncSeconds>=20)setLatchedAlert(x=>x||'timeout')},[syncing,syncSeconds,jobError])
+ useEffect(()=>{if(requested&&jobError)setLatchedAlert('error');else if(syncing&&syncSeconds>=20)setLatchedAlert(x=>x||'timeout')},[syncing,syncSeconds,jobError])
  const syncAlert=!!latchedAlert
- useEffect(()=>{if(!syncing){setSyncSeconds(0);return}const started=Date.now();setSyncSeconds(0);const timer=window.setInterval(()=>setSyncSeconds(Math.floor((Date.now()-started)/1000)),1000);return()=>window.clearInterval(timer)},[syncing])
+ useEffect(()=>{if(!syncing){setSyncSeconds(0);return}const started=new Date(realJob?.locked_at||Date.now()).getTime();setSyncSeconds(Math.max(0,Math.floor((Date.now()-started)/1000)));const timer=window.setInterval(()=>setSyncSeconds(Math.floor((Date.now()-started)/1000)),1000);return()=>window.clearInterval(timer)},[syncing,realJob?.locked_at])
  const shownSeconds=latchedAlert?Math.min(syncSeconds,20):syncSeconds
  const syncClock=String(Math.floor(shownSeconds/60)).padStart(2,'0')+':'+String(shownSeconds%60).padStart(2,'0')
  const ev=new Map(events.map(x=>[x.id,x.label])),mt=new Map(meets.map(x=>[x.id,x.name]))
