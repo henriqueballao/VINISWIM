@@ -143,6 +143,7 @@ export default function App(){
  useEffect(()=>{supabase.auth.getSession().then(x=>{setSession(x.data.session);setAuthReady(true)});const {data:{subscription}}=supabase.auth.onAuthStateChange((e,s)=>{setSession(s);setAuthReady(true);if(e==='PASSWORD_RECOVERY')setRecovery(true);if(!s){setIdentityLoading(false);setIdentityLoaded(false)}});return()=>subscription.unsubscribe()},[])
  useEffect(()=>{identityRun.current++;setNeedsInitialAthlete(false);if(session)void loadIdentity();else{setIdentityLoading(false);setIdentityLoaded(false)}},[session?.user?.id])
  useEffect(()=>{if(athleteId){localStorage.setItem('viniswim-athlete',athleteId);void loadAthlete()}},[athleteId])
+ useEffect(()=>{if(!athleteId)return;const t=window.setInterval(()=>void loadAthlete(),2000);return()=>window.clearInterval(t)},[athleteId])
  async function logout(){
   identityRun.current++;setNeedsInitialAthlete(false);setSession(null);setIdentityLoading(false);setIdentityLoaded(false)
   setOpen(false);setActionsOpen(false);setTutorial(false);setAlertsModal(false);setAuditModal(false);setModal(null);setAthleteModal(false);setMeetModal(false)
@@ -250,6 +251,7 @@ function Dashboard({overview,pbs,results,entries,events,setPage}:{overview:any,p
 function ResultsPage({filtered,allResults,events,filters,setFilters,meets,sourceConfigs,selectedSources,setSelectedSources,onNew,onEdit,onDelete,onRefresh,refreshMsg,lastSync,athlete,monitorJobs}:{filtered:any[],allResults:any[],events:any[],filters:any,setFilters:any,meets:any[],sourceConfigs:any[],selectedSources:string[],setSelectedSources:any,onNew:()=>void,onEdit:any,onDelete:any,onRefresh:()=>void,refreshMsg:string,lastSync?:string,athlete:any,monitorJobs:any[]}){
  const [sourceOpen,setSourceOpen]=useState(false)
  const [syncSeconds,setSyncSeconds]=useState(0)
+ const [clickActive,setClickActive]=useState(false)
  const [latchedAlert,setLatchedAlert]=useState<'timeout'|'error'|null>(null)
  const requested=refreshMsg.startsWith('Atualização iniciada')
  const realJob=(monitorJobs||[]).find((j:any)=>j.status==='running'&&j.locked_at)
@@ -271,13 +273,13 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
  const allCodes=sourceConfigs.map((x:any)=>x.sources?.code).filter(Boolean)
  const allSelected=allCodes.length>0&&allCodes.every((x:string)=>selectedSources.includes(x))
  function toggleAll(){setSelectedSources(allSelected?[]:allCodes)}
- function refreshFromButton(){setLatchedAlert(null);onRefresh()}
+ function refreshFromButton(){setLatchedAlert(null);setClickActive(true);window.setTimeout(()=>setClickActive(false),350);onRefresh()}
  return <section className="section">
   <div className="section-head">
    <h3>Resultados</h3>
    <div className="results-icon-actions">
     <div className="result-icon-action">
-     <button className="icon-action" onClick={refreshFromButton} title="Atualizar resultados nas fontes selecionadas" aria-label="Atualizar resultados"><RefreshCw size={18}/></button>
+     <button className={"icon-action"+(clickActive?" clicked":"")} onClick={refreshFromButton} title="Atualizar resultados nas fontes selecionadas" aria-label="Atualizar resultados"><RefreshCw size={18}/></button>
      <small>Atualizar</small>
     </div>
     <div className="result-icon-action">
