@@ -280,7 +280,7 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
   </div>
   <div className="results-sync-meta"><small>{lastSync?'Última atualização: '+new Date(lastSync).toLocaleString('pt-BR'):'Última atualização: —'}</small></div>
   {refreshMsg&&<div className={'sync-msg'+(refreshMsg.startsWith('Atualização iniciada')?' swimming':'')}>
-   {refreshMsg.startsWith('Atualização iniciada')?<><div className="swim-status-copy"><b>Buscando novos resultados...</b><small>Consultando fontes oficiais e processando campeonatos.</small></div><div className="swim-lane" aria-label="Atualização em andamento"><span className="swim-timer">{syncClock}</span><div className={'swimmer '+((athlete?.gender||'').toLowerCase().startsWith('f')?'female':'male')}><span className="swim-head"/><span className="swim-body"/><span className="swim-arm arm-a"/><span className="swim-arm arm-b"/><span className="swim-splash">•••</span></div></div></>:refreshMsg}
+   {refreshMsg.startsWith('Atualização iniciada')?<><div className="swim-status-copy"><div><b>Buscando novos resultados...</b><small>Consultando fontes oficiais e processando campeonatos.</small></div><strong className="swim-timer">{syncClock}</strong></div><div className="swim-lane" aria-label="Atualização em andamento"><div className={'swimmer '+((athlete?.gender||'').toLowerCase().startsWith('f')?'female':'male')}><span className="swim-head"/><span className="swim-body"/><span className="swim-arm arm-a"/><span className="swim-arm arm-b"/><span className="swim-splash">•••</span></div></div></>:refreshMsg}
   </div>}
   <div className="search-source-control">
    <button type="button" className="source-select-button" onClick={()=>setSourceOpen(v=>!v)} aria-expanded={sourceOpen}>
