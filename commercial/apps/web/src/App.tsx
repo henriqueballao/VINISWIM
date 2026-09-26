@@ -250,9 +250,11 @@ function Dashboard({overview,pbs,results,entries,events,setPage}:{overview:any,p
 function ResultsPage({filtered,allResults,events,filters,setFilters,meets,sourceConfigs,selectedSources,setSelectedSources,onNew,onEdit,onDelete,onRefresh,refreshMsg,lastSync,athlete,monitorJobs}:{filtered:any[],allResults:any[],events:any[],filters:any,setFilters:any,meets:any[],sourceConfigs:any[],selectedSources:string[],setSelectedSources:any,onNew:()=>void,onEdit:any,onDelete:any,onRefresh:()=>void,refreshMsg:string,lastSync?:string,athlete:any,monitorJobs:any[]}){
  const [sourceOpen,setSourceOpen]=useState(false)
  const [syncSeconds,setSyncSeconds]=useState(0)
+ const [latchedAlert,setLatchedAlert]=useState<'timeout'|'error'|null>(null)
  const syncing=refreshMsg.startsWith('Atualização iniciada')
  const jobError=(monitorJobs||[]).find((j:any)=>j.status==='failed'||j.last_error)?.last_error
- const syncAlert=syncing&&(syncSeconds>=120||!!jobError)
+ useEffect(()=>{if(syncing&&jobError)setLatchedAlert('error');else if(syncing&&syncSeconds>=120)setLatchedAlert(x=>x||'timeout')},[syncing,syncSeconds,jobError])
+ const syncAlert=!!latchedAlert
  useEffect(()=>{if(!syncing){setSyncSeconds(0);return}const started=Date.now();setSyncSeconds(0);const timer=window.setInterval(()=>setSyncSeconds(Math.floor((Date.now()-started)/1000)),1000);return()=>window.clearInterval(timer)},[syncing])
  const syncClock=String(Math.floor(syncSeconds/60)).padStart(2,'0')+':'+String(syncSeconds%60).padStart(2,'0')
  const ev=new Map(events.map(x=>[x.id,x.label])),mt=new Map(meets.map(x=>[x.id,x.name]))
@@ -266,12 +268,13 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
  const allCodes=sourceConfigs.map((x:any)=>x.sources?.code).filter(Boolean)
  const allSelected=allCodes.length>0&&allCodes.every((x:string)=>selectedSources.includes(x))
  function toggleAll(){setSelectedSources(allSelected?[]:allCodes)}
+ function refreshFromButton(){setLatchedAlert(null);onRefresh()}
  return <section className="section">
   <div className="section-head">
    <h3>Resultados</h3>
    <div className="results-icon-actions">
     <div className="result-icon-action">
-     <button className="icon-action" onClick={onRefresh} title="Atualizar resultados nas fontes selecionadas" aria-label="Atualizar resultados"><RefreshCw size={18}/></button>
+     <button className="icon-action" onClick={refreshFromButton} title="Atualizar resultados nas fontes selecionadas" aria-label="Atualizar resultados"><RefreshCw size={18}/></button>
      <small>Atualizar</small>
     </div>
     <div className="result-icon-action">
@@ -281,8 +284,8 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
    </div>
   </div>
   <div className="results-sync-meta"><small>{lastSync?'Última atualização: '+new Date(lastSync).toLocaleString('pt-BR'):'Última atualização: —'}</small></div>
-  {refreshMsg&&<div className={'sync-msg'+(refreshMsg.startsWith('Atualização iniciada')?' swimming':'')}>
-   {refreshMsg.startsWith('Atualização iniciada')?<><div className="swim-status-copy"><div><b>Buscando novos resultados...</b><small>Consultando fontes oficiais e processando campeonatos.</small></div><strong className="swim-timer">{syncClock}</strong></div><div className={'swim-lane'+(syncAlert?' alert':'')} aria-label={syncAlert?'Busca paralisada para verificação':'Atualização em andamento'}><div className={'swimmer '+((athlete?.gender||'').toLowerCase().startsWith('f')?'female':'male')+(syncAlert?' stopped':'')}><span className="swim-head"/><span className="swim-body"/><span className="swim-arm arm-a"/><span className="swim-arm arm-b"/><span className="swim-splash">•••</span>{syncAlert&&<span className="swim-alert-sign"><AlertTriangle size={15}/></span>}</div></div>{syncAlert&&<div className="swim-alert-copy"><span>{jobError?'ERRO NA BUSCA':'BUSCA DEMORADA'}</span></div>}</>:refreshMsg}
+  {(refreshMsg||latchedAlert)&&<div className={'sync-msg'+(syncing||latchedAlert?' swimming':'')}>
+   {(syncing||latchedAlert)?<><div className="swim-status-copy"><div><b>Buscando novos resultados...</b><small>Consultando fontes oficiais e processando campeonatos.</small></div><strong className="swim-timer">{syncClock}</strong></div><div className={'swim-lane'+(syncAlert?' alert':'')} aria-label={syncAlert?'Busca paralisada para verificação':'Atualização em andamento'}><div className={'swimmer '+((athlete?.gender||'').toLowerCase().startsWith('f')?'female':'male')+(syncAlert?' stopped':'')}><span className="swim-head"/><span className="swim-body"/><span className="swim-arm arm-a"/><span className="swim-arm arm-b"/><span className="swim-splash">•••</span>{syncAlert&&<span className="swim-alert-sign"><AlertTriangle size={15}/></span>}</div></div>{syncAlert&&<div className="swim-alert-copy"><span>{latchedAlert==='error'?'ERRO NA BUSCA':'BUSCA DEMORADA'}</span></div>}</>:refreshMsg}
   </div>}
   <div className="search-source-control">
    <button type="button" className="source-select-button" onClick={()=>setSourceOpen(v=>!v)} aria-expanded={sourceOpen}>
