@@ -508,14 +508,14 @@ button.kpi{appearance:none;text-align:left;color:inherit}
 .swim-lane{position:relative;height:48px;border-radius:10px;overflow:hidden;background:linear-gradient(180deg,#dff5fb 0%,#bdeaf5 52%,#8ed7e9 53%,#bcebf4 100%);border:1px solid rgba(39,151,173,.16)}
 .swim-lane:before,.swim-lane:after{content:"";position:absolute;left:0;right:0;height:3px;background:repeating-linear-gradient(90deg,#fff 0 10px,#268da4 10px 20px);opacity:.9}
 .swim-lane:before{top:5px}.swim-lane:after{bottom:5px}
-.swimmer{position:absolute;left:0;top:14px;width:48px;height:22px;animation:swimAcross 3.8s ease-in-out infinite alternate}
+.swimmer{position:absolute;left:0;top:14px;width:48px;height:22px;animation:swimAcross 3.8s ease-in-out infinite}
 .swim-head{position:absolute;width:10px;height:10px;border-radius:50%;right:4px;top:5px;background:#b97854;border:2px solid #173b55}
 .swimmer.female .swim-head:after{content:"";position:absolute;width:7px;height:5px;border-radius:60% 60% 40% 40%;left:-1px;top:-3px;background:#173b55}
 .swim-body{position:absolute;width:26px;height:7px;border-radius:60% 20% 50% 40%;right:12px;top:10px;background:#1f7f98;transform:rotate(-4deg)}
 .swim-arm{position:absolute;width:23px;height:4px;border-radius:999px;background:#b97854;right:14px;top:8px;transform-origin:right center}
 .arm-a{animation:strokeA .7s linear infinite}.arm-b{animation:strokeB .7s linear infinite}
 .swim-splash{position:absolute;left:0;top:7px;color:#fff;font-size:15px;letter-spacing:-2px;animation:splash .45s ease-in-out infinite alternate}
-@keyframes swimAcross{0%{left:2%;transform:scaleX(1)}47%{left:calc(100% - 52px);transform:scaleX(1)}50%{left:calc(100% - 52px);transform:scaleX(-1)}97%{left:2%;transform:scaleX(-1)}100%{left:2%;transform:scaleX(1)}}49%{transform:scaleX(1)}50%{left:calc(100% - 52px);transform:scaleX(-1)}100%{left:2%;transform:scaleX(-1)}}
+@keyframes swimAcross{0%{left:2%;transform:scaleX(1)}47%{left:calc(100% - 52px);transform:scaleX(1)}50%{left:calc(100% - 52px);transform:scaleX(-1)}97%{left:2%;transform:scaleX(-1)}100%{left:2%;transform:scaleX(1)}}47%{left:calc(100% - 52px);transform:scaleX(1)}50%{left:calc(100% - 52px);transform:scaleX(-1)}97%{left:2%;transform:scaleX(-1)}100%{left:2%;transform:scaleX(1)}}49%{transform:scaleX(1)}50%{left:calc(100% - 52px);transform:scaleX(-1)}100%{left:2%;transform:scaleX(-1)}}
 @keyframes strokeA{0%{transform:rotate(-55deg)}50%{transform:rotate(28deg)}100%{transform:rotate(-55deg)}}@keyframes strokeB{0%{transform:rotate(28deg)}50%{transform:rotate(-55deg)}100%{transform:rotate(28deg)}}@keyframes splash{from{opacity:.35;transform:translateX(1px)}to{opacity:1;transform:translateX(-3px)}}
 @media(prefers-reduced-motion:reduce){.swimmer,.swim-arm,.swim-splash{animation-duration:8s}}
 
