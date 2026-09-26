@@ -526,3 +526,5 @@ button.kpi{appearance:none;text-align:left;color:inherit}
 .swim-alert-sign{position:absolute;right:-13px;top:-15px;width:27px;height:24px;display:grid;place-items:center;border:2px solid #744d00;border-radius:3px;background:#ffd45b;color:#744d00;transform:rotate(-4deg);box-shadow:0 2px 5px rgba(0,0,0,.15)}
 .swim-alert-sign:after{content:"";position:absolute;width:3px;height:12px;background:#744d00;left:4px;bottom:-11px;transform:rotate(12deg);transform-origin:top}
 .swim-alert-copy{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#744d00;background:#fff8df;border:1px solid #ecd28a;border-radius:8px;padding:7px 9px}
+
+.icon-action.clicked{transform:scale(.86);box-shadow:inset 0 0 0 2px currentColor}.icon-action.clicked svg{animation:refreshClick .35s linear}@keyframes refreshClick{to{transform:rotate(360deg)}}
