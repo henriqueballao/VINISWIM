@@ -145,12 +145,14 @@ export default function App(){
  useEffect(()=>{if(athleteId){localStorage.setItem('viniswim-athlete',athleteId);void loadAthlete()}},[athleteId])
  useEffect(()=>{if(!athleteId)return;const t=window.setInterval(()=>void loadAthlete(),2000);return()=>window.clearInterval(t)},[athleteId])
  async function logout(){
-  identityRun.current++;setNeedsInitialAthlete(false);setSession(null);setIdentityLoading(false);setIdentityLoaded(false)
-  setOpen(false);setActionsOpen(false);setTutorial(false);setAlertsModal(false);setAuditModal(false);setModal(null);setAthleteModal(false);setMeetModal(false)
+  identityRun.current++
+  const {error}=await supabase.auth.signOut({scope:'local'})
+  if(error){console.error('VINISWIM signOut:',error.message);return}
   localStorage.removeItem('viniswim-athlete')
+  setNeedsInitialAthlete(false);setSession(null);setIdentityLoading(false);setIdentityLoaded(false)
+  setOpen(false);setActionsOpen(false);setTutorial(false);setAlertsModal(false);setAuditModal(false);setModal(null);setAthleteModal(false);setMeetModal(false)
   setAthleteId('');setProfile(null);setAccount(null);setAthletes([]);setEvents([]);setResults([]);setOverview(null);setPbs([]);setMeets([]);setEntries([]);setAudit([]);setSources([]);setSourceConfigs([]);setSearchSources([]);setMonitorJobs([]);setRefreshMsg('');setPage('dashboard')
-  const {error}=await supabase.auth.signOut()
-  if(error)console.error('VINISWIM signOut:',error.message)
+  window.location.replace(window.location.pathname)
  }
  async function loadIdentity(){
   const run=++identityRun.current
