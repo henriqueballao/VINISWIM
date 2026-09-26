@@ -258,9 +258,10 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
  const requested=refreshMsg.startsWith('Atualização iniciada')
  const realJob=(monitorJobs||[]).find((j:any)=>j.status==='running'&&j.locked_at)
  const syncing=!!realJob
- const jobError=(monitorJobs||[]).find((j:any)=>j.status==='failed'||j.last_error)?.last_error
+ const jobError=(monitorJobs||[]).find((j:any)=>j.status==='failed'&&j.last_error)?.last_error
  useEffect(()=>{if(requested&&jobError)setLatchedAlert('error');else if(syncing&&syncSeconds>=20)setLatchedAlert(x=>x||'timeout')},[syncing,syncSeconds,jobError])
  const syncAlert=!!latchedAlert
+ useEffect(()=>{if(!requested&&latchedAlert==='error')setLatchedAlert(null)},[requested])
  useEffect(()=>{if(!syncing){setSyncSeconds(0);return}const started=new Date(realJob?.locked_at||Date.now()).getTime();setSyncSeconds(Math.max(0,Math.floor((Date.now()-started)/1000)));const timer=window.setInterval(()=>setSyncSeconds(Math.floor((Date.now()-started)/1000)),1000);return()=>window.clearInterval(timer)},[syncing,realJob?.locked_at])
  const shownSeconds=latchedAlert?Math.min(syncSeconds,20):syncSeconds
  const syncClock=String(Math.floor(shownSeconds/60)).padStart(2,'0')+':'+String(shownSeconds%60).padStart(2,'0')
@@ -275,7 +276,7 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
  const allCodes=sourceConfigs.map((x:any)=>x.sources?.code).filter(Boolean)
  const allSelected=allCodes.length>0&&allCodes.every((x:string)=>selectedSources.includes(x))
  function toggleAll(){setSelectedSources(allSelected?[]:allCodes)}
- async function refreshFromButton(){setClickActive(true);window.setTimeout(()=>setClickActive(false),350);if(requested||syncing){const {error}=await supabase.rpc('cancel_result_refresh',{p_athlete_id:athlete.id});if(error){setLatchedAlert('error');return}setLatchedAlert('paused' as any);return}setLatchedAlert(null);onRefresh()}
+ async function refreshFromButton(){setClickActive(true);window.setTimeout(()=>setClickActive(false),350);if(syncing){const {error}=await supabase.rpc('cancel_result_refresh',{p_athlete_id:athlete.id});if(error){setLatchedAlert('error');return}setLatchedAlert('paused' as any);return}setLatchedAlert(null);onRefresh()}
  return <section className="section">
   <div className="section-head">
    <h3>Resultados</h3>
