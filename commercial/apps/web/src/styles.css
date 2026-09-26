@@ -504,7 +504,7 @@ button.kpi{appearance:none;text-align:left;color:inherit}
 
 /* Live swimmer while official results are being processed */
 .sync-msg.swimming{display:grid;gap:9px;padding:12px 14px;overflow:hidden}
-.swim-status-copy{display:grid;gap:2px}.swim-status-copy b{font-size:13px}.swim-status-copy small{color:var(--muted);font-size:11px}
+.swim-status-copy{display:flex;align-items:center;justify-content:space-between;gap:12px}.swim-status-copy>div{display:grid;gap:2px}.swim-status-copy b{font-size:13px}.swim-status-copy small{color:var(--muted);font-size:11px}
 .swim-lane{position:relative;height:48px;border-radius:10px;overflow:hidden;background:linear-gradient(180deg,#dff5fb 0%,#bdeaf5 52%,#8ed7e9 53%,#bcebf4 100%);border:1px solid rgba(39,151,173,.16)}
 .swim-lane:before,.swim-lane:after{content:"";position:absolute;left:0;right:0;height:3px;background:repeating-linear-gradient(90deg,#fff 0 10px,#268da4 10px 20px);opacity:.9}
 .swim-lane:before{top:5px}.swim-lane:after{bottom:5px}
@@ -515,8 +515,8 @@ button.kpi{appearance:none;text-align:left;color:inherit}
 .swim-arm{position:absolute;width:23px;height:4px;border-radius:999px;background:#b97854;right:14px;top:8px;transform-origin:right center}
 .arm-a{animation:strokeA .7s linear infinite}.arm-b{animation:strokeB .7s linear infinite}
 .swim-splash{position:absolute;left:0;top:7px;color:#fff;font-size:15px;letter-spacing:-2px;animation:splash .45s ease-in-out infinite alternate}
-@keyframes swimAcross{0%{left:2%;transform:scaleX(1)}49%{transform:scaleX(1)}50%{left:calc(100% - 52px);transform:scaleX(-1)}100%{left:2%;transform:scaleX(-1)}}
+@keyframes swimAcross{0%{left:2%;transform:scaleX(1)}47%{left:calc(100% - 52px);transform:scaleX(1)}50%{left:calc(100% - 52px);transform:scaleX(-1)}97%{left:2%;transform:scaleX(-1)}100%{left:2%;transform:scaleX(1)}}49%{transform:scaleX(1)}50%{left:calc(100% - 52px);transform:scaleX(-1)}100%{left:2%;transform:scaleX(-1)}}
 @keyframes strokeA{0%{transform:rotate(-55deg)}50%{transform:rotate(28deg)}100%{transform:rotate(-55deg)}}@keyframes strokeB{0%{transform:rotate(28deg)}50%{transform:rotate(-55deg)}100%{transform:rotate(28deg)}}@keyframes splash{from{opacity:.35;transform:translateX(1px)}to{opacity:1;transform:translateX(-3px)}}
 @media(prefers-reduced-motion:reduce){.swimmer,.swim-arm,.swim-splash{animation-duration:8s}}
 
-.swim-timer{position:absolute;z-index:3;right:9px;top:50%;transform:translateY(-50%);font-variant-numeric:tabular-nums;font-size:12px;font-weight:800;letter-spacing:.04em;color:#174c60;background:rgba(255,255,255,.78);border:1px solid rgba(23,76,96,.12);border-radius:7px;padding:3px 6px;backdrop-filter:blur(3px)}
+.swim-timer{flex:0 0 auto;font-variant-numeric:tabular-nums;font-size:13px;font-weight:800;letter-spacing:.04em;color:#174c60;background:#fff;border:1px solid rgba(23,76,96,.12);border-radius:7px;padding:4px 7px}
