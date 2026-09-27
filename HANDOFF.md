@@ -425,5 +425,26 @@ Chat definiu a semântica final: **última busca concluída com sucesso** (`term
 
 **Próximo passo (aguardando o usuário, não o Code)**: smoke test manual real, decidido e executado por Henrique quando quiser — Atualizar → cronômetro conta desde a solicitação → processamento termina → "Última atualização" reflete a conclusão bem-sucedida. Code não dispara esse teste. **Etapa F continua bloqueada até o resultado desse smoke test.** Gráfico de Evolução continua registrado e fora de escopo.
 
+#### Etapa ESTABILIZAÇÃO — Smoke test real do Henrique + correção de UX (27/09/2026)
+
+Henrique executou o smoke test no atleta real (Vinícius) e mandou 5 capturas de tela + 1 follow-up. Reconstrução via SQL (só leitura, nenhuma ação) confirmou tudo tecnicamente correto:
+
+- **04:55:16** clique em Atualizar → request criado (13 itens: 1 monitor_job SwimSystem + 12 `historical_archive_jobs` fdap).
+- **04:55:~36** atingiu 20s → BUSCA DEMORADA (relógio congela em 00:20 na tela, como já era esperado pelo design existente).
+- **04:57:09** Henrique tocou o ícone Atualizar de novo enquanto a busca ainda estava ativa → como o botão **cancela** quando já há busca em andamento (comportamento pré-existente da D-004, não desta etapa), isso **cancelou** a 1ª busca. Nesse instante, 12 de 13 itens já tinham terminado — ficou congelado nesse request para sempre, confirmando o fix do bug #1 funcionando com dado real e orgânico (as linhas físicas foram reaproveitadas pela 2ª busca 5s depois sem alterar esse snapshot).
+- **04:57:14** nova busca criada, completou com sucesso às **05:00:10** (13/13, 0 falhas, 0 resultados novos encontrados — normal).
+
+**Achado de UX real (não é bug de dado)**: Henrique tirou uma nova captura às 05:06, depois de ter clicado Atualizar mais duas vezes (05:04:39 cancelada em 4/13; nova busca criada 05:05:09, ainda ativa/demorada às 05:06). A tela mostrava simultaneamente `"Última atualização: 27/09/2026, 05:00:10"` (correto — última busca `completed`) **e** `BUSCA DEMORADA` de uma busca nova ainda em andamento. Reação do Henrique: pareceu que o horário estava "preso"/fake. **O dado estava certo; a apresentação confundia.**
+
+**Decisão do chat**: não alterar semântica/backend (a fonte continua `MAX(finalized_at)` com `terminal_status='completed'`, sem mudança de query). Correção **só de frontend/UX**:
+1. Rótulo trocado de "Última atualização" para **"Última busca concluída"**.
+2. Quando há busca ativa (`pending`/`running`), o título principal passa a ter prioridade visual sobre o estado atual, combinado com o cronômetro: **"BUSCA EM ANDAMENTO · 00:12"** e, após 20s, **"BUSCA DEMORADA · 00:20"** — substitui o texto genérico "Buscando novos resultados..." e o cronômetro separado só nesse caso. `cancelled`/`failed` mantêm a apresentação anterior (fora do escopo).
+
+**Implementação**: `commercial/apps/web/src/App.tsx`, duas linhas alteradas (o texto do rótulo `results-sync-meta`, e o `<b>` dentro de `swim-status-copy` condicionado por `isActive`/`slow`, reaproveitando o `syncClock` já existente — nenhuma lógica de cronômetro ou de dado tocada). Build local validado sem erros. **Commit**: `e53923a` (isolado). **Deploy**: workflow "Build VINISWIM Commercial App" run #109 (`36306366882`) concluído com sucesso → `app/index.html` confirmado servindo `index-DFyes9F2.js` (hash igual ao build local pós-edição).
+
+**Nenhuma mudança de backend/migration/RPC/monitor-runner nesta correção.** `results` do Vinícius: nenhuma ação de Code, contagem intocada durante toda a etapa.
+
+**Próximo passo**: Henrique fará um novo smoke test visual para confirmar a apresentação corrigida. **Etapa F continua bloqueada** até a decisão do chat após esse teste.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
