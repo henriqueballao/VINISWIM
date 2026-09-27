@@ -647,4 +647,61 @@ Todos os 4 pertencem ao perfil B (`f02e62f2-...`, conta do Henrique), todos `is_
 **Nada foi apagado, fundido, movido ou alterado** — só leitura, em `athletes`, `account_members`, `auth.users` (só e-mail/datas, nenhum secret), `athlete_source_configs`.
 
 ---
+
+## P0-A e P0-B — IMPLEMENTADOS, TESTADOS E EM PRODUÇÃO (27/09/2026)
+
+Chat autorizou a implementação dos dois patches P0. Ambos foram implementados, validados e deployados. **Os 4 resultados incorretos confirmados (P0-C) NÃO foram corrigidos** — segue explicitamente pausado até autorização específica do Henrique. **Os dois perfis duplicados (P1) NÃO foram tocados.**
+
+### Commits (separados por assunto, conforme convenção)
+
+- `cab1821` — fix(monitor-runner): corrige bug P0-A de identificação FDAP incorreta
+- `cbe516c` — fix(monitor-runner): remove fallback de data para "hoje" em jobs não-históricos
+
+### P0-A — patch aplicado
+
+1. **`processArchiveJob` (resolução de config)**: `if(!cfg && fdap)` → `if((!cfg||!cfg.external_id) && fdap)`; o fallback para swimsystem só é aceito se `q.data?.external_id` existir; o guard final virou `if(!cfg||!cfg.external_id)throw(...)`. Ou seja: uma config `fdap` ativa mas com `external_id` vazio deixa de ser tratada como "configurada" — genérico, sem nenhum nome/id/competição hardcoded.
+2. **`extractOfficialRowTime`**: recusa extração se `external_id` vier vazio (`if(!id)return null`) — elimina de vez o modo "varre o bloco inteiro sem id" que causava o bug.
+3. **`boundedAthleteSegment` (nova função)**: a partir da posição do `id` no texto, delimita o segmento até o início da próxima linha de resultado (regex de início de linha `N. H/L Nome`) ou uma janela de 160 caracteres se não achar a próxima linha. Usada tanto por `extractOfficialRowTime` quanto por `resultStatus` dentro de `parseHistoricalResultText`, para que nem tempo nem status vazem para um atleta vizinho no mesmo bloco de categoria — mesmo com o id corretamente localizado.
+4. **`parseHistoricalResultText`**: exige `id` não vazio (`if(!id)return []`) e remove por completo o fallback de correspondência só por nome (`looseNameMatch`) que existia para decidir quais linhas processar — agora só processa linhas onde o `id` aparece literalmente.
+
+**Auditoria das funções irmãs** (`parseGeneric`, `parseResults`, usadas nos caminhos SwimSystem/genérico): **não alteradas**. Ambas operam sobre o texto de uma única `<tr>` do HTML (`$(tr).text()`), ou seja, a linha já é delimitada por atleta pela própria estrutura do DOM — não existe o cenário de "um bloco de texto com vários atletas colados" que causou o bug no FDAP (texto de PDF sem quebras de linha por nadador). O fallback por nome que ainda existe em `match()` para esses dois caminhos é um risco estrutural diferente (e bem mais raro: exigiria dois nadadores com nomes muito parecidos na mesma página), não o bug confirmado. Reportando essa distinção ao chat para decisão: manter como está, ou aplicar a mesma exigência de id literal também aqui por precaução extra.
+
+### P0-B — patch aplicado
+
+Removidos os dois fallbacks `dateFrom(body)||new Date().toISOString().slice(0,10)` e `meet.startDate||new Date().toISOString().slice(0,10)` no branch não-histórico de `processJob` (SwimSystem e genérico). Adicionado guard explícito antes do `meets.upsert`: `if(!meet.startDate)throw new Error('Data da competição não encontrada na fonte oficial; resultado não pode ser registrado sem data confiável.')`. Sem schema alterado — `meets.start_date` continua `NOT NULL`; a saída é lançar erro e não criar meet/resultado algum, aproveitando o mecanismo já existente de `status='failed'`/`last_error` em `monitor_jobs`. O caminho histórico (`processArchiveJob`, linhas com `||null`) não foi tocado — já era seguro.
+
+### Testes executados (todos com entidades sintéticas, sob a conta real `8213ebbb-...`, limpas por completo depois)
+
+**Node.js (funções puras, contra os 4 textos reais em cache que geraram o bug):**
+- **F** — extração correta nos 4 casos reais: `40366`→56.98s, `39533`→55.90s, `40595`→54.68s, `40602`→44.68s (antes: 36.23/37.85/36.98/30.84s). 
+- **D** — `external_id` vazio → `[]`; `external_id` presente mas ausente no texto (mesmo com nome batendo) → `[]`.
+- **E** — bloco sintético com 3 atletas: nunca retorna o tempo do 1º colocado nem vaza para o 3º; com o próprio tempo bem formado no meio do bloco, extrai exatamente o próprio (33.33s), nunca o vizinho.
+- 12/12 testes passaram.
+
+**Supabase (via invocação real do `monitor-runner` v63 já deployado, jobs sintéticos):**
+- **A** (fdap com `external_id` válido direto) → job falhou com erro de rede (DNS de domínio de teste inexistente), **não** com o erro de "não configurada" → confirma que a config foi aceita direto.
+- **B** (fdap com `external_id` nulo + swimsystem com `external_id` válido) → mesmo erro de rede, **não** o erro de "não configurada" → confirma que o fallback funcionou.
+- **C** (nenhuma fonte com `external_id`) → falhou com exatamente `"Fonte histórica não configurada para o atleta (identificador ausente)"` → confirma que o guard recusa corretamente.
+- **G** (job não-histórico apontando para página real com data) → `status='completed'`, `last_error=null`, meet sintético criado com `start_date=2026-04-19` (data real extraída da página, não a data de hoje) → comportamento normal preservado.
+- **H** (job não-histórico apontando para página sem nenhuma data, `https://example.com`) → `status='failed'`, `last_error` exatamente `"Data da competição não encontrada na fonte oficial; resultado não pode ser registrado sem data confiável."`, **zero** meets e **zero** results criados para o atleta sintético.
+- **I** (não-regressão do caminho histórico) → confirmado por revisão de código (linhas com `||null` em `processArchiveJob` não tocadas) e indiretamente pelos testes A/B/C, que exercitaram esse mesmo caminho sem nenhuma falha relacionada a data.
+
+### Deploy
+
+- `monitor-runner` deployado como **versão 63** no projeto `cdtvhagbgiwnjkgninqn`.
+- Conteúdo buscado de volta via `get_edge_function` e comparado **byte a byte** (`diff`) contra o arquivo local do git — **idêntico**.
+
+### Confirmação de zero impacto em dados reais (só SELECT)
+
+- Os 4 resultados incorretos confirmados continuam **exatamente com os mesmos valores** (`36230`, `37850`, `36980`, `30840` ms, `is_official=true`) — **não foram corrigidos**, como instruído.
+- `total_results=81` (mesmo total de antes da investigação).
+- Todas as entidades sintéticas (5 atletas, 3 arquivos históricos, 3 jobs de arquivo, 2 monitor_jobs, 1 meet sintético) foram **completamente removidas** após os testes — zero resíduo confirmado por contagem.
+
+### Pendências explícitas (não fazer sem autorização)
+
+- **P0-C**: os 4 resultados incorretos continuam incorretos — correção requer autorização específica do Henrique.
+- **P1**: os dois perfis duplicados do Vinícius continuam duplicados — nenhuma fusão/exclusão/transferência de propriedade foi feita.
+- Etapa F / deduplicação: não iniciada.
+
+---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
