@@ -446,5 +446,39 @@ Henrique executou o smoke test no atleta real (Vinícius) e mandou 5 capturas de
 
 **Próximo passo**: Henrique fará um novo smoke test visual para confirmar a apresentação corrigida. **Etapa F continua bloqueada** até a decisão do chat após esse teste.
 
+## D-004 — ENCERRADA E APROVADA EM PRODUÇÃO (27/09/2026)
+
+Smoke test final (busca `99fa804f`, 08:30:39→08:33:04 UTC, 13/13, 0 falhas, sem cancelamento) aprovado pelo chat. Todos os critérios de aceite confirmados: cronômetro desde a solicitação, BUSCA DEMORADA em 20s, throughput corrigido, bug de reassociação de jobs corrigido (snapshot terminal imutável), "Última busca concluída" com semântica correta e prioridade visual ao estado atual, `results` reais intocados (28 linhas) durante toda a etapa. **Nenhuma mudança adicional autorizada na D-004 a partir de agora.**
+
+Etapa F (limpeza de legado) **continua adiada** — não iniciar.
+
+## Nova frente — Gráfico de Evolução (27/09/2026): INVESTIGAÇÃO, sem código/banco alterado
+
+Henrique reportou dois problemas: (1) eixo Y crescendo/escalando de forma inadequada; (2) eixo X não diferenciando categorias. Chat autorizou **somente investigação** (SELECT read-only permitido), nada de código, banco, migration, `results` ou etapa F.
+
+**Componente**: `Evolution()` em `commercial/apps/web/src/App.tsx` (linhas ~318-379). Dados vêm de `v_result_timeline` (view: `results` + `meets` + `athletes`, com `category` = `COALESCE(r.category, calculado por idade na data do resultado)` — a categoria por resultado já vem correta da view).
+
+**Causa raiz — eixo Y**: o domínio (`yMin`/`yMax`, com margem de 12%) é calculado a partir de `times`, que é a lista de tempos de **todos os resultados selecionados juntos** — quando o filtro "Todos os estilos" está ativo (padrão), tempos de provas de naturezas muito diferentes (ex.: 50 Livre ~32-49s vs 200 Livre ~227-242s, dados reais do Vinícius) dividem o mesmo eixo linear. Isso esmaga visualmente a variação real dentro de uma prova só (ex.: uma queda de quase 18s no 50 Livre ocupa menos de 8% da altura do gráfico quando o 200 Livre está no mesmo eixo). O filtro de piscina (SCM/LCM) tem o mesmo problema: por padrão mistura as duas, e SCM costuma ser mais rápido que LCM na mesma prova só por causa das viradas — o gráfico pode parecer mostrar "piora" que é só troca de piscina. Não há tratamento de outliers nem normalização — é soma bruta de milissegundos convertida em segundos.
+
+**Causa raiz — eixo X / categorias**: o eixo X é literalmente a lista de `result_date` únicos (formatados como `DD/MM/AAAA` via `d()`), sem nenhuma segmentação por categoria. A categoria **existe corretamente por resultado** (confirmada nos dados reais: Vinícius tem resultados como `Mirim II` até 2025-11-08 e como `Petiz I` a partir de 2026-03-08 — mudança de categoria real e já registrada), mas o componente só usa `category` como filtro de dropdown e como legenda no tooltip — nunca como dimensão visual do eixo. Uma mesma prova (ex.: 50 Costas) é desenhada como uma única linha contínua atravessando a transição de categoria sem nenhuma marca visual.
+
+**Achado adicional (fora do gráfico, na camada de dados — não é bug do componente)**: encontrados pelo menos 2 casos reais de resultados praticamente duplicados para o mesmo atleta+prova, cada um com `meet_id` diferente e `source_id` diferente (`swimsystem` vs `fdap`) — ex.: 50 Livre em 2025-09-14 com 49,78s (fonte SwimSystem) e 32,08s (fonte FDAP) sob dois `meets` distintos com nomes parecidos; 100 Livre com o mesmo tempo exato (1'45"58) sob duas competições diferentes em datas diferentes. Indício de que a mesma competição real, capturada por duas fontes diferentes, gera duas linhas de `meets`/`results` sem deduplicação entre fontes. Isso não é causado pelo componente do gráfico — é upstream, na importação — mas o gráfico hoje **não lida bem** com isso: quando há 2 resultados para a mesma prova na mesma data, o código simplesmente sobrescreve (`row[pointKey]=...` dentro do `forEach`), então um dos dois desaparece silenciosamente do gráfico, e qual dos dois "vence" depende só da ordem de importação (`created_at`), não de nenhum critério significativo (ex.: qual é oficial, qual é a fonte mais confiável). **Não fiz nada a respeito** — só registrando para vocês decidirem se isso é uma frente de deduplicação de `meets`/`results` separada.
+
+**Resumo das demais perguntas do checklist**:
+- `tickFormatter`: usa `formatSwimTime` (mesmo formatador do resto do app) — ok, sem problema aqui.
+- Unidade interna: milissegundos no banco, convertidos para segundos só para o eixo (`time_ms/1000`) — consistente, sem bug de unidade.
+- Padding: sim, 12% de margem (ou ±3% quando só há 1 ponto) — aplicado sobre o domínio já distorcido pela mistura de provas.
+- Orientação do eixo Y (tempo menor = melhor, deveria "subir" visualmente?): **hoje o eixo NÃO é invertido** — tempo menor fica embaixo, tempo maior fica em cima (matematicamente correto, mas pode não bater com a expectativa "melhorar = subir no gráfico" comum em gráficos de performance esportiva). **Isso é uma decisão de produto, não técnica — precisa da decisão do Henrique/chat.**
+- Mobile: `.chart{height:300px}` (`360px` no desktop), `ResponsiveContainer` escala a largura; `XAxis interval="preserveStartEnd"` esconde ticks intermediários automaticamente em tela estreita — comportamento padrão do Recharts, não é um bug novo, mas piora a falta de sinal de categoria (menos texto visível ainda).
+
+**Proposta objetiva de correção (não implementada, para aprovação)**:
+1. **Eixo Y**: quando mais de uma prova estiver visível ao mesmo tempo ("Todos os estilos"), não usar um único domínio absoluto em segundos para todas — opções a decidir: (a) manter "Todos os estilos" só como visão geral e exigir 1 prova selecionada para ver evolução detalhada (comportamento próximo do atual, só reforçando via UX); (b) escala relativa por prova (% do melhor tempo pessoal daquela prova) em vez de segundos absolutos quando várias provas estão visíveis; (c) piscina (SCM/LCM) nunca misturada por padrão no cálculo do domínio.
+2. **Eixo X / categoria**: marcar visualmente a transição de categoria no eixo X (linha de referência vertical + rótulo no ponto de mudança), mantendo a granularidade de data — não precisa recalcular nada no banco, só usar o `category` que a view já entrega corretamente por resultado.
+3. **Duplicatas**: fora do escopo do gráfico — recomendo abrir como frente própria de dados (deduplicação de `meets`/`results` entre fontes), não misturar com a correção visual.
+
+**Ambiguidades de produto para decisão de vocês/Henrique**: (a) inverter o eixo Y (melhor = mais alto) ou manter como está; (b) o que fazer visualmente quando várias provas de escalas muito diferentes estão selecionadas ao mesmo tempo; (c) se a duplicação de resultados por fonte é uma frente separada a priorizar antes ou depois do gráfico.
+
+**Nenhum código, banco, migration ou `results` foi alterado nesta investigação.** Todas as consultas foram `SELECT` read-only.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
