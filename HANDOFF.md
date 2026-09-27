@@ -561,5 +561,90 @@ Chat autorizou investigação para dimensionar resultados potencialmente duplica
 
 **Nada foi alterado nesta investigação** — só `SELECT`. Nenhuma linha de `results`/`meets`/`result_sources` tocada.
 
+## Deduplicação PAUSADA — causa raiz completa do bug do parser FDAP + bug de data + 2 perfis (27/09/2026)
+
+Chat pausou a deduplicação (P3) e priorizou: **P0-A** (bug do parser FDAP), **P0-B** (bug de data "hoje"), **P0-C** (classificar os 4 suspeitos), **P1** (dois perfis). Investigação completa abaixo — **nada implementado, nada corrigido, nada de dados reais alterado**.
+
+### P0-A — causa raiz EXATA e completa do bug do parser FDAP (CONFIRMADA, não é mais hipótese)
+
+**A causa raiz tem duas partes, e a segunda é o gatilho real, ativo hoje para qualquer atleta:**
+
+1. O trigger `seed_default_sources_after_athlete` cria automaticamente, para todo atleta novo, uma linha em `athlete_source_configs` **para cada fonte, inclusive `fdap`**, com `active=true` mas `external_id=null`. **Confirmado nos dois perfis do Vinícius**: ambos têm uma linha `fdap` ativa com `external_id=null` — nenhum dos dois tem `external_id` de FDAP preenchido (isso nunca é preenchido por nenhum fluxo do produto hoje).
+2. Em `processArchiveJob` (`monitor-runner/index.ts`), a resolução de configuração é:
+   ```
+   let {data:cfg}=await db.from('athlete_source_configs')...eq('source_id',archive.source_id).eq('active',true).maybeSingle();
+   if(!cfg && archive.sources?.code==='fdap'){ /* fallback para config do swimsystem */ }
+   ```
+   Como a linha `fdap` **existe e está ativa** (só com `external_id` vazio), `cfg` nunca é `null` — o fallback para a configuração do SwimSystem (que tem o `external_id` certo, "422692") **nunca dispara**. `cfg.external_id` fica `null`.
+3. Em `parseHistoricalResultText`, com `id=''` (vazio), o filtro de linhas cai para correspondência por nome (`looseNameMatch`) — isso **funciona bem** para achar a seção certa (o texto extraído do PDF pelo leitor tem quebras de linha nos títulos de categoria, ex. "Petiz 1"/"Petiz 2"/"Mirim 1"/"Mirim 2", mas **não tem quebra entre as linhas de cada nadador dentro da mesma categoria** — a seção inteira daquela faixa etária vira uma "linha" só).
+4. Em `extractOfficialRowTime`, com `id=''`, a condição `if(id){...}` é pulada inteira — `after=raw` (a seção inteira, do começo) — a primeira ocorrência do padrão tempo+percentual nessa seção é sempre o tempo do **1º colocado daquela categoria**, não o do Vinícius.
+
+**Confirmado com 4 exemplos reais, texto bruto do PDF conferido linha a linha para cada um** (ver tabela na seção P0-C abaixo) — em 3 dos 4 casos o tempo roubado é do mesmo rival "Joao Leopoldo Goncalves", que aparece consistentemente como 1º colocado da categoria do Vinícius em várias competições.
+
+**Isso não é um bug antigo/corrigido — está ativo hoje** para qualquer atleta sem `external_id` de FDAP preenchido (ou seja, todos, já que não existe fluxo para preencher isso).
+
+**Patch mínimo proposto (duas partes complementares, nenhuma implementada ainda):**
+
+1. **Corrige a causa raiz** (restaura o comportamento correto): em `processArchiveJob`, trocar
+   `if(!cfg && archive.sources?.code==='fdap')`
+   por
+   `if((!cfg || !cfg.external_id) && archive.sources?.code==='fdap')`
+   — assim o fallback para a config do SwimSystem dispara também quando existe uma linha `fdap` ativa mas vazia (o caso real de hoje), não só quando não existe linha nenhuma.
+2. **Rede de segurança** (nunca inventar dado mesmo que a causa raiz não seja coberta por algum outro caminho ainda não mapeado): em `extractOfficialRowTime`, remover o comportamento de "se `id` vazio, usar a linha inteira desde o início" — exigir sempre `id` não-vazio E encontrado na linha; caso contrário, `return null` (hoje só retorna `null` quando `id` não é encontrado, mas quando `id` é vazio ele nunca chega a essa checagem). Efeito: sem identificador inequívoco, o resultado não é importado (`timeMs==null` e sem `status` ⇒ `continue`, a linha é ignorada) — exatamente a regra pedida.
+
+Nenhuma das duas mudanças foi aplicada — só o diagnóstico e a proposta.
+
+### P0-B — causa raiz completa do fallback de data "hoje"
+
+Localizado com precisão: **só existe em 2 lugares, ambos dentro do branch não-histórico ("campeonato atual") de `processJob()`** — o caminho histórico/FDAP **já é seguro** (usa `||null`, nunca `new Date()`, confirmado lendo as 2 ocorrências equivalentes nesse caminho).
+
+```
+// linha 564 — monta o objeto meet para fontes genéricas (não SwimSystem, não histórico)
+meet={...,startDate:dateFrom(body)||new Date().toISOString().slice(0,10),...}
+// linha 568 — upsert do meet (aplica-se também ao branch SwimSystem "campeonato atual", que não tem fallback próprio mas herda este)
+start_date:meet.startDate||new Date().toISOString().slice(0,10)
+```
+
+**Achado importante que torna o patch seguro**: `meets.start_date` é `NOT NULL` no banco — não dá simplesmente para trocar por `||null` (quebraria o insert). Mas o código **já tem** a proteção certa logo depois, no processamento de cada resultado individual: `const date=r.resultDate||m.start_date;if(!course||!date)continue;` — ou seja, se não houver data, o resultado individual já seria pulado. O problema é só que hoje a *competição* (`meets`) sempre recebe uma data (a de hoje), então `m.start_date` nunca fica vazio para acionar essa proteção.
+
+**Patch mínimo proposto (não implementado)**: remover os dois fallbacks `||new Date().toISOString().slice(0,10)`, e adicionar uma checagem explícita **antes** do `meets.upsert`: se `meet.startDate` não foi determinado, **não fazer o upsert** — lançar um erro descritivo (ex.: `'Data da competição não pôde ser determinada com segurança'`), que o `catch` já existente em `processJob()` converte automaticamente em `monitor_runs.status='failed'` + `monitor_jobs.last_error` com a mensagem — diagnóstico visível, sem inventar dado.
+
+**Efeito colateral esperado e aceito**: buscas de "campeonato atual" cuja página não tenha uma data em formato reconhecível deixam de importar resultado nenhum daquela página até que uma data real apareça (ex. quando os resultados forem arquivados historicamente pelo FDAP, que já tem tratamento de data mais robusto). Isso é exatamente o trade-off pedido (preferir ausência de dado a dado errado).
+
+### P0-C — classificação dos 4 resultados suspeitos (conferidos linha a linha contra o PDF fonte)
+
+| `result_id` | Prova | Data | Tempo gravado | Tempo real (confirmado no PDF) | Pertencia a | Classificação |
+|---|---|---|---|---|---|---|
+| `25a8975b-5db0-4a7a-9074-8554190c3ee4` | 50 Costas | 07/11/2025 | 36.23s | **56.98s** | Joao Leopoldo Goncalves (1º colocado) | **CONFIRMADO INCORRETO** |
+| `441b6362-57a5-40ea-bdd4-d0d152bba5d1` | 50 Costas | 11/10/2025 | 37.85s | **55.90s** | Joao Leopoldo Goncalves (1º colocado "Mirim 2") | **CONFIRMADO INCORRETO** |
+| `76844398-502f-4f5a-abc7-a44ef5f28179` | 50 Costas | 08/03/2026 | 36.98s | **54.68s** | Joao Leopoldo Goncalves (1º colocado "Petiz 1") | **CONFIRMADO INCORRETO** |
+| `99cce11d-6960-4b59-90a5-10c99c650405` | 50 Livre | 19/04/2026 | 30.84s | **44.68s** | Gabriel Coelho Ghignone (1º colocado "Petiz 1") | **CONFIRMADO INCORRETO** |
+
+Todos os 4 pertencem ao perfil B (`f02e62f2-...`, conta do Henrique), todos `is_official=true`, `status='valid'` — ou seja, hoje aparecem no app como marcas oficiais confirmadas do Vinícius, mas são de outro nadador. Os 4 seguem exatamente o mesmo mecanismo do P0-A. **Nenhum foi alterado.**
+
+### P1 — os dois perfis do Vinícius (comparação completa)
+
+| Campo | Perfil A | Perfil B |
+|---|---|---|
+| `athlete_id` | `af41d466-479b-47e5-8ffb-6dd03ae26e4f` | `f02e62f2-4987-4c99-aa21-1b8d89b80e65` |
+| `account_id` | `783a36e3-b3d5-4103-a257-3c28f9f963c8` | `8213ebbb-2d8a-421c-87e0-6911fc9c096c` |
+| Dono da conta (perfil) | "Vinícius Suzin Ballão" | "Henrique Costa Ballão" |
+| Email do dono | viniciussuzinballao@gmail.com | henriqueballao@gmail.com |
+| Conta criada em | 25/09/2026 20:51:01 | 22/09/2026 11:41:03 |
+| Último login | **27/09/2026 12:24** (hoje, recente) | 26/09/2026 03:33 |
+| Nome do atleta | "Vinícius Suzin Ballão" (com acento) | "Vinícius Suzin Ballao" (sem acento — bate com o registro oficial SwimSystem) |
+| `athletes.status` | `pending_source` | `active` |
+| Nascimento/clube/categoria | idênticos nos dois (mesma criança real) | idênticos |
+| Registro SwimSystem (`external_id`) | 422692 | 422692 (mesmo registro real) |
+| Fontes configuradas | swimsystem (com id), fdap/fgda/masters_parana (sem id, auto-seed) | idêntico |
+| Quantidade de `results` | 28 | 53 |
+| Contém dado legado migrado (`dropbox-legacy-v1`) | não verificado a fundo, provavelmente não | **sim** (pelo menos 1 resultado confirmado) |
+
+**Sobre a origem**: o perfil A foi criado em 25/09, mesmo dia em que a D-004 começou a ser testada nesta sessão — mas o login **mais recente** desse perfil é de agora (27/09, depois de todo o trabalho desta sessão), o que indica uso real recente, não um fixture esquecido. Não encontrei nenhum registro em `audit_log` que explique o motivo exato da criação (a tabela não audita criação de conta/atleta, só resultados). **Não dá para confirmar com certeza técnica se foi intencional (ex.: Henrique quis dar um login próprio ao Vinícius) ou acidental** — isso só o Henrique sabe responder.
+
+**Recomendação (não executada, decisão final é do Henrique)**: do ponto de vista técnico, ter 2 `athlete_id` para a mesma criança real garante que a duplicação vai continuar acontecendo para sempre, não importa o que se faça em `results`. Recomendo consolidar em UM perfil canônico — o perfil B parece o mais completo (mais resultados, `status=active`, contém dado legado já confirmado) — e, se o Henrique quiser que o Vinícius tenha login próprio, vincular esse login como membro adicional da MESMA conta/atleta, em vez de um perfil de atleta duplicado. Mas essa é uma decisão de produto do Henrique, não algo que o Code decide ou executa.
+
+**Nada foi apagado, fundido, movido ou alterado** — só leitura, em `athletes`, `account_members`, `auth.users` (só e-mail/datas, nenhum secret), `athlete_source_configs`.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
