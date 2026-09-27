@@ -480,5 +480,20 @@ Henrique reportou dois problemas: (1) eixo Y crescendo/escalando de forma inadeq
 
 **Nenhum código, banco, migration ou `results` foi alterado nesta investigação.** Todas as consultas foram `SELECT` read-only.
 
+### Gráfico de Evolução — regras de produto aprovadas pelo chat + proposta técnica (27/09/2026)
+
+Chat aprovou o diagnóstico e definiu 9 regras de produto (uma prova por gráfico, eixo Y em tempo real invertido — menor tempo mais alto —, domínio local sem forçar zero, SCM/LCM como séries independentes, marcação de transição de categoria sem quebrar a série, eixo X cronológico com ordenação determinística, duplicatas nunca somem silenciosamente mas sem inventar precedência, mobile ok). Deduplicação SwimSystem×FDAP fica como frente própria, não mexida agora. **Nada implementado ainda — proposta técnica enviada para aprovação antes do código:**
+
+1. **Filtro que seleciona a prova**: o dropdown `event` já existente passa a ser obrigatório/central; a opção "Todos os estilos" (que hoje combina várias provas na mesma linha/eixo) é removida.
+2. **Comportamento inicial**: ao abrir Evolução, seleciona automaticamente a prova com mais resultados válidos do atleta (empate por ordem alfabética do rótulo) — sem exigir clique extra. Sem nenhum resultado válido, mantém o estado vazio já existente.
+3. **Domain/padding do Y**: mantém a fórmula já existente (margem de 12%, ou ±3% quando só há 1 valor) — só muda o que alimenta essa fórmula, que passa a ser exclusivamente os tempos da prova selecionada (SCM+LCM juntos, já que são a mesma prova). Inversão via prop `reversed` do `<YAxis>` do Recharts (suportada na versão instalada, 2.15.4) — domínio e tooltip continuam com os valores reais, só a direção visual do eixo inverte; sem negociar valores manualmente (evita o risco de bagunçar tooltip/rótulo).
+4. **SCM × LCM**: quando ambas aparecem, viram duas séries (`<Line>`) independentes, com cor/traço distintos e legenda própria ("25 m" / "50 m"); nunca conectadas uma na outra. Filtro em uma piscina só mostra aquela série (comportamento já existente, mantido).
+5. **Duas datas iguais**: ordenação secundária determinística por `created_at` e, por fim, `id` do resultado (nunca deixa empate real). Quando houver de fato duas datas idênticas dentro da mesma prova+piscina, cada uma ganha sua própria posição no eixo X (nunca sobrescreve/some silenciosamente) — sem decidir qual "vale mais", isso fica para a frente de deduplicação.
+6. **Transição de categoria**: uma `<ReferenceLine>` por transição detectada (suporta múltiplas), posicionada na data do primeiro resultado da nova categoria dentro da prova selecionada, com rótulo discreto do nome da categoria — a linha da prova continua contínua por baixo, sem quebra.
+7. **Eixo X**: continua cronológico por `result_date`, sem uso de categoria como substituto.
+8. **Mobile**: estrutura responsiva existente (`.chart` com altura fixa + `ResponsiveContainer`) mantida; com no máximo 2 séries por vez (SCM/LCM) em vez de N provas simultâneas, a tela fica mais limpa, não mais poluída — validação visual real será feita no build antes de publicar.
+
+**Aguardando aprovação explícita desta proposta antes de escrever qualquer código.**
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
