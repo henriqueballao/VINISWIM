@@ -988,5 +988,42 @@ Chat confirmou a estratégia (9 UPDATE / 16 DELETE / DELETE condicional do meet 
 
 **Nada foi executado.** Nenhum `UPDATE`/`DELETE` rodou nesta etapa nem vai rodar até o Henrique autorizar explicitamente. Code está de prontidão, seguindo este checklist à risca quando/se a autorização vier.
 
+### REPARO EXECUTADO — autorizado pelo Henrique, checklist 701b6c2 seguido integralmente (27/09/2026)
+
+Henrique autorizou explicitamente ("Sim, autorizo agora") após confirmação de que todo dado real vive só no Supabase, sempre vinculado ao `athlete_id` de cada perfil, e que nenhum dado sintético seria deixado para trás. Executei o checklist na ordem exata:
+
+1. **SELECT de confirmação**: os 25 IDs e os 11 registros "gêmeo correto" usados como âncora foram relidos imediatamente antes da execução — **todos idênticos** ao que está documentado nos commits `fdb3783`/`701b6c2`. Nenhuma divergência.
+2. **Snapshot pré-operação**: `commercial/docs/reparo-p0c-snapshot-27-09-2026.json` (commit `0ee238a`), com os 25 `results`, os 25 `result_sources`, os 13 `personal_bests` pertinentes e o `meet` fabricado — publicado no repositório **antes** de qualquer escrita.
+3. **Reverificação dos 16 gêmeos**: confirmada no mesmo SELECT do passo 1 (nenhuma mudança desde o plano). Nenhum abortar necessário.
+4. **Transação única**: todo o reparo (9 UPDATE + 16 DELETE + DELETE condicional do meet) rodou dentro de um único `BEGIN ... COMMIT` — atomicidade garantida pelo Postgres do Supabase.
+5. **9 UPDATE**: só os campos previstos (`time_ms`, `status` onde aplicável, `result_fingerprint`, `updated_at`) — nada além disso.
+6. **16 DELETE**: só os 16 IDs aprovados — nenhuma deduplicação genérica.
+7. **Meet fabricado**: `DELETE` condicionado a `NOT EXISTS (SELECT 1 FROM results WHERE meet_id=...)` — só removeu porque, após o passo 6, o meet `5a161825` já estava com zero `results`.
+8. **Validação pós-operação** — todas as métricas bateram exatamente com o esperado:
+
+| Métrica | Esperado | Confirmado |
+|---|---|---|
+| `results` total | 65 | **65** ✓ |
+| Perfil A (`af41d466`) | 22 | **22** ✓ |
+| Perfil B (`f02e62f2`) | 43 | **43** ✓ |
+| Meet fabricado (`5a161825`) ainda existe? | não | **não** (0 linhas) ✓ |
+| `audit_log` (entity_type='result') | 130 + 25 = 155 | **155** ✓ (9 UPDATE + 16 DELETE, um por linha, gravados automaticamente pelo trigger) |
+| `result_sources` órfãos (sem `result` pai) | 0 | **0** ✓ (cascade funcionou) |
+| `results` fora dos 25 tocados nos últimos 5 min | 0 | **0** ✓ |
+| `personal_bests` recalculado | automático via trigger | ✓ confirmado — todos os 13 PBs afetados agora apontam para tempos reais (ex.: perfil A 50 Peito SCM agora é `d6b0ecfb`=1'15"22, não mais o tempo roubado de 43"48) |
+| `v_athlete_overview` | reflete 22/43 | ✓ confirmado, `total_results`/`personal_bests` corretos para os dois perfis |
+| `v_result_timeline` — duplicatas exatas (mesmo atleta/prova/data/piscina) | 0 | **0** ✓ — cada linha da timeline de cada atleta é única, sem nenhum ponto duplicado sobrando |
+
+9. **Nenhum "Atualizar Resultados"/reimportação** foi disparado durante a validação — só leitura.
+10. **Nenhuma pré-condição divergiu** — não houve necessidade de abortar em nenhum momento.
+
+**Os 9 registros corrigidos (Grupo A)** agora têm o tempo real do Vinícius. **Os 16 registros removidos (Grupo B)** eram, cada um, uma duplicata com um gêmeo já correto sob o mesmo `athlete_id` — confirmado que esse gêmeo continua presente e correto após a operação. **A competição fantasma de 25/09/2026 não existe mais** — nem os 3 resultados, nem o `meet`.
+
+**Os 18 "sem evidência suficiente" permanecem intocados**, como instruído — nenhuma tentativa de correção por plausibilidade.
+
+Rollback disponível em duas camadas, caso necessário: `commercial/docs/reparo-p0c-snapshot-27-09-2026.json` (snapshot completo) e `audit_log` (25 novas linhas com `old_data`/`new_data` em JSONB, gravadas automaticamente pelo trigger nativo).
+
+Frente P0-C **encerrada**. Aguardando o chat repassar a confirmação ao Henrique.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
