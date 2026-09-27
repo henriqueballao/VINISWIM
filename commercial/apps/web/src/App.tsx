@@ -257,8 +257,8 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
  const isFailed=status==='failed'
  const isNoSources=status==='no_sources'
  const isActive=isPending||isRunning
- useEffect(()=>{if(!isRunning){setSyncSeconds(0);return}const started=new Date(activeRequest?.running_started_at||Date.now()).getTime();setSyncSeconds(Math.max(0,Math.floor((Date.now()-started)/1000)));const timer=window.setInterval(()=>setSyncSeconds(Math.floor((Date.now()-started)/1000)),1000);return()=>window.clearInterval(timer)},[isRunning,activeRequest?.running_started_at])
- const slow=isRunning&&syncSeconds>=20
+ useEffect(()=>{if(!isActive){setSyncSeconds(0);return}const started=new Date(activeRequest?.created_at||Date.now()).getTime();const tick=()=>setSyncSeconds(Math.max(0,Math.floor((Date.now()-started)/1000)));tick();const timer=window.setInterval(tick,1000);return()=>window.clearInterval(timer)},[isActive,activeRequest?.created_at])
+ const slow=isActive&&syncSeconds>=20
  const syncAlert=isCancelled||isFailed||slow
  const shownSeconds=syncAlert?Math.min(syncSeconds,20):syncSeconds
  const syncClock=String(Math.floor(shownSeconds/60)).padStart(2,'0')+':'+String(shownSeconds%60).padStart(2,'0')
