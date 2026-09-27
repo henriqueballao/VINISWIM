@@ -1691,4 +1691,31 @@ Nenhuma escrita em `results`/`athletes`/`account_members` reais. Nenhum convite 
 `git revert f590abf` (reverte os 3 pontos de uma vez, é só código de UI). Backend: `drop function if exists public.admin_delete_commercial_access_and_user(uuid);` — reversível sem afetar nada pré-existente (a UI voltaria a usar o `delete()` direto se o commit também for revertido).
 
 ---
+
+## "Membros e convites" restrito a contas multi-atleta + causa raiz completa dos 13 resultados (27/09/2026)
+
+**Status**: ✅ implementado (item 1) / ✅ diagnosticado, READ-ONLY (item 2). **Proposto por**: Henrique, após novo teste no app publicado.
+
+### 1. "Somente a conta master pode ter membros e convites"
+
+Henrique reportou que a seção "Membros e convites" aparecia também dentro da conta individual do Vinícius (`Membros: 1/5 · Atletas: 1/1`), quando deveria existir só na conta master/família com múltiplos atletas.
+
+Investigação: `account_type` **não** diferencia isso — todas as 4 contas reais hoje são `'family'` no enum (`individual|family|club`), inclusive a conta pessoal do Vinícius. O sinal real que já existe é o **limite efetivo de atletas** (`account_athlete_limit`/`account_limits().max_athletes`, resolvido a partir de `max_athletes_override` ou do plano contratado): conta master de Henrique = 10, conta do Vinícius = 1, conta do Lorenzo = 2.
+
+`MembersSection` já buscava esse valor via `account_limits()` para exibir "Atletas: X/Y" no cabeçalho — só não usava esse dado para decidir se a seção deveria existir. Fix: `MembersSection` agora retorna `null` (não renderiza nada) quando `max_athletes<=1`. Sem migration nova, sem RPC nova — só uma condição a mais no componente já existente. Build sem erros. Commit `1e1d1d8`, publicado em `main`.
+
+### 2. Causa raiz completa e confirmada dos 13 resultados que faltam no Vinícius
+
+Henrique pediu de novo para entender por que a conta pessoal do Vinícius não busca os 13 resultados que só existem na conta master, mesmo depois de clicar várias vezes em "Atualizar". Aprofundei a investigação anterior (que já apontava a ausência de um job `current_meet`) até a causa raiz de negócio, 100% READ-ONLY:
+
+- Existe uma tabela `source_link_requests` que guarda, por atleta+fonte, a URL de uma **competição específica em andamento** (`current_meet_url`) a ser monitorada continuamente. Quando uma dessas solicitações é validada (`status='verified'`), o sistema cria o job `monitor_jobs` do tipo `current_meet` para aquele atleta — é esse job que fica de olho numa competição ativa e traz resultados novos conforme são publicados.
+- **Conta master (Vinícius Suzin Ballao, athlete `f02e62f2...`)**: tem 1 solicitação `verified` desde 25/09, apontando para `swimsystem.app/meets/sw/9b002997.../results` — por isso ela tem o job `current_meet` e por isso pegou os resultados dos campeonatos que geraram a diferença.
+- **Conta pessoal do Vinícius (athlete `af41d466...`)**: **nunca teve nenhuma solicitação** desse tipo — `source_link_requests` está vazio para esse athlete_id. Por isso não existe (e nunca existiu) job `current_meet` nessa conta — só o job `historical` (crawl único do arquivo já fechado).
+- O botão "Atualizar" (RPC `request_result_refresh`) **não cria** jobs `current_meet` novos — ele só (a) reenfileira o crawl `historical` e (b) reativa jobs `current_meet` **já existentes**. Como não existe nenhum na conta do Vinícius, clicar nele qualquer número de vezes nunca vai criar o vínculo com uma competição em andamento — é exatamente por isso que os cliques repetidos no smoke test não mudaram nada, sem nenhuma relação com o timer/bonequinho (esse já foi corrigido separadamente, ver seção anterior).
+- **Isso já é resolvível hoje, sem nenhum código novo**: a aba "Campeonatos" tem uma caixa "Importar competição" onde dá para colar a URL oficial do SwimSystem da competição em andamento — isso grava exatamente essa `source_link_request`. Foi assim (ou de forma equivalente) que a conta master ganhou o vínculo. **Ação sugerida**: dentro da conta do Vinícius, ir em Campeonatos → colar a mesma URL do SwimSystem usada na conta master (`.../meets/sw/9b002997-591e-4f74-8492-ef595b4705c0/results`) → Importar competição. Depois de validado (próximo ciclo do monitor-runner), o job `current_meet` passa a existir e a busca contínua some da lacuna.
+- **Nota à parte, não relacionada à busca**: dos 13 resultados de diferença, 3 são aparentes duplicatas internas dentro da própria conta master (não são resultados "perdidos" que a conta do Vinícius deveria encontrar — é um achado de qualidade de dado na conta master, sinalizado aqui só para registro, sem nenhuma ação tomada).
+
+Nenhuma escrita foi feita nesta investigação nem na anterior — nenhum `source_link_request` foi criado ou alterado para nenhuma das duas contas, nenhum job foi tocado. A ação de colar a URL em "Campeonatos" fica a critério de Henrique/Vinícius, feita pela própria UI, e não conta como consolidação dos dois perfis (não mexe em `account_members`/`athletes`/arquivamento — é só configuração de fonte de um atleta já existente).
+
+---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
