@@ -1628,5 +1628,30 @@ Frontend: `git revert 8e09142` (ou reverter para o commit anterior `78e39ab`) �
 
 **Próximo passo**: aguardar avaliação do chat, incluindo decisão sobre a lacuna de teste real de navegador (item 5). **Não avancei** para a consolidação real dos 2 perfis do Vinícius.
 
+## AGUARDANDO SMOKE HUMANO (Henrique) antes do dry-run de consolidação (27/09/2026)
+
+**Status**: frontend aprovado tecnicamente pelo chat. **BLOQUEADO** aguardando Henrique testar manualmente o app publicado (viniswim.com.br/app/) antes de qualquer próximo passo. Nenhuma escrita, nenhum dry-run, nenhuma leitura de consolidação foi iniciada nesta etapa — só este registro.
+
+### Checklist de smoke que Henrique deve validar manualmente
+
+1. Login normal continua funcionando.
+2. Configurações abre normalmente.
+3. Nova seção "Membros e convites" aparece corretamente.
+4. Conta atual mostra membros/limites sem erro.
+5. Layout mobile/iPhone está correto.
+6. Nenhuma mudança/regressão nas demais telas.
+7. Logout/login continua normal.
+8. Se possível, com ambiente sintético (não usar a conta real dele para isso): criar convite → copiar link → abrir link → verificar tela de convite → signup/login → aceite → token some da URL → seletor multi-conta aparece quando aplicável.
+
+Se Henrique reportar qualquer problema: **parar e corrigir antes de qualquer coisa relacionada à consolidação.**
+
+### O que NÃO fazer enquanto o smoke não for aprovado
+
+Nada real: não convidar o Vinícius, não alterar `account_members`/`athlete` reais, não arquivar o Perfil A, não alterar `athlete_source_configs`/jobs/results/account reais.
+
+### Depois do smoke aprovado
+
+Preparar **somente** um dry-run READ-ONLY da consolidação (revalidar os dois perfis do zero — não assumir que nada mudou desde a investigação anterior — mapear todas as dependências: `athlete_source_configs`, `monitor_jobs`, `historical_archive_jobs`, `refresh_requests`, `personal_bests`, `meet_entries`, `result_sources`, storage, e qualquer FK adicional), decisão final sobre `claim_monitor_jobs()` e outros claimers/schedulers (preferência do chat é defesa em profundidade — filtrar por athlete ativo — mas **não implementar ainda**, só recomendar com impacto/teste necessário), plano de membership do Vinícius (comparando convite real pelo fluxo comercial vs. operação administrativa controlada, recomendando a de menor risco), plano de arquivamento reversível do Perfil A preservando a conta antiga como camada de rollback, e lista do snapshot pré-operação — tudo isso **sem executar nenhuma escrita real**, aguardando nova autorização explícita depois que este dry-run for entregue e revisado.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
