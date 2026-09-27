@@ -516,5 +516,17 @@ Chat aprovou a proposta com 2 ajustes (estado inicial pela prova do resultado ma
 
 **Próximo passo**: Henrique fará o smoke test visual no atleta real antes de encerrar esta frente.
 
+## Gráfico de Evolução — FORMALMENTE ENCERRADO E APROVADO EM PRODUÇÃO (27/09/2026)
+
+Smoke test real no Vinícius aprovado pelo Henrique ("Gráficos estão corretos"), 4 capturas reais confirmando: seleção automática da prova (100 Medley/100 Livre/50 Costas conforme a prova mais recente de cada teste), eixo Y invertido, domínio útil, dois resultados de mesma data/mesmo tempo preservados como pontos distintos (100 Medley, 2×2'15"79), segmento de piora destacado em vermelho com dado real (100 Livre), tooltip correto ao toque, filtro de categoria funcionando, transição Mirim II→Petiz I marcada na posição certa, séries 25 m/50 m independentes com legenda própria, sem overflow no iPhone. `results` do Vinícius: 28 linhas, sem alteração. **Chat aprovou o fechamento formal desta frente.**
+
+Etapa F continua adiada.
+
+## Nova frente — Auditoria de deduplicação multifonte (27/09/2026): INVESTIGAÇÃO READ-ONLY, sem alterar nada
+
+Chat autorizou investigação para dimensionar resultados potencialmente duplicados entre fontes diferentes (especialmente SwimSystem × FDAP), achado inicial durante a investigação do Gráfico de Evolução. **Nenhuma linha será alterada** — nem `results`, nem `meets`, nem `result_sources`, nem `source_id`; nenhuma migration; nenhuma mudança de parser ou frontend; nenhuma decisão automática de qual fonte "vence". Só `SELECT`.
+
+*(Investigação em andamento — resultado será registrado nesta seção ao final.)*
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
