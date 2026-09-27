@@ -1654,4 +1654,41 @@ Nada real: não convidar o Vinícius, não alterar `account_members`/`athlete` r
 Preparar **somente** um dry-run READ-ONLY da consolidação (revalidar os dois perfis do zero — não assumir que nada mudou desde a investigação anterior — mapear todas as dependências: `athlete_source_configs`, `monitor_jobs`, `historical_archive_jobs`, `refresh_requests`, `personal_bests`, `meet_entries`, `result_sources`, storage, e qualquer FK adicional), decisão final sobre `claim_monitor_jobs()` e outros claimers/schedulers (preferência do chat é defesa em profundidade — filtrar por athlete ativo — mas **não implementar ainda**, só recomendar com impacto/teste necessário), plano de membership do Vinícius (comparando convite real pelo fluxo comercial vs. operação administrativa controlada, recomendando a de menor risco), plano de arquivamento reversível do Perfil A preservando a conta antiga como camada de rollback, e lista do snapshot pré-operação — tudo isso **sem executar nenhuma escrita real**, aguardando nova autorização explícita depois que este dry-run for entregue e revisado.
 
 ---
+
+## Correções pós-smoke: logout, exclusão de e-mail/login e timer de busca (27/09/2026)
+
+**Status**: ✅ implementado, testado (build) e publicado. **Proposto por**: Henrique, diretamente e explicitamente (autoridade final do protocolo), com base no smoke test manual que ele mesmo executou no app publicado.
+
+### O quê
+
+Henrique reportou 3 problemas concretos no smoke test (itens 7, 8 e 10 do relatório), além da questão separada dos 22 vs. 35 resultados do Vinícius (essa continua tratada à parte, sem nenhuma escrita — ver seção anterior). Para estes 3, ele deu autorização direta e explícita para corrigir agora, fora do bloqueio de consolidação:
+
+1. **Logout em 2 cliques** (`logout()` em `App.tsx`): a função abortava a limpeza local e o reload sempre que `supabase.auth.signOut()` retornava qualquer `error` — inclusive erros transitórios/inofensivos (ex.: "Auth session missing"). Corrigido: o erro agora só é logado no console; a limpeza de estado local e o `window.location.replace` sempre acontecem, então o botão "Sair" funciona no primeiro clique.
+
+2. **Exclusão de e-mail comercial não liberava o e-mail** (`CommercialAdmin.deleteCommercial()`): apagar o cadastro em `commercial_access` nunca apagava o login em `auth.users` associado, então um e-mail já ativado ficava "preso" (Supabase recusa silenciosamente um novo signup para e-mail já existente — comportamento padrão do GoTrue contra enumeração de contas, não é bug do VINISWIM). Henrique foi explícito: excluir o e-mail no painel comercial precisa liberar o e-mail de verdade.
+   - Auditoria de FKs (`pg_constraint`) confirmou que é seguro apagar linhas de `auth.users` neste schema: `account_members.user_id`/`profiles.id` → CASCADE, `results.created_by`/`commercial_access.user_id`/`audit_log.user_id`/`account_invites.created_by|accepted_by|revoked_by` → SET NULL, `source_link_requests.requested_by` → CASCADE. **Nenhum RESTRICT em lugar nenhum** — nada disso cadeia para `athletes`, `accounts` ou apaga `results` (resultados nunca são apagados, só perdem a referência de quem os criou).
+   - Nova função `public.admin_delete_commercial_access_and_user(p_id uuid)` (SECURITY DEFINER, mesmo padrão de `is_platform_admin`/`create_account_invite`): valida que quem chama é `platform_admins`, apaga o `commercial_access`, e se havia `user_id` associado apaga também o `auth.users` correspondente. `REVOKE ALL FROM PUBLIC, anon; GRANT EXECUTE TO authenticated` — confirmado via `get_advisors(security)` que só aparece na lista de "authenticated pode executar", nunca na de "anon pode executar".
+   - Frontend: `deleteCommercial()` agora chama essa RPC em vez de `delete()` direto na tabela; o texto de confirmação foi atualizado para deixar explícito que o login também será apagado (e o e-mail liberado), mas conta/atletas/resultados nunca são tocados.
+
+3. **Timer/animação de busca ("bonequinho") disparava alarme falso aos 20s**: `syncAlert` incluía o estado `slow` (`syncSeconds>=20`), o que congelava o relógio em `00:20`, colocava o nadador na pose "parado" e mostrava o triângulo de alerta — mesmo com a busca real ainda rodando normalmente (por design, D-004, a busca roda em múltiplos ciclos de cron, não precisa terminar em 20s). Henrique apontou corretamente que isso passava a falsa impressão de travamento/falha durante uma busca legítima e mais longa. Corrigido:
+   - `syncAlert` agora é só `isCancelled||isFailed` — a pose "parado" e o triângulo de alerta ficam reservados exclusivamente para cancelamento/erro real, nunca para "demorado".
+   - O relógio (`syncClock`) não congela mais em nenhum valor — conta o tempo real decorrido sem limite, enquanto a busca estiver ativa.
+   - O rótulo textual "BUSCA DEMORADA" (`slow`) passou de 20s para 90s de limiar — é só um aviso textual a partir daí, sem acionar nenhum efeito visual de parada; o cancelamento manual continua sendo a única forma de efetivamente parar a busca.
+
+### Escopo e o que NÃO foi tocado
+
+Nenhuma escrita em `results`/`athletes`/`account_members` reais. Nenhum convite real ao Vinícius. A consolidação do perfil do Vinícius (Perfil A vs. Perfil B, a diferença de 22 vs. 35 resultados) **continua totalmente bloqueada**, sem nenhum dry-run iniciado — essas 3 correções são independentes e não sobrepõem esse trabalho.
+
+### Validação
+
+- `npm run build` (`tsc -b && vite build`) — sem erros.
+- `mcp__Supabase__get_advisors(security)` rodado após a migration — a nova função aparece corretamente protegida (só `authenticated`, nunca `anon`); nenhum achado novo introduzido pela mudança (todos os demais achados listados já existiam antes desta migration).
+- Commit `f590abf` em `main` → workflow `Build VINISWIM Commercial App` (run `36350802003`) concluído com sucesso → `pages build and deployment` (run `36350801676`) publicado no GitHub Pages.
+- Não foi possível clicar de fato no app publicado a partir desta sessão (mesma limitação de rede já documentada — `*.supabase.co`/domínio do Pages bloqueados neste sandbox); validação foi por leitura de código + build de produção. Recomendado que Henrique confirme visualmente as 3 correções (logout 1 clique, exclusão de e-mail sintético libera o e-mail, bonequinho não trava/alerta mais aos 20s) no próximo acesso.
+
+### Rollback
+
+`git revert f590abf` (reverte os 3 pontos de uma vez, é só código de UI). Backend: `drop function if exists public.admin_delete_commercial_access_and_user(uuid);` — reversível sem afetar nada pré-existente (a UI voltaria a usar o `delete()` direto se o commit também for revertido).
+
+---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
