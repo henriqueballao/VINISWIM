@@ -704,4 +704,91 @@ Removidos os dois fallbacks `dateFrom(body)||new Date().toISOString().slice(0,10
 - Etapa F / deduplicação: não iniciada.
 
 ---
+
+## Auditoria integral dos 81 results — READ-ONLY, sem alterar nada (27/09/2026)
+
+Chat pediu, antes de corrigir os 4 resultados já conhecidos, uma auditoria READ-ONLY de **todos os 81 `results` reais**, para achar outros possivelmente contaminados pelo mesmo bug (FDAP), pelo bug de data "hoje" (P0-B), ou por qualquer outro erro objetivo. **Nenhum dado real foi alterado.**
+
+### Método
+
+Cada resultado foi classificado cruzando o valor salvo contra a fonte real (texto bruto do PDF em cache, localizando a própria linha do atleta pelo registro FDAP/SwimSystem `422692`). Para os 41 resultados oriundos do pipeline de histórico (FDAP + uma leva antiga via SwimSystem, ver abaixo), a classificação foi validada de forma determinística: reescrevi a lógica **exata pré-patch** (`extractOfficialRowTime`/`parseHistoricalResultText` antes do P0-A) em Node.js e rodei contra o texto real de cada um dos 21 PDFs envolvidos — em **100% dos 41 casos** o valor salvo foi **reproduzido byte a byte** por essa lógica antiga, confirmando o mecanismo exato de cada erro (não é suposição).
+
+### Achado principal: o problema é muito maior que os 4 já conhecidos
+
+| Classificação | Quantidade |
+|---|---|
+| **CONFIRMADO CORRETO** | 38 |
+| **CONFIRMADO INCORRETO** | **25** (4 já conhecidos + **21 novos**) |
+| **SEM EVIDÊNCIA SUFICIENTE PARA VALIDAR** | 18 |
+| **Total** | 81 |
+
+### Origem dos 81 (por mecanismo de importação)
+
+| Origem | Qtde | Corretos | Incorretos | Sem evidência |
+|---|---|---|---|---|
+| FDAP via `processArchiveJob` (pipeline atual, `external_id` vazio — a causa raiz do P0-A) | 20 | 3 | **17** | 0 |
+| SwimSystem via pipeline histórico antigo (`scanHistoricalCatalog`, código morto hoje — usava `external_id=422692`, real, mas com a mesma falha de não delimitar o segmento do atleta) | 21 | 13 | **8** | 0 |
+| Migração legado `dropbox-legacy-v1` (dado manual, anterior a qualquer parser automático — **não passa pelo P0-A/P0-B**) | 32 | 22 | 0 | 10 (5 de uma competição cujos PDFs não foram individualmente mapeados nesta rodada — `39523`; 5 de uma página SwimSystem "ao vivo" já não recuperável) | 
+| Inserido manualmente (`origin='manual'`, sem `source_id`, sem fonte externa) | 8 | 0 | 0 | 8 |
+
+**Conclusão prática**: o pipeline **FDAP** (`processArchiveJob`, hoje corrigido pelo P0-A) produziu erro em **17 de 20** resultados que gravou — 85% de taxa de erro. O pipeline antigo via SwimSystem (código morto, não roda mais) produziu erro em 8 de 21 (38%) — proporcionalmente menor porque usava o `external_id` certo, mas ainda sofria do mesmo problema de não delimitar o segmento do atleta (exatamente o que o `boundedAthleteSegment` do P0-A resolve). **Nenhum** dos 32 resultados migrados do legado (dado manual, pré-automação) apresentou erro nos 22 que puderam ser cruzados contra fonte real.
+
+### Tabela completa — 25 CONFIRMADOS INCORRETOS
+
+Tempo "salvo" = o que está gravado hoje em `results.time_ms`/`status`. Tempo "real" = achado na própria linha do atleta (registro 422692) no PDF fonte. Mecanismo: **A** = pipeline FDAP atual (`external_id` vazio, pega o 1º tempo do bloco/categoria — em 1 caso pegou o tempo do NADADOR SEGUINTE em vez do 1º colocado); **B** = pipeline SwimSystem antigo/código morto (`external_id` certo, mas sem delimitar o segmento — pegou o tempo do nadador vizinho quando a própria linha do Vinícius não tinha "%" logo após o tempo); **C** = bug de data "hoje" (P0-B) — duplicata com tempo certo mas data fabricada no dia da execução.
+
+| result_id | Perfil | Prova | Data salva | Salvo | Real | Mecanismo |
+|---|---|---|---|---|---|---|
+| `23f53383` | A | 50 Costas | 05/04/2025 | 39"10 (dsq) | **58"78 (valid)** | A — tempo E status errados (1º colocado + DQL de outro nadador) |
+| `b4b6faba` | B | 50 Costas | 05/04/2025 | 39"10 (dsq) | **58"78 (valid)** | A — idem |
+| `3e9274b1` | A | 50 Livre | 05/04/2025 | 32"97 | **53"09** | A — tempo do 1º colocado |
+| `dd76be5d` | B | 50 Livre | 05/04/2025 | 32"97 | **53"09** | A — idem |
+| `76e8c63b` | B | 50 Peito | 05/04/2025 | 43"48 | **1'15"22** | A — tempo do 1º colocado |
+| `d6b0ecfb` | A | 50 Peito | 05/04/2025 | 43"48 | **1'15"22** | A — idem |
+| `b9b85e51` | B | 100 Livre | 12/10/2025 | 1'20"77 | **1'55"10** | A — pegou o tempo de um nadador "OBS" no fim do bloco |
+| `af0a322c` | B | 50 Livre | 14/09/2025 | 32"08 | **48"90** | A — tempo do 1º colocado |
+| `fae67d60` | A | 50 Livre | 14/09/2025 | 32"08 | **48"90** | A — idem |
+| `f402a628` | B | 50 Costas | 13/09/2025 | 38"42 | **58"43** | A — tempo do 1º colocado |
+| `f57865a0` | A | 50 Costas | 13/09/2025 | 38"42 | **58"43** | A — idem |
+| `bd9a915e` | B | 50 Borboleta | 13/09/2025 | 37"07 | **1'05"71** | A — tempo do 1º colocado |
+| `dfac0c8e` | A | 50 Borboleta | 13/09/2025 | 37"07 | **1'05"71** | A — idem |
+| `25a8975b` | B | 50 Costas | 07/11/2025 | 36"23 | **56"98** | A — já conhecido (P0-C original) |
+| `441b6362` | B | 50 Costas | 11/10/2025 | 37"85 | **55"90** | A — já conhecido (P0-C original) |
+| `76844398` | B | 50 Costas | 08/03/2026 | 36"98 | **54"68** | A — já conhecido (P0-C original) |
+| `99cce11d` | B | 50 Livre | 19/04/2026 | 30"84 | **44"68** | A — já conhecido (P0-C original) |
+| `4869e32c` | A | 100 Livre | 12/10/2025 | 1'20"77 | **1'55"10** | B — mesmo erro de `b9b85e51`, sob `source_id` SwimSystem |
+| `3d8b3776` | A | 50 Livre | 14/09/2025 | 49"78 | **48"90** | B — pegou o tempo do nadador vizinho (linha do Vinícius sem "%") |
+| `9bcd7323` | A | 50 Costas | 13/09/2025 | 58"59 | **58"43** | B — pegou o tempo do nadador seguinte (Felipe Barbosa Cortes) |
+| `387fac6e` | A | 50 Borboleta | 13/09/2025 | 48"51 | **1'05"71** | B — pegou o tempo de um nadador "OBS" fora de ordem |
+| `f52b316f` | A | 50 Livre | 19/04/2026 | 47"42 | **44"68** | B — pegou o tempo do nadador seguinte |
+| `49963241` | A | 50 Costas | **25/09/2026 (fabricada — dia da execução)** | 58"78 (dsq) | 58"78 (**valid**) | C — tempo certo, mas status errado (DQL de outro nadador) e data fabricada |
+| `9f516fe7` | A | 100 Medley | **25/09/2026 (fabricada)** | 2'15"79 | 2'15"79 (real: 05/04/2025) | C — tempo certo, só a data é fabricada |
+| `17aad14d` | A | 50 Peito | **25/09/2026 (fabricada)** | 1'15"22 | 1'15"22 (real: 06/04/2025) | C — tempo certo, só a data é fabricada |
+
+**Nenhum destes 25 foi alterado.** Todos continuam exatamente como estão em produção hoje.
+
+### Casos de data possivelmente fabricada (P0-B)
+
+Confirmados exatamente **3** (já eram os únicos com `result_date == data de retrieval == meet.start_date`, verificado contra os 21 resultados SwimSystem não-legado — nenhum outro caso com essa assinatura foi encontrado): `49963241`, `9f516fe7`, `17aad14d` — todos do perfil A, todos datados **25/09/2026** (dia em que aquele lote rodou), todos com o tempo certo mas a data sem nenhuma relação com a competição real (abril/2025). Tabela acima.
+
+### Achado secundário, fora do escopo do P0-A/P0-B: imprecisão de dia em parte dos dados migrados do legado
+
+Nos 22 resultados `dropbox-legacy-v1` cruzados com sucesso contra a fonte real, o **tempo bate exatamente em 100% dos casos** — mas em alguns (ex.: `babb1d3c` salvo com 06/03/2026, evento realmente ocorrido em 08/03/2026; padrão semelhante em 1-2 outros) a data salva corresponde ao primeiro dia do campeonato, não ao dia exato da prova dentro de um campeonato de vários dias. Não é o bug P0-B (a data não é "hoje", é uma data real dentro do período do campeonato) e não afeta veracidade do tempo. Registro apenas informativo — não é um "erro objetivo de parsing" no sentido do P0-A/P0-B, é uma imprecisão pré-existente no dado migrado manualmente. Não fiz nada a respeito.
+
+### O que não pôde ser validado (18 resultados)
+
+- **10 da migração legado**: 5 resultados (`100/200 Livre`, `50 Borboleta`, `50 Costas`, `100 Medley`, todos 04-06/07/2025) vieram de uma competição (`39523`) cujos 17 PDFs em cache não foram individualmente mapeados nesta rodada (não sabia qual `ResultList_XX.pdf` correspondia a qual prova sem abrir um a um) — dá para fechar isso numa rodada futura se o chat/Henrique quiser. Os outros 5 (`100 Livre`, `50 Costas`, `200 Livre`, `50 Livre` DNS, `100 Costas`, todos 18-20/09/2026) vieram de uma página SwimSystem "ao vivo" (`swimsystem.app`) que não existe mais para reconferir.
+- **8 inseridos manualmente** (`origin='manual'`, sem `source_id`, datados 22/03/2025 e 15-16/08/2026): não passaram por nenhum parser automático (não é o escopo do P0-A/P0-B) e não há documento fonte externo para cruzar — são dados que só o Henrique (ou quem os digitou) pode confirmar.
+
+Nenhum desses 18 foi classificado como incorreto — apenas não pôde ser confirmado nem contestado com as fontes disponíveis agora.
+
+### Duplicação não tratada como erro
+
+Conforme instruído, o mesmo tempo/prova/data aparecendo sob `source_id` diferente (ex.: os pares FDAP+SwimSystem acima) não foi por si só motivo de classificação — cada linha foi julgada pela sua própria veracidade (data/tempo/status), não pela existência de duplicata. A frente de deduplicação continua separada e pausada.
+
+### Nada foi alterado
+
+Toda esta auditoria foi SELECT-only. Nenhum `UPDATE`/`DELETE`/`INSERT` em `results`, nenhuma reimportação, nenhum "Atualizar Resultados" disparado, nenhuma fusão de perfis, nenhuma migration. Os scripts de verificação (Node.js, fora do banco) e os textos de PDF usados ficam registrados na sessão para auditoria futura, se necessário.
+
+---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
