@@ -140,15 +140,22 @@ function historicalLinks(html:string,base:string,eventLabels:string[],categoryCo
  });
  return [...new Map(out.map((x:any)=>[x.url,x])).values()]
 }
+function boundedAthleteSegment(raw:string,id:string){
+ const s=String(raw||'').replace(/\s+/g,' ').trim();
+ const p=s.indexOf(id);
+ if(p<0)return null;
+ const after=s.slice(p+id.length);
+ const rowStart=/\s\d{1,3}\.\s+\d{1,2}\s*\/\s*\d{1,2}\s+[A-ZÀ-Ý]/;
+ const m=after.match(rowStart);
+ const end=m?m.index:Math.min(after.length,160);
+ return after.slice(0,end)
+}
 function extractOfficialRowTime(line:string,externalId:string){
  const raw=String(line||'').replace(/\s+/g,' ').trim();
- let after=raw;
  const id=String(externalId||'').trim();
- if(id){
-  const p=raw.indexOf(id);
-  if(p<0)return null;
-  after=raw.slice(p+id.length);
- }
+ if(!id)return null;
+ const seg=boundedAthleteSegment(raw,id);
+ if(seg==null)return null;
  const patterns=[
   /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*\d{2,3}%)/,
   /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*--)/,
@@ -156,7 +163,7 @@ function extractOfficialRowTime(line:string,externalId:string){
   /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s+\d{1,2},\d{2})/
  ];
  for(const rx of patterns){
-  const m=after.match(rx);
+  const m=seg.match(rx);
   if(m){
    const v=parseTime(m[1]);
    if(v!=null&&v>5000&&v<1800000)return v
@@ -169,14 +176,13 @@ function parseHistoricalResultText(text:string,url:string,i:any,expectedLabel:st
  const eventDate=resultEventDate(body);
  const lines=body.split(/\n+/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
  const id=String(i.external_id||'').trim();
- const athleteLines=lines.filter(line=>{
-  if(id&&line.includes(id))return true;
-  return names(i).some((nm:string)=>looseNameMatch(line,nm))
- });
+ if(!id)return [];
  const out:any[]=[];
- for(const line of athleteLines){
-  if(!match(line,i))continue;
-  const st=resultStatus(line);
+ for(const line of lines){
+  if(!line.includes(id))continue;
+  const seg=boundedAthleteSegment(line,id);
+  if(seg==null)continue;
+  const st=resultStatus(seg);
   const timeMs=extractOfficialRowTime(line,id);
   if(timeMs==null&&!st)continue;
   const date=eventDate||dateFrom(body);
@@ -276,15 +282,14 @@ async function processArchiveJob(aj:any){
    if(archiveError||!archive)throw new Error('Arquivo histórico não encontrado');
    let {data:cfg}=await db.from('athlete_source_configs').select('*').eq('athlete_id',aj.athlete_id).eq('source_id',archive.source_id).eq('active',true).maybeSingle();
    let identifierSourceId=archive.source_id;
-   if(!cfg && archive.sources?.code==='fdap'){
+   if((!cfg||!cfg.external_id) && archive.sources?.code==='fdap'){
      const {data:ss}=await db.from('sources').select('id').eq('code','swimsystem').maybeSingle();
      if(ss?.id){
        const q=await db.from('athlete_source_configs').select('*').eq('athlete_id',aj.athlete_id).eq('source_id',ss.id).eq('active',true).maybeSingle();
-       cfg=q.data||null;
-       if(cfg)identifierSourceId=ss.id;
+       if(q.data?.external_id){cfg=q.data;identifierSourceId=ss.id}
      }
    }
-   if(!cfg)throw new Error('Fonte histórica não configurada para o atleta');
+   if(!cfg||!cfg.external_id)throw new Error('Fonte histórica não configurada para o atleta (identificador ausente)');
    const {data:athlete}=await db.from('athletes').select('full_name,preferred_name,birth_date,gender,category').eq('id',aj.athlete_id).single();
    const {data:idn}=await db.from('athlete_identifiers').select('*').eq('athlete_id',aj.athlete_id).eq('source_id',identifierSourceId).maybeSingle();
    const i={...(idn||{}),external_id:cfg.external_id,external_name:cfg.external_name,athletes:athlete};
