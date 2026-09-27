@@ -566,11 +566,12 @@ async function processJob(j:any){
      const pages=discover(html,base);for(const p of pages.slice(0,80)){try{results.push(...parseResults(await get(p.url),p.url,p.label,i,meet.course,meet.startDate))}catch{}}
    }else{
      const rootHtml=await get(url),$=cheerio.load(rootHtml),body=$('body').text().replace(/\s+/g,' ');
-     meet={externalId:'search-'+sourceCode+'-'+j.athlete_id,name:j.sources?.name||cfg.display_name,startDate:dateFrom(body)||new Date().toISOString().slice(0,10),course:/\b25\s*m\b/i.test(body)?'SCM':/\b50\s*m\b/i.test(body)?'LCM':null,officialUrl:url};
+     meet={externalId:'search-'+sourceCode+'-'+j.athlete_id,name:j.sources?.name||cfg.display_name,startDate:dateFrom(body),course:/\b25\s*m\b/i.test(body)?'SCM':/\b50\s*m\b/i.test(body)?'LCM':null,officialUrl:url};
      results.push(...parseGeneric(rootHtml,url,i));
      for(const p of discoverGeneric(rootHtml,url)){if(/\.pdf(?:$|\?)/i.test(p.url))continue;try{results.push(...parseGeneric(await get(p.url),p.url,i))}catch{}}
    }
-   const {data:m}=await db.from('meets').upsert({source_id:j.source_id,external_id:meet.externalId,name:meet.name,start_date:meet.startDate||new Date().toISOString().slice(0,10),course:meet.course,official_url:meet.officialUrl,status:'active'},{onConflict:'source_id,external_id'}).select('id,start_date,course').single();
+   if(!meet.startDate)throw new Error('Data da competição não encontrada na fonte oficial; resultado não pode ser registrado sem data confiável.');
+   const {data:m}=await db.from('meets').upsert({source_id:j.source_id,external_id:meet.externalId,name:meet.name,start_date:meet.startDate,course:meet.course,official_url:meet.officialUrl,status:'active'},{onConflict:'source_id,external_id'}).select('id,start_date,course').single();
    const ev=await eventMap();for(const e of entries){const eid=ev.get(n(e.eventLabel));if(eid)await db.from('meet_entries').upsert({meet_id:m.id,athlete_id:j.athlete_id,event_id:eid,seed_time_ms:e.seedTimeMs,heat:e.heat,lane:e.lane,entry_status:'seeded',source_id:j.source_id},{onConflict:'meet_id,athlete_id,event_id'})}
    let inserted=0,dups=0;const seen=new Set<string>();
    for(const r of results){
