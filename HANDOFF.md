@@ -403,5 +403,27 @@ Em todos os 4 casos: comparação campo a campo de A (job_count/terminal_status/
 
 **Pendências que dependem desta migration, ainda não implementadas**: (1) frontend "Última atualização" com a semântica que o chat escolher — se for a opção (c) ("última busca concluída com sucesso"), agora já é possível via `terminal_status='completed'` + `finalized_at`; (2) nenhuma mudança de frontend foi feita ainda para isso.
 
+#### Etapa ESTABILIZAÇÃO — "Última atualização" implementada, validada e publicada (27/09/2026)
+
+Chat definiu a semântica final: **última busca concluída com sucesso** (`terminal_status='completed' AND finalized_at IS NOT NULL`, `MAX(finalized_at)` por atleta). Sem nenhum request `completed`, mostra o estado neutro já existente ("—"). Implementação **só de frontend** (`App.tsx`), sem migration, sem RPC nova, respeitando RLS normal (a query usa `v_refresh_request_status`, já filtrada por RLS de `refresh_requests`).
+
+**Mudança**: `loadAthlete()` passou a buscar `select finalized_at from v_refresh_request_status where athlete_id=X and terminal_status='completed' order by finalized_at desc limit 1`, guardado em um novo estado `lastSuccessfulSync`; `lastSync` (usado no texto "Última atualização") passou a vir desse estado em vez de `MAX(monitor_jobs.last_run_at)`. Nenhuma outra linha tocada; código morto identificado antes (linha 556 do `monitor-runner`) **não foi limpo**, conforme instrução explícita do chat.
+
+**Validação sintética (9 pontos, todos passaram)**, com 3 atletas dedicados (`eeeeeeee-0008-...-a001/a002/a003`, apagados ao final) e a mesma query exata usada pelo frontend:
+1. `T1` (completed) congelado para `a001` → query retorna `T1`.
+2. `failed` posterior (job injetado contra arquivo com URL inválida, 12 reais + 1 quebrado) → query continua retornando `T1` (não mudou).
+3. `cancelled` posterior (mesma transação da criação) → query continua `T1`.
+4. `no_sources` posterior (config desativada temporariamente, reativada em seguida) → query continua `T1`.
+5. Novo `completed` (`T2`) → query passa a retornar `T2`, confirmado `T2 > T1`.
+6. Reload: como a query é sempre recalculada a partir de dados persistidos (`finalized_at` já congelado pela migration anterior), não há estado local para "perder" — garantido pela própria natureza stateless da consulta, sem necessidade de teste de UI separado.
+7. Isolamento entre atletas: `a002` manteve seu próprio `completed` inalterado (valor diferente de `T1`/`T2` de `a001`) durante todo o teste.
+8. Atleta sem nenhum `completed` (`a003`) → query retorna **zero linhas** (estado neutro "—").
+
+**Build local** (`tsc -b && vite build`) validado sem erros antes do commit. **Commit**: `f945287` (isolado, só `App.tsx`). **Deploy**: workflow "Build VINISWIM Commercial App" run #108 (`36304208665`) concluído com sucesso → commit automático do bot → `app/index.html` confirmado servindo `index-CtOzl5EU.js` (hash idêntico ao build local pós-edição, confirmando que o código publicado é exatamente o commitado).
+
+**Limpeza**: 3 atletas sintéticos + 2 fixtures de arquivo quebrado (`...b1`, `...b2`) apagados, contagem zero confirmada em `athletes`/`athlete_source_configs`/`athlete_identifiers`/`historical_archive_jobs`/`refresh_requests`/`historical_archives`. `results` do Vinícius real: 28 linhas, intocado durante toda a etapa.
+
+**Próximo passo (aguardando o usuário, não o Code)**: smoke test manual real, decidido e executado por Henrique quando quiser — Atualizar → cronômetro conta desde a solicitação → processamento termina → "Última atualização" reflete a conclusão bem-sucedida. Code não dispara esse teste. **Etapa F continua bloqueada até o resultado desse smoke test.** Gráfico de Evolução continua registrado e fora de escopo.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
