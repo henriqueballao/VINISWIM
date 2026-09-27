@@ -495,5 +495,26 @@ Chat aprovou o diagnóstico e definiu 9 regras de produto (uma prova por gráfic
 
 **Aguardando aprovação explícita desta proposta antes de escrever qualquer código.**
 
+### Gráfico de Evolução — implementado, validado visualmente e publicado (27/09/2026)
+
+Chat aprovou a proposta com 2 ajustes (estado inicial pela prova do resultado mais recente, e a `ReferenceLine` de transição de categoria ancorada na posição X efetiva do ponto, não na string da data) — ambos incorporados. Implementação cirúrgica em `Evolution()` (`commercial/apps/web/src/App.tsx`):
+
+1. Removida a opção "Todos os estilos" — dropdown de prova sempre central e obrigatório.
+2. Seleção automática inicial: prova do resultado válido mais recente do atleta (empate por mais resultados históricos, depois ordem alfabética); refeita a cada troca de atleta via `key={athleteId}` no ponto de montagem.
+3. Domínio do eixo Y calculado só com os tempos da prova selecionada (mesma fórmula de margem de sempre); `<YAxis reversed .../>` do Recharts inverte a direção visual sem negociar valores — tooltip e ticks continuam com o tempo real.
+4. SCM/LCM viraram duas séries (`Line`) independentes, nunca conectadas uma na outra, legenda própria "25 m"/"50 m".
+5. `dataKey` do eixo X passou a ser o `id` do resultado (não mais a data formatada), com `tickFormatter` exibindo a data — cada resultado tem posição própria; duas datas iguais não se sobrescrevem nem desaparecem mais. Ordenação determinística: `result_date` → `created_at` → `id`.
+6. `ReferenceLine` de transição de categoria ancorada pelo `id` do primeiro resultado da nova categoria (não pela string da data) — funciona corretamente mesmo com datas duplicadas; suporta múltiplas transições; a linha da prova continua contínua por baixo.
+
+**Achados extras corrigidos (dentro do escopo pedido de validar legenda/tooltip)**: `.chart-legend-custom` e `.chart-tooltip` nunca tiveram nenhuma regra CSS — a legenda aparecia sem espaçamento nem cor visível ("25 m50 m" grudado, sem bolinha) e o tooltip sem caixa/espaçamento. Adicionadas regras mínimas para ambos em `styles.css`, sem alterar nenhuma outra classe.
+
+**Validação visual real (Playwright + dados sintéticos, formato replicando o caso real do Vinícius: SCM/LCM misturados, duas datas iguais no mesmo dia, transição Mirim II→Petiz I)**, feita ANTES do commit, em desktop (1000px) e largura de iPhone (390px): eixo Y invertido confirmado (menor tempo em cima), duas séries com cores/legenda distintas, os dois resultados da mesma data aparecendo lado a lado sem se sobrescrever, `ReferenceLine` "Petiz I" na posição correta mesmo com a duplicata, filtro de piscina única funcionando (mostra só 1 série), tooltip legível, sem overflow horizontal no mobile. Build local (`tsc -b && vite build`) validado sem erros antes e depois da limpeza dos arquivos de teste (nenhum arquivo de teste foi commitado).
+
+**Commit**: `81fec94` (isolado). **Deploy**: workflow "Build VINISWIM Commercial App" run #110 (`36308203910`) concluído com sucesso → `app/index.html` confirmado servindo `index-Cp7DhCpB.js`/`index-Be1gvNqn.css` (hashes idênticos ao build local pós-edição).
+
+**Nenhuma mudança de banco, migration, RPC, `monitor-runner`, fluxo Atualizar ou `results` nesta entrega.** Deduplicação SwimSystem×FDAP segue como frente separada, não tocada. Etapa F continua adiada.
+
+**Próximo passo**: Henrique fará o smoke test visual no atleta real antes de encerrar esta frente.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
