@@ -212,7 +212,7 @@ export default function App(){
  async function logout(){
   identityRun.current++
   const {error}=await supabase.auth.signOut({scope:'local'})
-  if(error){console.error('VINISWIM signOut:',error.message);return}
+  if(error)console.error('VINISWIM signOut:',error.message)
   localStorage.removeItem('viniswim-athlete')
   localStorage.removeItem('viniswim-account')
   setNeedsInitialAthlete(false);setSession(null);setIdentityLoading(false);setIdentityLoaded(false)
@@ -338,10 +338,9 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
  const isNoSources=status==='no_sources'
  const isActive=isPending||isRunning
  useEffect(()=>{if(!isActive){setSyncSeconds(0);return}const started=new Date(activeRequest?.created_at||Date.now()).getTime();const tick=()=>setSyncSeconds(Math.max(0,Math.floor((Date.now()-started)/1000)));tick();const timer=window.setInterval(tick,1000);return()=>window.clearInterval(timer)},[isActive,activeRequest?.created_at])
- const slow=isActive&&syncSeconds>=20
- const syncAlert=isCancelled||isFailed||slow
- const shownSeconds=syncAlert?Math.min(syncSeconds,20):syncSeconds
- const syncClock=String(Math.floor(shownSeconds/60)).padStart(2,'0')+':'+String(shownSeconds%60).padStart(2,'0')
+ const slow=isActive&&syncSeconds>=90
+ const syncAlert=isCancelled||isFailed
+ const syncClock=String(Math.floor(syncSeconds/60)).padStart(2,'0')+':'+String(syncSeconds%60).padStart(2,'0')
  const ev=new Map(events.map(x=>[x.id,x.label])),mt=new Map(meets.map(x=>[x.id,x.name]))
  const eventIds=[...new Set(allResults.map(r=>r.event_id).filter(Boolean))]
  const athleteEvents=events.filter(e=>eventIds.includes(e.id))
@@ -534,9 +533,9 @@ function CommercialAdmin(){
  async function revoke(id:string){await supabase.from('commercial_access').update({status:'revoked'}).eq('id',id);await load()}
  async function deleteCommercial(r:any){
   const customerName=r.customer_name||'—'
-  if(!confirm('Excluir o cadastro comercial de '+customerName+' ('+r.email+')?\n\nEsta ação é irreversível e exclui somente este cadastro comercial. A conta, atletas e resultados não serão apagados.'))return
+  if(!confirm('Excluir o cadastro comercial de '+customerName+' ('+r.email+')?\n\nEsta ação é irreversível: exclui o cadastro comercial E, se já ativado, o login associado a este e-mail — liberando-o para novo cadastro/convite. A conta, os atletas e os resultados NÃO serão apagados.'))return
   setMsg('')
-  const {error}=await supabase.from('commercial_access').delete().eq('id',r.id)
+  const {error}=await supabase.rpc('admin_delete_commercial_access_and_user',{p_id:r.id})
   if(error){setMsg(error.message);return}
   setMsg('Cadastro comercial excluído.')
   await load()
