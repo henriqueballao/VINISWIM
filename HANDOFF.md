@@ -791,4 +791,185 @@ Conforme instruído, o mesmo tempo/prova/data aparecendo sob `source_id` diferen
 Toda esta auditoria foi SELECT-only. Nenhum `UPDATE`/`DELETE`/`INSERT` em `results`, nenhuma reimportação, nenhum "Atualizar Resultados" disparado, nenhuma fusão de perfis, nenhuma migration. Os scripts de verificação (Node.js, fora do banco) e os textos de PDF usados ficam registrados na sessão para auditoria futura, se necessário.
 
 ---
+
+## Plano exato de reparo dos 25 confirmados incorretos — READ-ONLY, SQL PROPOSTO E NÃO EXECUTADO (27/09/2026)
+
+Chat aceitou a auditoria e pediu o plano linha-a-linha antes de qualquer escrita. **Nada foi executado nesta etapa** — nenhum `UPDATE`/`DELETE`/`INSERT` real. Tudo abaixo é SELECT + análise.
+
+### Achado que muda a estratégia: 16 dos 25 são duplicatas de um registro já correto do MESMO atleta — não precisam de UPDATE, precisam de remoção
+
+Cruzando cada um dos 25 contra os 38 já confirmados corretos (e uns contra os outros) **pelo mesmo `athlete_id` + mesma prova + mesma data real**, descobri que **16 dos 25 já têm um gêmeo correto existente** para o mesmo atleta — inclusive **3 dos 4 já conhecidos desde antes desta auditoria** (`25a8975b`, `441b6362`, `76844398`, `99cce11d`: só `99cce11d`... na verdade os 4 originais também se encaixam, ver tabela). Nesses casos, fazer `UPDATE` no registro incorreto criaria uma **duplicata idêntica** do resultado que o atleta já tem correto — exatamente o risco que o chat pediu para verificar no item 8. A ação certa para esses 16 é **remoção**, não correção.
+
+Consequência: o reparo real é **muito mais simples** do que "corrigir 25 linhas":
+- **Grupo A — UPDATE seguro: 9 registros** (nenhum gêmeo correto existe para aquele atleta/prova/data real).
+- **Grupo B — candidato a remoção por duplicar registro já correto do mesmo atleta: 16 registros** (os 3 do Grupo D inclusos — cada um dos 3 tem um gêmeo correto ou em correção no Grupo A, para o MESMO atleta).
+- **Grupo C (reassociação de meet) e Grupo D (decisão adicional) da classificação pedida: 0 puros** — o único caso de reassociação de meet (os 3 de data fabricada) resolve-se pela remoção (Grupo B), não por reassociar `meet_id`, porque o gêmeo correto já existe em outro lugar. Sinalizo abaixo 1 caso com nota (`b9b85e51`) que é UPDATE mas gera um quase-duplicado com 1 dia de diferença contra um registro do legado (ver seção de imprecisão de data).
+
+### Dependências verificadas (para todos os 25)
+
+- `result_sources`: cada um dos 25 tem **exatamente 1** linha associada (`ON DELETE CASCADE` a partir de `results`) — remove/atualiza sozinho, sem passo manual.
+- `personal_bests`: **não é view, é tabela real**, mas é mantida por um **trigger existente** (`results_refresh_personal_best` → `app.refresh_personal_best()`) que roda `AFTER INSERT OR UPDATE OR DELETE ON results` e recalcula sozinho o melhor tempo oficial válido por atleta/prova/piscina. **13 dos 25 registros incorretos são hoje o "recorde pessoal" oficial do atleta** nesse evento/piscina (ver coluna "é PB hoje?" nas tabelas abaixo) — ou seja, o app está mostrando um recorde falso para esses 13. UPDATE ou DELETE nesses 25 aciona o trigger automaticamente; **nenhuma reconciliação manual de `personal_bests` é necessária**.
+- `meet_entries`: **zero linhas** em qualquer um dos 10 `meet_id` envolvidos nos 25 — sem impacto.
+- `reconciliation_queue`: tabela vazia (0 linhas no banco todo) — sem impacto.
+- `v_result_timeline` e `v_athlete_overview`: são **views puras** (sem materialização) — recalculam automaticamente a partir de `results`/`meets`/`athletes` a cada leitura, incluindo a categoria por idade (`v_result_timeline` deriva categoria de `result_date`+`birth_date` na hora). Nenhum passo extra.
+- `result_fingerprint` (coluna de texto em `results`, não é constraint, não tem índice único): guarda `athlete_id|meet_id|event_id|result_date|course|time_ms|status` como string. Não é usada pela lógica de dedup do monitor-runner (que compara as colunas diretamente), mas fica **desatualizada** se eu só mudar `time_ms`/`status` sem recalculá-la — o SQL proposto abaixo já recalcula.
+- `audit_log`: já existe, já está ativo (130 linhas hoje, trigger `results_audit_change` grava `old_data`/`new_data` em JSONB a cada INSERT/UPDATE/DELETE em `results`), e **é o mecanismo de rollback nativo** — ver seção de snapshot.
+- `results.meet_id → meets.id`: `ON DELETE SET NULL` (não é `CASCADE`, não é `RESTRICT`) — apagar um `meet` órfão depois de remover seus `results` é seguro mesmo que eu esqueça a ordem.
+
+### GRUPO T — TEMPO INCORRETO (22 registros: 9 para UPDATE + 13 para remoção)
+
+| result_id | athlete_id | Perfil | source | meet_id atual | Competição | Data | Prova | Piscina | Tempo atual | Tempo correto | Evidência | Mecanismo | É PB hoje? | Classificação |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `23f53383-7841-4ffe-a115-61308980bc5d` | `af41d466-…` | A | fdap | `2db71942-…` | Torneio Regional 1ª Região | 05/04/2025 | 50 Costas | SCM | 39"10 (dsq) | **58"78 (valid)** | ResultList_8.pdf, linha do 422692 | A (1º colocado + DQL de outro nadador) | não | **A) UPDATE** |
+| `3e9274b1-4cc5-4cdc-a101-e54491757e88` | `af41d466-…` | A | fdap | `2db71942-…` | Torneio Regional 1ª Região | 05/04/2025 | 50 Livre | SCM | 32"97 | **53"09** | ResultList_40.pdf | A (1º colocado) | não | **A) UPDATE** |
+| `d6b0ecfb-bac9-468a-b963-6757fbf332ba` | `af41d466-…` | A | fdap | `2db71942-…` | Torneio Regional 1ª Região | 05/04/2025 | 50 Peito | SCM | 43"48 | **1'15"22** | ResultList_32.pdf | A (1º colocado) | **sim** | **A) UPDATE** |
+| `b9b85e51-f107-42df-9678-6cb081e55fec` | `f02e62f2-…` | B | fdap | `3fb2b071-…` | Troféu Germano Bayer 2025 | 12/10/2025 | 100 Livre | LCM | 1'20"77 | **1'55"10** | ResultList_70.pdf | A (pegou o "OBS" do fim do bloco) | **sim** | **A) UPDATE** (ver nota¹) |
+| `fae67d60-96f0-4227-b70d-5493c3450e5c` | `af41d466-…` | A | fdap | `6b4a524c-…` | Torneio Regional 1ª Região | 14/09/2025 | 50 Livre | LCM | 32"08 | **48"90** | ResultList_48.pdf | A (1º colocado) | **sim** | **A) UPDATE** |
+| `f57865a0-d315-415f-8c58-fb38c027e08f` | `af41d466-…` | A | fdap | `6b4a524c-…` | Torneio Regional 1ª Região | 13/09/2025 | 50 Costas | LCM | 38"42 | **58"43** | ResultList_6.pdf | A (1º colocado) | **sim** | **A) UPDATE** |
+| `dfac0c8e-0a62-4b9c-8e7c-7c84534a06ea` | `af41d466-…` | A | fdap | `6b4a524c-…` | Torneio Regional 1ª Região | 13/09/2025 | 50 Borboleta | LCM | 37"07 | **1'05"71** | ResultList_18.pdf | A (1º colocado) | **sim** | **A) UPDATE** |
+| `4869e32c-9849-48f6-8d8f-89ad66b2aa50` | `af41d466-…` | A | swimsystem | `4119d4f2-…` | Troféu Germano Bayer 2025 | 12/10/2025 | 100 Livre | LCM | 1'20"77 | **1'55"10** | ResultList_70.pdf | B (mesmo bug, sob source SwimSystem) | não | **A) UPDATE** |
+| `f52b316f-a1b5-4788-b920-1d4e3a7605b7` | `af41d466-…` | A | swimsystem | `4f78760e-…` | Campeonato Paranaense Inverno 2026 | 19/04/2026 | 50 Livre | SCM | 47"42 | **44"68** | ResultList_62.pdf | B (pegou o nadador seguinte) | não | **A) UPDATE** |
+| `b4b6faba-0a08-45df-a389-f9547ba83d8c` | `f02e62f2-…` | B | fdap | `2db71942-…` | Torneio Regional 1ª Região | 05/04/2025 | 50 Costas | SCM | 39"10 (dsq) | 58"78 (valid) | idem `23f53383` | A | não | **B) REMOÇÃO** — gêmeo correto já existe: `b3448e48` (legado, 58"78, valid) |
+| `dd76be5d-12cd-44e1-9f11-0d86796fb7e0` | `f02e62f2-…` | B | fdap | `2db71942-…` | Torneio Regional 1ª Região | 05/04/2025 | 50 Livre | SCM | 32"97 | 53"09 | idem `3e9274b1` | A | não | **B) REMOÇÃO** — gêmeo: `c9559294` (legado, 53"09) |
+| `76e8c63b-1966-4829-b69e-ca5c9c6e93ec` | `f02e62f2-…` | B | fdap | `2db71942-…` | Torneio Regional 1ª Região | 05/04/2025→06/04 real | 50 Peito | SCM | 43"48 | 1'15"22 | idem `d6b0ecfb` | A | não | **B) REMOÇÃO** — gêmeo: `30c532fa` (legado, 1'15"22, data 06/04 certa) |
+| `af0a322c-68a3-4dbc-a807-795fc151c183` | `f02e62f2-…` | B | fdap | `6b4a524c-…` | Torneio Regional 1ª Região | 14/09/2025 | 50 Livre | LCM | 32"08 | 48"90 | idem `fae67d60` | A | não | **B) REMOÇÃO** — gêmeo: `ec7806ae` (legado, 48"90) |
+| `f402a628-ba0f-43b2-a0dd-2e87c12be841` | `f02e62f2-…` | B | fdap | `6b4a524c-…` | Torneio Regional 1ª Região | 13/09/2025 | 50 Costas | LCM | 38"42 | 58"43 | idem `f57865a0` | A | não | **B) REMOÇÃO** — gêmeo: `34961ad4` (legado, 58"43) |
+| `bd9a915e-da26-4f4d-beef-06b395387c69` | `f02e62f2-…` | B | fdap | `6b4a524c-…` | Torneio Regional 1ª Região | 13/09/2025 | 50 Borboleta | LCM | 37"07 | 1'05"71 | idem `dfac0c8e` | A | não | **B) REMOÇÃO** — gêmeo: `8795b5c8` (legado, 1'05"71) |
+| `25a8975b-5db0-4a7a-9074-8554190c3ee4` | `f02e62f2-…` | B | fdap | `a79e18e2-…` | Campeonato Sul-Brasileiro 2025 | 07/11/2025 | 50 Costas | LCM | 36"23 | 56"98 | ResultList_26.pdf (já conhecido) | A | não | **B) REMOÇÃO** — gêmeo: `b0e30fd5` (legado, 56"98, mesma data) |
+| `441b6362-57a5-40ea-bdd4-d0d152bba5d1` | `f02e62f2-…` | B | fdap | `3fb2b071-…` | Troféu Germano Bayer 2025 | 11/10/2025 | 50 Costas | LCM | 37"85 | 55"90 | ResultList_30.pdf (já conhecido) | A | não | **B) REMOÇÃO** — gêmeo: `19b18d21` (legado, 55"90, mesma data) |
+| `76844398-502f-4f5a-abc7-a44ef5f28179` | `f02e62f2-…` | B | fdap | `08d312bd-…` | Torneio Regional 1ª Região 2026 | 08/03/2026 | 50 Costas | SCM | 36"98 | 54"68 | ResultList_66.pdf (já conhecido) | A | não | **B) REMOÇÃO** — gêmeo: `328f8189` (legado, 54"68, data legado 07/03 imprecisa) |
+| `99cce11d-6960-4b59-90a5-10c99c650405` | `f02e62f2-…` | B | fdap | `6582ec40-…` | Campeonato Paranaense Inverno 2026 | 19/04/2026 | 50 Livre | SCM | 30"84 | 44"68 | ResultList_62.pdf (já conhecido) | A | não | **B) REMOÇÃO** — gêmeo: `504a3ce0` (legado, 44"68, mesma data) |
+| `3d8b3776-4c0b-4cb4-9568-b473ad3f51d5` | `af41d466-…` | A | swimsystem | `87a5ffe4-…` | Torneio Regional 1ª Região | 14/09/2025 | 50 Livre | LCM | 49"78 | 48"90 | idem `fae67d60` | B | não | **B) REMOÇÃO** — gêmeo (mesmo atleta A): `fae67d60`, que vai ser corrigido no Grupo A |
+| `9bcd7323-c85c-4da4-b93e-06c8518e21ef` | `af41d466-…` | A | swimsystem | `87a5ffe4-…` | Torneio Regional 1ª Região | 13/09/2025 | 50 Costas | LCM | 58"59 | 58"43 | idem `f57865a0` | B (pegou o nadador seguinte) | não | **B) REMOÇÃO** — gêmeo: `f57865a0`, corrigido no Grupo A |
+| `387fac6e-1cbd-411a-b87c-25b9e927224f` | `af41d466-…` | A | swimsystem | `87a5ffe4-…` | Torneio Regional 1ª Região | 13/09/2025 | 50 Borboleta | LCM | 48"51 | 1'05"71 | idem `dfac0c8e` | B | não | **B) REMOÇÃO** — gêmeo: `dfac0c8e`, corrigido no Grupo A |
+
+**¹ Nota sobre `b9b85e51`**: o gêmeo mais próximo no legado (`642d4d9f`, 1'15"10, também já confirmado correto) está datado 11/10/2025 — 1 dia antes da data precisa do evento (12/10/2025, achada no próprio PDF). Não é o mesmo caso dos outros pares (aqui as datas diferem, não é uma duplicata exata) — por isso `b9b85e51` continua Grupo A (UPDATE), mas registro que, depois do reparo, `b9b85e51` (12/10, 1'55"10) e `642d4d9f` (11/10, 1'55"10) vão ficar muito parecidos entre si (mesmo atleta B, mesma prova, 1 dia de diferença, tempos que deveriam ser o mesmo evento). Isso é a mesma imprecisão de "data do legado" já registrada como frente futura — não misturei com esta correção, só sinalizo o efeito colateral.
+
+### GRUPO D — DATA FABRICADA (P0-B) — 3 registros, todos removíveis
+
+| result_id | athlete_id | source | meet_id atual | Competição (nome) | Prova | Piscina | Tempo | Data atual (fabricada) | Data correta comprovada | Evidência da data | meet_id representa competição errada ou só data errada? | Existe meet canônico da competição real? | Suficiente corrigir só a data, ou precisa reassociar? |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `49963241-b279-4e54-b9e1-ee149e7d8cdd` | `af41d466-…` | swimsystem | `5a161825-…` | "Torneio Regional da 1ª Região (Pré-Mirim/Petiz)" | 50 Costas | SCM | 58"78 (dsq — status também errado) | **25/09/2026** | 05/04/2025 | ResultList_8.pdf | O **meet inteiro é fabricado**: mesmo nome da competição real, `external_id=39519` batendo com a real, mas com `source_id=swimsystem` (a real é `fdap`) e `start_date=25/09/2026` — é uma duplicata de chave criada porque `(source_id, external_id)` difere do meet real | **Sim** — `2db71942-…` (fdap, 39519, 05/04/2025, já existe e é o meet correto) | **Nenhuma das duas** — a solução certa é remover este `result` (Grupo B, gêmeo `23f53383` sendo corrigido no Grupo A) |
+| `9f516fe7-3df5-48f1-af78-c0ba43b8b226` | `af41d466-…` | swimsystem | `5a161825-…` | idem | 100 Medley | SCM | 2'15"79 (tempo já certo) | **25/09/2026** | 05/04/2025 | ResultList_4.pdf | idem — meet fabricado | **Sim** — `2db71942-…` | **Nenhuma** — remover (Grupo B); gêmeo já correto **hoje**: `272aaa67` (fdap, mesmo tempo, data certa) |
+| `17aad14d-9f91-410b-a7ba-3abdb7aec6e7` | `af41d466-…` | swimsystem | `5a161825-…` | idem | 50 Peito | SCM | 1'15"22 (tempo já certo) | **25/09/2026** | 06/04/2025 | ResultList_32.pdf | idem — meet fabricado | **Sim** — `2db71942-…` | **Nenhuma** — remover (Grupo B); gêmeo `d6b0ecfb` sendo corrigido no Grupo A |
+
+**Conclusão do Grupo D**: os 3 nunca deveriam ter sido criados (nenhum já era um "resultado novo" real — são duplicatas com data fabricada de eventos que o atleta A já tinha registrado, corretamente ou não, em outro lugar). Nenhuma reassociação de `meet_id` é necessária porque a solução é remover a linha, não mantê-la. O meet fabricado `5a161825-…` (`Torneio Regional da 1ª Região`, 25/09/2026, source SwimSystem) **só tem esses 3 `results`** e **zero `meet_entries`** — depois de remover os 3, fica órfão e pode ser apagado com segurança (confirmado: `results.meet_id` é `ON DELETE SET NULL`, então mesmo que a ordem fosse invertida por engano, nada quebraria).
+
+### Resumo da classificação pedida (A/B/C/D)
+
+| Classificação | Quantidade | Observação |
+|---|---|---|
+| A) UPDATE seguro | 9 | 1 com nota de efeito colateral (`b9b85e51`) |
+| B) candidato a remoção por duplicar registro correto do mesmo atleta | 16 | 13 do Grupo T + os 3 do Grupo D |
+| C) requer reassociação de `meet_id` | 0 | O único cenário que pedia isso (Grupo D) resolve-se por remoção, não por reassociar |
+| D) requer decisão adicional | 0 puro | `b9b85e51` é A com nota, não bloqueia |
+
+### Proposta de snapshot / rollback
+
+**Recomendo usar o mecanismo que já existe no banco em vez de criar algo novo**: a tabela `audit_log` já é populada automaticamente por um trigger (`results_audit_change`) em todo INSERT/UPDATE/DELETE de `results`, gravando `old_data`/`new_data` completos em JSONB — hoje já tem 130 linhas de histórico real. Qualquer futura correção destes 25 já vai gerar, sozinha, uma linha de auditoria por registro com o estado ANTES da mudança (`old_data`), suficiente para rollback exato (`UPDATE results SET (...) = (SELECT ... FROM jsonb_populate_record(null::results, old_data)) WHERE id=...`, ou simplesmente reconstruir o `INSERT` a partir do `old_data` de um `DELETE`).
+
+**Complementar (cinto e suspensório)**: antes de qualquer execução futura, proponho exportar os 25 registros completos (todas as colunas de `results` + suas `result_sources`) para um JSON versionado no repositório (ex.: `commercial/docs/reparo-p0c-snapshot-27-09-2026.json`), como registro legível e independente do banco, para o caso de precisar consultar sem acesso ao `audit_log`. **Nada disso foi criado ainda** — é proposta.
+
+### SQL proposto — NÃO EXECUTADO
+
+```sql
+-- ===== GRUPO A: UPDATE seguro (9 registros) =====
+UPDATE results SET time_ms=58780, status='valid',
+  result_fingerprint='af41d466-479b-47e5-8ffb-6dd03ae26e4f|2db71942-b4f2-42bb-bfc4-e0de08746b57|209728e8-d41f-4ab9-a658-f13da8e77315|2025-04-05|SCM|58780|valid',
+  updated_at=now()
+WHERE id='23f53383-7841-4ffe-a115-61308980bc5d';
+
+UPDATE results SET time_ms=53090,
+  result_fingerprint='af41d466-479b-47e5-8ffb-6dd03ae26e4f|2db71942-b4f2-42bb-bfc4-e0de08746b57|3e783e0c-a8e8-4d82-b012-86087f8d8d8a|2025-04-05|SCM|53090|valid',
+  updated_at=now()
+WHERE id='3e9274b1-4cc5-4cdc-a101-e54491757e88';
+
+UPDATE results SET time_ms=75220,
+  result_fingerprint='af41d466-479b-47e5-8ffb-6dd03ae26e4f|2db71942-b4f2-42bb-bfc4-e0de08746b57|8e027f8d-823c-40aa-82e9-f221cb821d83|2025-04-05|SCM|75220|valid',
+  updated_at=now()
+WHERE id='d6b0ecfb-bac9-468a-b963-6757fbf332ba';
+
+UPDATE results SET time_ms=115100,
+  result_fingerprint='f02e62f2-4987-4c99-aa21-1b8d89b80e65|3fb2b071-e133-43b8-a7fc-4d326ecbf946|a7fae32a-b2c4-4dc7-a068-c71092a7c853|2025-10-12|LCM|115100|valid',
+  updated_at=now()
+WHERE id='b9b85e51-f107-42df-9678-6cb081e55fec';
+
+UPDATE results SET time_ms=48900,
+  result_fingerprint='af41d466-479b-47e5-8ffb-6dd03ae26e4f|6b4a524c-20e0-49ec-82a6-8ad2e0374047|3e783e0c-a8e8-4d82-b012-86087f8d8d8a|2025-09-14|LCM|48900|valid',
+  updated_at=now()
+WHERE id='fae67d60-96f0-4227-b70d-5493c3450e5c';
+
+UPDATE results SET time_ms=58430,
+  result_fingerprint='af41d466-479b-47e5-8ffb-6dd03ae26e4f|6b4a524c-20e0-49ec-82a6-8ad2e0374047|209728e8-d41f-4ab9-a658-f13da8e77315|2025-09-13|LCM|58430|valid',
+  updated_at=now()
+WHERE id='f57865a0-d315-415f-8c58-fb38c027e08f';
+
+UPDATE results SET time_ms=65710,
+  result_fingerprint='af41d466-479b-47e5-8ffb-6dd03ae26e4f|6b4a524c-20e0-49ec-82a6-8ad2e0374047|9b371ad0-c246-4449-99e4-0f049a2c59e4|2025-09-13|LCM|65710|valid',
+  updated_at=now()
+WHERE id='dfac0c8e-0a62-4b9c-8e7c-7c84534a06ea';
+
+UPDATE results SET time_ms=115100,
+  result_fingerprint='af41d466-479b-47e5-8ffb-6dd03ae26e4f|4119d4f2-88f9-48dd-b7de-dc3bea591db7|a7fae32a-b2c4-4dc7-a068-c71092a7c853|2025-10-12|LCM|115100|valid',
+  updated_at=now()
+WHERE id='4869e32c-9849-48f6-8d8f-89ad66b2aa50';
+
+UPDATE results SET time_ms=44680,
+  result_fingerprint='af41d466-479b-47e5-8ffb-6dd03ae26e4f|4f78760e-7179-420a-afba-90dda53b3a83|3e783e0c-a8e8-4d82-b012-86087f8d8d8a|2026-04-19|SCM|44680|valid',
+  updated_at=now()
+WHERE id='f52b316f-a1b5-4788-b920-1d4e3a7605b7';
+
+-- ===== GRUPO B: remoção por duplicar registro correto do mesmo atleta (16 registros) =====
+DELETE FROM results WHERE id IN (
+  'b4b6faba-0a08-45df-a389-f9547ba83d8c',
+  'dd76be5d-12cd-44e1-9f11-0d86796fb7e0',
+  '76e8c63b-1966-4829-b69e-ca5c9c6e93ec',
+  'af0a322c-68a3-4dbc-a807-795fc151c183',
+  'f402a628-ba0f-43b2-a0dd-2e87c12be841',
+  'bd9a915e-da26-4f4d-beef-06b395387c69',
+  '25a8975b-5db0-4a7a-9074-8554190c3ee4',
+  '441b6362-57a5-40ea-bdd4-d0d152bba5d1',
+  '76844398-502f-4f5a-abc7-a44ef5f28179',
+  '99cce11d-6960-4b59-90a5-10c99c650405',
+  '3d8b3776-4c0b-4cb4-9568-b473ad3f51d5',
+  '9bcd7323-c85c-4da4-b93e-06c8518e21ef',
+  '387fac6e-1cbd-411a-b87c-25b9e927224f',
+  '49963241-b279-4e54-b9e1-ee149e7d8cdd',
+  '9f516fe7-3df5-48f1-af78-c0ba43b8b226',
+  '17aad14d-9f91-410b-a7ba-3abdb7aec6e7'
+);
+
+-- ===== Limpeza do meet fabricado pelo P0-B, só depois de confirmar 0 results restantes =====
+DELETE FROM meets
+WHERE id='5a161825-a021-458b-834a-7665a38623ea'
+  AND NOT EXISTS (SELECT 1 FROM results WHERE meet_id='5a161825-a021-458b-834a-7665a38623ea');
+```
+
+### Contagens esperadas (antes → depois, se este plano for autorizado e executado)
+
+| Métrica | Antes | Depois |
+|---|---|---|
+| `results` total | 81 | **65** (81 − 16 removidos) |
+| CONFIRMADO CORRETO | 38 | **47** (38 + 9 corrigidos) |
+| CONFIRMADO INCORRETO | 25 | **0** |
+| SEM EVIDÊNCIA SUFICIENTE | 18 | 18 (inalterado — não tocar) |
+| `results` do perfil A (`af41d466`) | 28 | **22** (perde 6: `3d8b3776`,`9bcd7323`,`387fac6e`,`49963241`,`9f516fe7`,`17aad14d`) |
+| `results` do perfil B (`f02e62f2`) | 53 | **43** (perde 10) |
+| `meets` total | (não contado nesta rodada) | −1 (remoção do meet fabricado `5a161825`) |
+| `personal_bests` | 13 destes 25 são hoje o "recorde" de algum evento/piscina | recalculado sozinho pelo trigger — sem passo manual |
+
+### O que ficaria visível para o Henrique no app
+
+1. **Gráfico de Evolução**: 9 pontos mudam de valor (todos para tempos **mais lentos** que o atualmente exibido — os 9 erros do Grupo A sempre "roubaram" um tempo mais rápido de outro nadador). 16 pontos **desaparecem** (duplicatas removidas) — o gráfico deve ficar visualmente **igual ou mais correto**, nunca com menos eventos reais cobertos, porque todo ponto removido tem um gêmeo correto que permanece.
+2. **Recorde pessoal / melhor tempo**: em pelo menos 13 provas, o "recorde" que o app mostra hoje é uma marca de outro nadador — depois do reparo, o recorde exibido passa a ser o tempo real do Vinícius (provavelmente mais lento do que aparece hoje).
+3. **3 resultados de uma competição fantasma datada 25/09/2026** desaparecem por completo — se o Henrique já tiver notado uma competição estranha há 2 dias atrás no perfil A, é exatamente isso.
+4. **Contagem total de resultados** cai (perfil A: 28→22; perfil B: 53→43) — é esperado e correto, não é perda de dado real, é remoção de duplicata sem substância.
+
+### O que NÃO foi feito nesta etapa (conforme instruído)
+
+Nenhum `UPDATE`/`DELETE`/`INSERT` real. Nenhuma reimportação. Nenhum "Atualizar Resultados" disparado. Nenhuma fusão de perfis. Nenhuma deduplicação geral. Nenhuma etapa F. Os 18 "sem evidência suficiente" não foram tocados nem se tentou inferir correção por plausibilidade. Os 1-2 casos de imprecisão de data do legado (1º dia do campeonato) não entraram nesta lista — ficam registrados como frente futura separada, sem misturar com o P0-B.
+
+Aguardando o chat revisar este plano e, se aprovado, levá-lo ao Henrique para autorização explícita antes de qualquer escrita real.
+
+---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
