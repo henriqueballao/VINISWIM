@@ -1378,5 +1378,90 @@ Nenhuma. A migration rodou de primeira, sem erro, sem precisar de ajuste. Único
 
 **Próximo passo**: aguardar avaliação do chat sobre esta execução antes de iniciar a Migration 2 (funções `create/accept/revoke_account_invite`, `account_member_limit`, `enforce_member_limit`) — não vou avançar automaticamente, conforme instruído.
 
+## MIGRATION 2 EXECUTADA — enforcement de max_members + create/accept/revoke_account_invite (27/09/2026)
+
+**Status**: executada e validada com 16 cenários sintéticos (A–P) + 1 teste de regressão crítico. Escopo estritamente respeitado: **NÃO** alterei `bootstrap_new_user()`, **NÃO** implementei fluxo signup+invite_token, **NÃO** toquei frontend, **NÃO** convidei o Vinícius, **NÃO** movi login, **NÃO** arquivei o Perfil A, **NÃO** alterei `athletes`/`results` reais, **NÃO** ampliei RLS para `role='athlete'`, **NÃO** mexi em `claim_monitor_jobs`. Migration 3 (bootstrap/signup) **NÃO iniciada** — aguarda nova aprovação.
+
+### 1. Migrations / commits
+
+- `20260927191733` — `account_invites_functions_and_member_limit` (corpo principal).
+- `20260927191925` — `fix_account_invites_pgcrypto_schema_qualification` — correção aplicada ainda durante a validação: `gen_random_bytes`/`digest` vivem no schema `extensions` neste projeto (não em `public`), e com `search_path=''` precisam ser chamados como `extensions.gen_random_bytes(...)`/`extensions.digest(...)` — mesmo padrão já usado em `admin_issue_password_reset`/`consume_support_password_reset`. Corrigido antes de qualquer teste ter dependido da versão quebrada (o erro apareceu no primeiro teste sintético, nada real foi afetado).
+- HANDOFF.md: este commit.
+
+### 2. Assinatura/contrato das 3 RPCs (todas `SECURITY DEFINER`, `search_path=''`, schema `public`)
+
+**`create_account_invite(p_account_id uuid, p_email text, p_role member_role) → jsonb`**
+Ordem de validação: `auth.uid()` obrigatório → chamador é membro `active` com `role IN ('owner','admin')` da conta → conta `status='active'` → e-mail normalizado (`lower(btrim())`, rejeita vazio/sem `@`) → `p_role` restrito a `('admin','guardian','coach','viewer','athlete')` (decisão explícita: **convite nunca concede `role='owner'`** — ownership não se transfere por convite) → ausência de `pending` duplicado para o par (conta,email) → conta não está cheia (`count(active,invited,suspended) < account_member_limit`, checagem informativa, não autoritativa) → gera token com `extensions.gen_random_bytes(32)`, persiste só `sha256` hex, **devolve o token em claro uma única vez** no retorno. Retorno: `{ok, invite_id, token, email, role, expires_at}`.
+
+**`accept_account_invite(p_token text) → jsonb`** — só para usuário já autenticado (sem signup nesta migration).
+Ordem: `auth.uid()` obrigatório → hash do token recebido → busca o convite por `token_hash` com `FOR UPDATE` (lock de linha) → se já `accepted` pelo **mesmo** usuário → retorno idempotente `{ok:true, already_accepted:true, member_id}`; se `accepted` por **outro** usuário → erro `INVITE_ALREADY_USED` → se não `pending` → `INVITE_NOT_PENDING` → expiração (`expires_at<=now()`) → `INVITE_EXPIRED` → e-mail do `auth.user` (normalizado) precisa bater com `invite.email` → `INVITE_EMAIL_MISMATCH` → conta precisa estar `active` → `ACCOUNT_NOT_ACTIVE` → se já é membro `active` da mesma conta → não duplica, retorna `already_member:true` → se existe membership `removed`/`suspended` → reativa via `UPDATE ... SET status='active'` (passa pelo trigger via `UPDATE OF status`) → senão `INSERT` novo (passa pelo trigger via `INSERT`) → marca convite `accepted`+`accepted_by`+`accepted_at`. Retorno: `{ok, already_accepted, already_member, account_id, member_id, role}`.
+
+**`revoke_account_invite(p_invite_id uuid) → jsonb`**
+`auth.uid()` obrigatório → busca convite `FOR UPDATE` → chamador precisa ser `owner`/`admin` `active` da conta do convite → `ACCOUNT_INVITE_NOT_AUTHORIZED` → se já `revoked` → idempotente `{already_revoked:true}` → se não `pending` (inclui `accepted`) → `INVITE_NOT_PENDING` (**nunca transforma `accepted` em `revoked`**, testado) → senão marca `revoked`+`revoked_by`+`revoked_at`.
+
+### 3. Enforcement de max_members — implementação e decisão sobre status contados
+
+- Coluna nova `accounts.max_members_override integer` (espelha `max_athletes_override`, aditiva, `NULL` para as 2 contas reais — sem mudança de comportamento).
+- `app.account_member_limit(p_account_id)` — **schema `app`, NÃO exposto via PostgREST** (decisão deliberada: essa função só é usada internamente por `create_account_invite`/`enforce_member_limit`, nunca precisa ser chamada pelo cliente; colocá-la fora de `public` já resolve "revogar execução quando não necessária" pela raiz, sem precisar gerenciar grants nela). Mesma fórmula de `account_athlete_limit`: `max_members_override` → `plans.max_members` da assinatura ativa → `1`.
+- **Decisão explícita sobre quais status contam** (pedida pelo chat antes de codificar — verifiquei antes: hoje 100% dos 4 `account_members` reais são `status='active'`, os outros 3 valores do enum nunca foram usados): contam para o limite `status IN ('active','invited','suspended')` — tudo que retém uma vaga real; `'removed'` libera a vaga. Justificativa: `suspended` é uma pessoa temporariamente sem acesso mas que ainda ocupa o assento contratado; `invited` (se algum dia um `account_members` for criado nesse estado por outro fluxo) também reserva o assento; só `removed` de fato libera.
+- **Trigger `viniswim_enforce_member_limit`** (`BEFORE INSERT OR UPDATE OF status ON account_members` → `app.enforce_member_limit()`): só age quando o novo status entra no conjunto que conta E (em `UPDATE`) o status anterior não contava — ou seja, só barra uma **nova ocupação** de vaga, nunca uma linha que já ocupava vaga e só mudou outro campo.
+- **Concorrência**: antes de contar, a trigger faz `PERFORM 1 FROM accounts WHERE id=new.account_id FOR UPDATE` — trava a linha da conta, serializando qualquer outra transação que tente inserir/reativar membership na mesma conta. Testado com **duas chamadas reais em paralelo** (não simulação sequencial) disputando a última vaga: exatamente uma teve sucesso, a outra recebeu `VINISWIM_MEMBER_LIMIT_REACHED`, contagem final = 2 (nunca 3). `create_account_invite` **não** reserva vaga na criação (decisão do chat) — só avisa se a conta já está cheia, para não gerar convite inútil; a garantia real está inteiramente na trigger, no momento do `INSERT`/`UPDATE` em `account_members`.
+
+### 4. Grants
+
+- `create_account_invite`, `accept_account_invite`, `revoke_account_invite`: `REVOKE ALL ... FROM PUBLIC, anon; GRANT EXECUTE ... TO authenticated`. Confirmado via `get_advisors(security)`: as 3 aparecem **só** na lista de "authenticated pode executar" (nível INFO/WARN esperado para qualquer RPC pensada para cliente logado) e **não aparecem** na lista de "anon pode executar" — diferente de ~19 funções pré-existentes do projeto (`account_can_add_athlete`, `request_result_refresh` etc.) que hoje **são** executáveis por `anon` (gap pré-existente, fora do escopo desta migration, não alterado).
+- `app.account_member_limit`: `REVOKE ALL FROM PUBLIC` por higiene (já não exposta via PostgREST por estar fora de `public`).
+- `account_invites` continua sem nenhuma policy de escrita direta — toda mutação passa pelas 3 funções.
+
+### 5. Testes sintéticos A–P (todos com contas/usuários `aaaaaaaa-000X-...`, limpos ao final)
+
+| # | Cenário | Resultado |
+|---|---|---|
+| A | Owner cria convite válido | ✅ sucesso, token devolvido uma vez |
+| B | Admin cria convite válido | ✅ sucesso |
+| C | Guardian/coach/viewer/athlete tentam criar | ✅ os 4 bloqueados (`ACCOUNT_INVITE_NOT_AUTHORIZED`) |
+| D | E-mail não normalizado (`' Foo@BAR.COM '`) | ✅ função normaliza e persiste `foo@bar.com` |
+| E | `pending` duplicado no mesmo par conta+email | ✅ bloqueado (`ACCOUNT_INVITE_ALREADY_PENDING`) |
+| F | Usuário certo aceita | ✅ membership criada, convite `accepted` |
+| G | Usuário de e-mail diferente tenta aceitar | ✅ bloqueado (`INVITE_EMAIL_MISMATCH`) |
+| H | Convite expirado | ✅ bloqueado (`INVITE_EXPIRED`), sem criar membership |
+| I | Convite revogado (via `revoke_account_invite` real, verificado persistido antes de tentar aceitar) | ✅ bloqueado (`INVITE_NOT_PENDING`); revoke também confirmado idempotente e confirmado que **nunca** transforma `accepted` em `revoked` |
+| J | Convite já aceito pelo mesmo usuário | ✅ idempotente (`already_accepted:true`, mesmo `member_id`) |
+| K | Usuário já membro de outra conta aceita convite de uma segunda conta | ✅ permitido — confirmado membro ativo em ambas simultaneamente (multi-conta funciona) |
+| L | `max_members` já atingido (sequencial: 1º aceite enche a conta, 2º aceite tenta emplacar) | ✅ bloqueado (`VINISWIM_MEMBER_LIMIT_REACHED`), convite permanece `pending` (rollback correto) |
+| M | **Concorrência real** — 2 chamadas de `accept_account_invite` disparadas em paralelo de verdade (não sequencial) para a última vaga de uma conta com limite=2 | ✅ exatamente 1 sucesso, 1 erro, contagem final = 2 (nunca 3) |
+| N | `INSERT` direto em `account_members` acima do limite, sem passar por nenhuma RPC | ✅ bloqueado pela trigger mesmo via bypass total das funções |
+| O | Conta `cancelled` | ✅ `create_account_invite` bloqueado (`ACCOUNT_NOT_ACTIVE`) **e** `accept_account_invite` de um convite pré-existente também bloqueado (`ACCOUNT_NOT_ACTIVE`) |
+| P | Regressão em `max_athletes` | ✅ `enforce_athlete_limit` continua funcionando exatamente igual (1º atleta ok, 2º bloqueado) |
+
+**Teste extra (não pedido explicitamente, mas o de maior risco real)**: simulei o **fluxo completo de signup real** — `commercial_access` sintético + `INSERT` em `auth.users` disparando `enforce_authorized_signup` → `bootstrap_new_user()` → (agora também) `viniswim_enforce_member_limit` na mesma cadeia real de triggers, sem bypass nenhum. Resultado: conta criada, `account_members` owner/active criado, `subscription` criada — **exatamente como antes**, a nova trigger não bloqueou o bootstrap (no momento em que a trigger roda dentro do `bootstrap_new_user`, ainda não existe `subscription`, então `account_member_limit` cai no fallback `1`, e a contagem antes do insert é `0` — sempre passa para o primeiro `owner` de uma conta nova). **Zero risco de quebrar signups reais confirmado empiricamente**, não só por inspeção de código.
+
+### 6. Dados reais
+
+`results`=65, `athletes`=4, `account_members`=4, `accounts`=4, `auth.users`=5, `account_invites`=0 — todos idênticos antes/depois de toda a bateria de testes. Nenhum membership real novo, nenhum convite real criado, Henrique/Vinícius não foram usados em nenhum teste.
+
+### 7. Advisors pós-migration
+
+`get_advisors(security)`: as 3 novas funções aparecem só em "authenticated pode executar" (nível esperado para RPC de cliente logado), **não** em "anon pode executar" — grants corretos confirmados. Nenhum achado ERROR/WARN novo além do já existente antes desta migration. `get_advisors(performance)`: nenhum achado novo (mesmos 3 FKs de auditoria sem índice e mesmo índice "não usado" já reportados na Migration 1).
+
+### 8. Rollback
+
+```sql
+drop trigger if exists viniswim_enforce_member_limit on public.account_members;
+drop function if exists app.enforce_member_limit();
+drop function if exists app.account_member_limit(uuid);
+drop function if exists public.create_account_invite(uuid,text,public.member_role);
+drop function if exists public.accept_account_invite(text);
+drop function if exists public.revoke_account_invite(uuid);
+alter table public.accounts drop column if exists max_members_override;
+```
+Todas reversíveis sem tocar em nada pré-existente; `bootstrap_new_user()` não foi tocado, então nenhum rollback é necessário nele.
+
+### 9. Incompatibilidade encontrada (e corrigida)
+
+`gen_random_bytes`/`digest` (pgcrypto) vivem no schema `extensions` neste projeto, não em `public` — com `search_path=''` a chamada sem qualificação falha (`function gen_random_bytes(integer) does not exist`). Detectado no primeiro teste sintético (antes de qualquer dado real ser tocado), corrigido na migration `20260927191925` qualificando `extensions.gen_random_bytes`/`extensions.digest`, mesmo padrão já usado em `admin_issue_password_reset`.
+
+**Próximo passo**: aguardar avaliação do chat. Migration 3 (adaptar `bootstrap_new_user()` para o branch de `invite_token`, fluxo signup+convite) **não iniciada** — não vou avançar automaticamente.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
