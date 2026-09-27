@@ -781,6 +781,7 @@ function MembersSection({accountId,myRole,userId}:{accountId:string,myRole:strin
   if(error){setMsg(inviteRpcErrorMessage(error.message));return}
   await load()
  }
+ if(!limits||limits.max_athletes<=1)return null
  return <section className="section">
   <div className="section-head"><div><h3><Users size={17} style={{verticalAlign:-3,marginRight:6}}/>Membros e convites</h3>{limits&&<p className="muted">Membros: {limits.member_count}/{limits.max_members} · Atletas: {limits.athlete_count}/{limits.max_athletes}</p>}</div>{canManage&&<button className="btn" onClick={()=>setInviteModal(true)}><UserPlus size={16}/> Convidar membro</button>}</div>
   <div className="table-wrap"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Status</th></tr></thead><tbody>{members.map((m:any)=><tr key={m.id}><td>{m.full_name||'—'}{m.user_id===userId?' (você)':''}</td><td>{m.email||'—'}</td><td><span className="tag">{ROLE_LABELS[m.role]||m.role}</span></td><td>{MEMBER_STATUS_LABELS[m.status]||m.status}</td></tr>)}</tbody></table></div>
