@@ -1132,5 +1132,145 @@ Isso **não decide sozinho** qual perfil deve ser o canônico (conforme instruç
 
 **Nada disso foi executado.** Todos os achados acima vieram de leitura de schema/RLS/triggers/código e de queries `SELECT` read-only. Aguardando avaliação do chat.
 
+## Decisões do chat sobre identidade + proposta final de implementação (27/09/2026): READ-ONLY, nada executado
+
+**Decisões do chat registradas** (aprovação conceitual, execução real ainda não autorizada):
+1. Canônico futuro: athlete `f02e62f2` / conta do Henrique. Perfil A (`af41d466`) NÃO será apagado — será arquivado de forma reversível só depois da nova arquitetura estar implementada/testada e a migração real ser explicitamente autorizada.
+2. Login do Vinícius preservado; USUÁRIO != ATHLETE — ele vira `member` da conta canônica, sem criar novo `athlete_id`.
+3. Novo papel semântico `role='athlete'` (não reaproveitar `guardian`) — enum/migration NÃO implementados ainda.
+4. `account_invites`: conceito aprovado, migration NÃO criada ainda — antes é preciso fechar enforcement de plano, lifecycle, segurança e concorrência signup×convite (é exatamente a investigação abaixo).
+
+### A. Enforcement atual de `max_athletes`/`max_members` — investigação read-only de código
+
+**`max_athletes` — JÁ enforced no backend, com defesa em profundidade (não é só frontend):**
+- Frontend (`AthleteModal.save`, `commercial/apps/web/src/App.tsx`): chama `supabase.rpc('account_can_add_athlete',{p_account_id})` antes do insert, só para dar uma mensagem amigável ("O plano atual não permite outro atleta.") sem estourar uma exceção Postgres crua na tela.
+- **Backend autoritativo**: trigger `viniswim_enforce_athlete_limit` (BEFORE INSERT ON `athletes`) → `app.enforce_athlete_limit()`, `SECURITY DEFINER`, conta `athletes` com `active=true` do mesmo `account_id` e compara com `account_athlete_limit(account_id)` (= `accounts.max_athletes_override` OU `plans.max_athletes` da assinatura ativa OU `1`); se `count >= limit`, `RAISE EXCEPTION 'VINISWIM_ATHLETE_LIMIT_REACHED'`. Esse trigger roda **independente de quem chama o insert** — mesmo um cliente que pule a checagem do frontend e chame `.from('athletes').insert(...)` direto via API é barrado pelo trigger. A RLS de `athletes_insert_writer` só checa **membership** (não checa limite), mas isso não importa porque o trigger é a camada que efetivamente barra.
+- **Conclusão A.1**: sim, `max_athletes` bloqueia hoje, no backend, mesmo via bypass direto de API. ✅ já está no padrão que o chat pediu ("limite comercial garantido no backend").
+
+**`max_members` — NÃO enforced, porque NÃO EXISTE NENHUM CAMINHO DE ESCRITA para `account_members` hoje:**
+- `account_members` tem só a policy `account_members_select_self` (SELECT). Zero policy de INSERT/UPDATE/DELETE. Zero trigger de limite (só existe `account_members_set_updated_at`, que é housekeeping).
+- A única linha que já existe hoje por conta foi criada pelo trigger `bootstrap_new_user()` (sempre 1 membro `owner` por conta nova) — nunca precisou checar limite porque 1 é sempre ≤ `max_members` de qualquer plano.
+- **Conclusão A.2**: não há bypass a corrigir porque não há função nenhuma hoje que insira em `account_members` além do bootstrap. O enforcement de `max_members` **precisa ser criado do zero**, junto com o mecanismo de convite (não é uma correção de algo quebrado, é uma peça nova).
+
+**Respostas diretas às 5 perguntas do chat:**
+1. `max_athletes` bloqueia? **Sim**, no backend (trigger), hoje.
+2. `max_members` bloqueia? **Não existe ainda** (não há caminho de escrita a bloquear).
+3. Enforcement é frontend, backend, ambos ou nenhum? **`max_athletes`: ambos** (frontend avisa bonito, backend garante). **`max_members`: nenhum** (peça a construir).
+4. Existe bypass via API direta? **Não para `max_athletes`** (testável: um insert direto ignorando a RPC ainda esbarra no trigger). **N/A para `max_members`** (não há insert possível hoje, nem direto nem indireto).
+5. Camada autoritativa recomendada: **backend (trigger `SECURITY DEFINER` BEFORE INSERT)**, com o frontend chamando uma função "can add" antes só para UX — exatamente o padrão que `athletes` já usa. Proposta abaixo replica esse padrão para `account_members`.
+
+### B. Correções/peças necessárias para fechar o enforcement de `max_members`
+
+Replicar o padrão já usado em `athletes`, sem inventar um mecanismo novo:
+1. Nova coluna aditiva `accounts.max_members_override integer` (mesma função de `max_athletes_override`, opcional, default `null`).
+2. Nova função `public.account_member_limit(p_account_id uuid) returns integer` — mesma lógica de `account_athlete_limit`, trocando `max_athletes_override`/`plans.max_athletes` por `max_members_override`/`plans.max_members`.
+3. Novo trigger `viniswim_enforce_member_limit` BEFORE INSERT ON `account_members` → `app.enforce_member_limit()`, mesma estrutura de `enforce_athlete_limit`, contando `account_members` com `status='active'` do mesmo `account_id` (rejeitar antes de contar `invited`/`removed`, para não deixar convites pendentes "gastarem" vaga do plano à toa — ver seção C).
+4. Função de conveniência `public.account_can_add_member(p_account_id uuid) returns boolean` (equivalente a `account_can_add_athlete`), para o futuro frontend usar como pre-check de UX, mesmo padrão.
+
+Com isso, `max_members` fica no mesmo nível de garantia que `max_athletes` tem hoje: bloqueado no backend, independente de bypass de frontend.
+
+### C. Lifecycle do convite — fluxo determinístico proposto
+
+Tabela nova `account_invites`:
+```
+id uuid pk default gen_random_uuid()
+account_id uuid not null references accounts(id) on delete cascade
+email text not null
+role member_role not null
+invited_by uuid not null references auth.users(id)
+token text not null unique                      -- gerado com encode(gen_random_bytes(32),'hex'), pgcrypto já instalado
+status text not null default 'pending'          -- pending | accepted | revoked | expired
+expires_at timestamptz not null default (now() + interval '7 days')
+created_at timestamptz not null default now()
+accepted_at timestamptz
+accepted_by uuid references auth.users(id)
+unique(account_id, email) where status = 'pending'   -- resolve item 9 (dois convites pendentes p/ mesmo par)
+```
+
+**Resposta aos 10 cenários pedidos pelo chat:**
+1. Admin convida e-mail → `create_account_invite(account_id, email, role)` cria a linha `pending` + (ver C.11 abaixo) garante uma linha em `commercial_access` para aquele e-mail, senão `enforce_authorized_signup` bloqueia o signup dele antes mesmo de chegar no convite.
+2. E-mail ainda não tem `auth.user` → convite fica `pending` esperando; o link enviado carrega o `token`; no signup, o frontend inclui `invite_token` no metadata (`options.data`) — ver seção D/E para o mecanismo exato de não sequestrar signups não relacionados.
+3. E-mail já tem `auth.user` → **não passa pelo signup/trigger nenhum**. A pessoa já loga normalmente; o frontend detecta `?invite=<token>` na URL (usuário já autenticado) e chama diretamente a RPC `accept_account_invite(token)`. Nenhuma mudança em `bootstrap_new_user()` é acionada porque não há novo `auth.users` insert.
+4. Usuário pertence a outra conta → sem problema, `account_members` não é exclusivo por `user_id` (`UNIQUE(account_id,user_id)`, não `UNIQUE(user_id)`); ele ganha uma segunda linha, RLS isola cada `account_id` independentemente.
+5. Usuário pertence a múltiplas contas → mesmo caso do 4, N linhas; **pendência de frontend fora desta etapa**: hoje o app assume implicitamente 1 conta por usuário (não existe seletor de conta/atleta) — precisa ser construído quando isso for exercido de verdade, não é um problema de dados/RLS.
+6. Convite expirado → `accept_account_invite` calcula na hora (`expires_at < now()`) e recusa com `INVITE_EXPIRED`; não precisa de job periódico, expiração é lazy (calculada no momento do aceite/consulta).
+7. Convite revogado → nova função `revoke_account_invite(invite_id)` (checagem: chamador é owner/admin/guardian da conta do convite) seta `status='revoked'`; `accept_account_invite` só aceita `status='pending'`.
+8. Convite já aceito → `accept_account_invite` é idempotente: se `status<>'pending'`, retorna erro claro `INVITE_ALREADY_USED` sem duplicar membership (dupla proteção: também não duplicaria por causa do `UNIQUE(account_id,user_id)` de `account_members`).
+9. Dois convites pendentes p/ mesmo email/conta → impedido pelo índice único parcial `UNIQUE(account_id,email) WHERE status='pending'`; `create_account_invite` faz upsert (renova token/expiração) em vez de duplicar.
+10. Signup normal sem convite → **comportamento 100% inalterado** — só entra no branch novo se `raw_user_meta_data->>'invite_token'` estiver presente e válido (ver seção D).
+
+**C.11 (achado extra, não pedido mas necessário)**: `enforce_authorized_signup()` hoje exige uma linha em `commercial_access` com `status='authorized'` para QUALQUER signup, convidado ou não. Ou seja, convidar alguém para uma conta existente não dispensa esse gate — `create_account_invite` precisa também garantir (upsert) uma linha em `commercial_access` para o e-mail convidado, senão o convidado nunca consegue nem criar o `auth.user`. Isso é uma peça a mais na migration, não uma mudança de comportamento do gate em si.
+
+### D. Signup × Convite — mecanismo explícito para não sequestrar signups não relacionados
+
+**Decisão de design que responde diretamente ao alerta do chat** ("não assumir que simplesmente existir um convite para o mesmo email deve sequestrar todo signup"): a distinção não é por e-mail — é por um **token explícito carregado no metadata do signup**, que só existe se a pessoa realmente veio de um link de convite.
+
+- Frontend, ao detectar `?invite=<token>` na URL na tela de signup, passa `supabase.auth.signUp({email,password,options:{data:{invite_token: token}}})`.
+- `bootstrap_new_user()` (adaptado, aditivamente) passa a: no início, checar `new.raw_user_meta_data->>'invite_token'`. **Se ausente ou nulo** → executa exatamente o código atual, sem nenhuma mudança de comportamento (conta nova, owner, etc.) — isto é o caminho de 100% dos signups de hoje. **Se presente**: valida o token contra `account_invites` (`status='pending'`, não expirado, `lower(email)=lower(new.email)` — cross-check obrigatório, nunca confiar só no token) e, se válido, **pula inteiramente o bloco de criar `accounts`/`subscriptions`**, inserindo em vez disso `account_members(account_id=invite.account_id, user_id=new.id, role=invite.role, status='active')` e marcando o convite `accepted`. Se o token vier presente mas inválido/expirado/e-mail não bate, a função **falha explicitamente** (não cai silenciosamente no caminho de conta nova) — evita criar uma conta solo por engano quando a intenção clara era entrar numa conta existente.
+- Isso é 100% explícito e auditável: o branch só é tomado quando o próprio ato de signup carrega a prova de que veio de um convite, nunca por coincidência de e-mail.
+
+### E. Funções `SECURITY DEFINER` propostas e suas responsabilidades
+
+Todas seguindo o padrão já usado no projeto (`account_can_add_athlete`, `enforce_athlete_limit`, `request_result_refresh`, `cancel_result_refresh_request`): `SECURITY DEFINER`, `SET search_path TO ''` (ou `'public'`, como já varia no código existente), qualificação total de tabelas (`public.tabela`), sem `GRANT` para `PUBLIC`/`anon` (só `authenticated`, como já é o padrão).
+
+1. **`create_account_invite(p_account_id uuid, p_email text, p_role member_role)`** — valida `auth.uid()` é membro ativo `owner/admin/guardian` de `p_account_id` (mesmo padrão de `account_can_add_athlete`); valida `account_can_add_member(p_account_id)` (novo, seção B) antes de criar; upsert em `account_invites` (idempotência do item C.9); upsert em `commercial_access` (item C.11); nunca aceita `p_account_id` de uma conta da qual o chamador não é membro — isso já impede o "nunca expor capacidade de adicionar usuário a account_id arbitrário" pedido pelo chat, porque a própria validação de membership é a primeira linha da função.
+2. **`accept_account_invite(p_token text)`** — exige `auth.uid()` não nulo; busca o convite `FOR UPDATE` por token (lock evita corrida de aceite duplo simultâneo); valida `status='pending'`, `expires_at>now()`, e **`lower(email)=lower((select email from auth.users where id=auth.uid()))`** (nunca confiar em o quê o cliente diz ser seu e-mail); revalida `account_can_add_member` na hora do aceite (não só na hora do convite — cobre a corrida "convite emitido quando havia vaga, aceito quando não há mais"); insere/reativa `account_members`; marca convite `accepted`. Idempotente (item C.8).
+3. **`revoke_account_invite(p_invite_id uuid)`** — valida chamador é owner/admin/guardian da conta do convite; só revoga se `status='pending'`.
+4. **`app.bootstrap_new_user()` (adaptação, não função nova)** — branch condicional por metadata explícito, seção D.
+5. **`app.enforce_member_limit()` (trigger function nova, seção B)** — sem `auth.uid()` (trigger, não RPC chamada pelo cliente), só recalcula e compara contagem vs. limite.
+
+Checklist de segurança do chat, respondido item a item: `search_path` fixo ✅ (todas), validação de `auth.uid()` ✅ (1/2/3), validação de e-mail ✅ (2, cross-check explícito), account ownership/role ✅ (1/3, e implícito em 4 via o próprio convite já ter sido criado por alguém validado em 1), expiração ✅ (2), limite do plano ✅ (1 na criação, 2 de novo no aceite), idempotência ✅ (1 e 2), concorrência ✅ (`FOR UPDATE` em 2, índice único parcial em 1), grants mínimos ✅ (só `authenticated`, nunca `anon`/`PUBLIC`), nunca adicionar usuário arbitrário a conta arbitrária ✅ (toda função de escrita começa validando que o chamador já pertence à conta-alvo, exceto o aceite, que ao invés disso valida que o e-mail do convite é o do próprio chamador).
+
+### F. Impacto de adicionar `role='athlete'` ao enum `member_role`
+
+- **Frontend**: **zero código hoje referencia literais de `member_role`** (`grep` em `commercial/apps/web/src` por `'owner'|'guardian'|'admin'|'coach'|'viewer'|member_role` não encontrou nenhuma ocorrência) — o app não tem nenhuma lógica de permissão por papel no cliente hoje. Adicionar o valor não quebra nada existente no frontend; só passa a importar quando a futura tela de membros for construída.
+- **RLS/backend**: 8 policies hoje enumeram explicitamente `role = ANY(ARRAY['owner','admin','guardian'])` como "quem pode escrever": `accounts_update_writer`, `athletes_insert_writer`, `athletes_update_writer`, `results_delete_account_writer`, `results_insert_manual_writer`, `results_update_manual_writer`, `source_link_requests_insert_writer`, `source_link_requests_retry_writer`. **Nenhuma delas inclui `'athlete'` automaticamente** — `ALTER TYPE member_role ADD VALUE 'athlete'` é aditivo e não muda o comportamento de nenhuma policy existente (o atleta-membro, por padrão, teria só leitura, igual a `viewer`/`coach` hoje). **Decisão de produto em aberto**: se o Vinícius (como `role='athlete'`) deve poder editar o próprio perfil (`athletes_update_writer`) ou lançar resultado manual (`results_insert_manual_writer`) — hoje NÃO poderia, a menos que o chat decida incluir `'athlete'` nesses arrays também.
+- **RPCs sem checagem de papel** (`request_result_refresh`, `cancel_result_refresh_request`, `account_can_add_athlete` na parte de leitura, todas as policies de SELECT de `monitor_jobs`/`refresh_requests`/`athlete_source_configs`/`historical_archive_jobs`): checam só `status='active'`, sem filtrar `role`. Um membro `role='athlete'` já poderia disparar/cancelar "Atualizar Resultados" sem nenhuma mudança de código — é um efeito colateral automático da adição do enum que vale confirmar como intencional (parece razoável: o próprio atleta pode querer atualizar seus resultados).
+- **Migration**: `ALTER TYPE public.member_role ADD VALUE 'athlete'` — operação aditiva, mas o Postgres não permite usar um valor de enum recém-adicionado na mesma transação em que foi criado; isso só importa para quem for escrever a migration (rodar em duas migrations sequenciais, ou usar o valor só depois do commit).
+
+### G. Mecanismo de arquivamento (perfil não-canônico)
+
+- `athletes.status` (enum `athlete_status`) **já tem o valor `inactive`** — não precisa de enum novo.
+- `accounts.status` (enum `account_status`) **já tem `cancelled`** — semanticamente serve para "conta não-canônica desativada, mantida só para histórico" — não precisa de enum novo.
+- **Achado importante**: o frontend já filtra `.eq('active',true)` ao carregar a lista de atletas de uma conta (`App.tsx`, carregamento de identidade) — ou seja, **setar `athletes.active=false` já é suficiente para o atleta sumir do app, sem nenhuma mudança de frontend**. `active` (boolean) e `status` (enum) são campos distintos hoje; o trigger `enforce_athlete_limit` conta por `active=true`, então desativar também libera a vaga do plano automaticamente.
+- **Achado crítico — `active=false` sozinho NÃO impede coleta contínua**: a função `claim_monitor_jobs()` (chamada pelo cron de 1 em 1 minuto via `pg_cron`→`monitor-runner`) seleciona `monitor_jobs` só por `status='pending'` e `next_run_at<=now()` — **não faz join com `athletes` nem checa `active`**. Isso significa que, se o atleta arquivado tiver algum job em `pending`/auto-reagendando (o job `current_meet` se re-arma sozinho após cada execução, conforme visto no código do `monitor-runner`), ele **continua sendo processado normalmente mesmo depois de `athletes.active=false`**. Arquivar só com esse campo não cumpre o requisito do chat de "não continuar coletando fontes".
+- **Proposta de arquivamento completo (3 passos, sem DELETE, tudo reversível)**:
+  1. `UPDATE athletes SET active=false, status='inactive' WHERE id=<não-canônico>` — some da UI, libera vaga do plano.
+  2. `UPDATE athlete_source_configs SET active=false WHERE athlete_id=<não-canônico>` — qualquer tentativa futura de processar um job para esse atleta esbarra no "Fonte histórica não configurada" (guarda já existente do P0-A), então nada novo é coletado mesmo que um job pendente ainda dispare.
+  3. Cancelar explicitamente jobs não-terminais existentes: `UPDATE monitor_jobs SET status='cancelled', next_run_at=null WHERE athlete_id=<não-canônico> AND status IN ('pending','running')` e o mesmo para `historical_archive_jobs` — mesmo padrão que a função `cancel_result_refresh_request` já usa hoje para cancelar por `request_id` (aqui seria por `athlete_id` diretamente, sem `request_id`).
+  4. Opcional: `UPDATE accounts SET status='cancelled' WHERE id=<conta não-canônica>` — só depois de confirmar que a conta não tem mais nenhum atleta ativo nem membro que ainda precise dela.
+- Tudo reversível: reverter os 4 UPDATEs (voltar `active=true`/`status` anterior) restaura o estado exatamente como estava, sem qualquer perda de histórico (nenhum DELETE em nenhum passo).
+
+### H. Sequência de migrations/deploys proposta
+
+1. Migration 1 (schema aditivo, sem lógica): `accounts.max_members_override`, tabela `account_invites` (com o índice único parcial), `ALTER TYPE member_role ADD VALUE 'athlete'` (isolado, nesta migration, sem uso na mesma transação).
+2. Migration 2 (funções + trigger): `account_member_limit`, `account_can_add_member`, `enforce_member_limit` (+ trigger), `create_account_invite`, `accept_account_invite`, `revoke_account_invite`.
+3. Migration 3 (adaptação pontual): `bootstrap_new_user()` com o branch de `invite_token` (seção D) — feita separada das anteriores porque mexe numa função já em produção, para poder isolar/reverter só essa parte se algo der errado.
+4. Deploy de frontend: tela "convidar membro" no `CommercialAdmin` (ou dentro do app, a decidir), tela "membros da conta" no app, handling de `?invite=` (signup com metadata OU RPC direta se já logado).
+5. Só depois de 1-4 testados: execução real da consolidação dos 2 perfis do Vinícius (convite, aceite, arquivamento do perfil A) — commit separado, com autorização explícita do Henrique, mesmo padrão do P0-C.
+
+### I. Plano de testes sintéticos (antes de qualquer dado real)
+
+Contas/usuários/atletas sintéticos dedicados (nunca reaproveitar dados reais), cobrindo pelo menos:
+- Convite para e-mail sem `auth.user` → signup com `invite_token` → membership criada, nenhuma conta solo órfã criada.
+- Convite para e-mail com `auth.user` já existente → aceite via RPC pós-login → membership criada, conta original do convidado intacta.
+- Tentativa de aceitar convite com token válido mas e-mail do chamador diferente → deve falhar (`INVITE_ALREADY_USED`/mismatch), nunca sequestrar a conta de outra pessoa.
+- Convite expirado → `accept_account_invite` recusa.
+- Convite revogado → `accept_account_invite` recusa.
+- Dois convites para o mesmo par conta/e-mail → segundo vira upsert do primeiro, não duplica.
+- Conta no limite de `max_members` → `create_account_invite` recusa antes de criar convite; se a vaga sumir entre convite e aceite, `accept_account_invite` também recusa.
+- Insert direto em `account_members` via API (bypass de frontend) por um usuário sem convite/relação com a conta → deve ser barrado pela ausência de policy de INSERT (RLS já garante isso hoje, sem mudança).
+- Arquivamento sintético: atleta com job `pending` ativo → aplicar os 3 passos da seção G → confirmar via `SELECT` que nenhum job novo é processado pelo cron real nos minutos seguintes, e que o atleta some da query de listagem do frontend.
+- Limpeza total de todos os artefatos sintéticos ao final, com contagem confirmando zero resíduo (mesmo padrão de todas as frentes anteriores).
+
+### J. Riscos / rollback
+
+- Toda peça desta proposta é aditiva (colunas novas, tabela nova, funções novas, 1 valor de enum novo, 1 branch condicional numa função existente) — nada remove ou substitui comportamento hoje em produção fora do branch condicional de `bootstrap_new_user()`, que só é tomado com metadata explícito ausente em 100% dos signups atuais.
+- Rollback por peça: migrations 1-2 (schema/funções novas) podem ser revertidas dropando as tabelas/funções/trigger sem tocar em nada existente; migration 3 (`bootstrap_new_user`) tem rollback simples porque a mudança é um `if` adicional no topo da função — reverter é remover esse bloco, o resto da função fica idêntico ao de hoje.
+- Risco residual maior: a consolidação real dos 2 perfis do Vinícius (fora do escopo desta migration, item H.5) — esse risco já foi endereçado na seção 5 da frente anterior (arquivar, não apagar; snapshot antes; autorização explícita por escrita).
+- Risco de enum: `ALTER TYPE ... ADD VALUE` é irreversível de forma simples (Postgres não tem `DROP VALUE`) — mitigação: só adicionar depois que o chat confirmar definitivamente o nome `'athlete'` (evitar precisar reverter isso especificamente).
+
+**Nada foi executado nesta etapa** — só leitura de schema/RLS/triggers/funções via `SELECT`, leitura de código do frontend/edge function via grep/read, e este documento. Aguardando decisão do chat para iniciar a implementação (migrations 1-3 da seção H).
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
