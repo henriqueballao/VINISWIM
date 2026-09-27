@@ -1025,5 +1025,112 @@ Rollback disponível em duas camadas, caso necessário: `commercial/docs/reparo-
 
 Frente P0-C **encerrada**. Aguardando o chat repassar a confirmação ao Henrique.
 
+## Nova frente — Arquitetura de Identidade / Compartilhamento do Atleta (27/09/2026): INVESTIGAÇÃO/PROPOSTA READ-ONLY, nada executado
+
+**Status**: proposta pronta para revisão do chat. **Nenhum código, schema, RLS ou dado real foi alterado nesta frente.** Proibido nesta etapa (confirmado respeitado): merge de perfis, DELETE de athlete, UPDATE de results, movimentação de dados reais, migration, alteração de RLS, alteração de frontend, reimportação, dedup multifonte, etapa F.
+
+### 1. Modelo atual (confirmado por inspeção direta de schema/RLS/triggers/código)
+
+```
+auth.users (1 login = 1 pessoa)
+     │ 1:N (mas hoje sempre 1:1 na prática)
+     ▼
+account_members (account_id, user_id, role, status)   ← UNIQUE(account_id, user_id), SEM unique em user_id sozinho
+     │ N:1
+     ▼
+accounts (id, type, max_athletes_override)
+     │ 1:N
+     ▼
+athletes (id, account_id, full_name, ...)              ← 1 athlete pertence a EXATAMENTE 1 account (FK CASCADE, sem N:N)
+     │ 1:N
+     ▼
+results / monitor_jobs / athlete_source_configs / refresh_requests / personal_bests / ...
+```
+
+- **RLS em todas as tabelas relevantes** (`athletes`, `results`, `monitor_jobs`, `athlete_source_configs`, `accounts`) já é 100% baseada em `EXISTS (SELECT 1 FROM account_members am WHERE am.account_id = <tabela>.account_id AND am.user_id = auth.uid() AND am.status='active' [AND am.role IN (...)])`. **A camada de RLS já foi desenhada para múltiplos membros por conta** — nunca foi usada assim na prática (hoje, 100% das 4 contas do sistema têm exatamente 1 membro, role='owner').
+- `account_members` tem **apenas** a policy `account_members_select_self` (SELECT onde `user_id = auth.uid()`). **Não existe policy de INSERT/UPDATE/DELETE** — qualquer fluxo futuro de "aceitar convite" precisa passar por uma função `SECURITY DEFINER` ou Edge Function com service-role, nunca um insert direto do cliente.
+- `plans`: já existe suporte comercial a múltiplos membros/atletas por conta — `family` = `max_athletes=5, max_members=5` (individual=1/2, free=1/1, club=ilimitado). As duas contas reais do Henrique e do Vinícius já estão em `plan_code='family'` com `max_athletes=5, max_members=5`. **O modelo comercial já suporta o que falta é só o mecanismo de convite/adesão.**
+- **Nenhuma restrição estrutural impede um usuário Auth de ser membro de mais de uma `account`** — confirmado via constraint (`UNIQUE(account_id, user_id)`, não `UNIQUE(user_id)`) e via `user_id → auth.users(id) ON DELETE CASCADE`, sem nenhum outro constraint de unicidade cruzando contas.
+
+### 2. Causa raiz confirmada da duplicação (nível de código, 100% certeza)
+
+Dois triggers em `auth.users`:
+- `viniswim_require_commercial_access` (BEFORE INSERT) → `app.enforce_authorized_signup()`: só permite o cadastro se o e-mail estiver na tabela `commercial_access` (allow-list).
+- `viniswim_on_auth_user_created` (AFTER INSERT) → `app.bootstrap_new_user()`: **incondicionalmente** cria uma `accounts` nova + o novo usuário como único `account_members` com `role='owner'` + uma `subscriptions` nova, **para todo signup autorizado**. **Essa função não tem nenhum branch de "entrar numa conta existente" — é sempre "criar conta nova do zero".**
+
+A única ferramenta administrativa existente para autorizar um e-mail (`CommercialAdmin`, dentro de `SettingsPage` em `commercial/apps/web/src/App.tsx`) só oferece "autorizar e-mail novo" via `supabase.from('commercial_access').upsert(...)` — **não existe nenhuma opção de "convidar para conta existente"**. Confirmado nos dados reais: `commercial_access` tem uma linha para o e-mail do Henrique (plan=family, athlete_limit=10) e outra para o e-mail do Vinícius (plan=family, athlete_limit=1, autorizado em 25/09/2026 20:50:09), cada uma disparando seu próprio `bootstrap_new_user()` — foi exatamente isso que criou o segundo `athlete_id`/`account_id` para o Vinícius quando ele fez login pela primeira vez.
+
+**Conclusão da causa**: não é um bug de dados nem de RLS — é a ausência de um caminho de código (trigger + UI admin) para "adicionar uma pessoa a uma conta/atleta já existente" em vez de sempre criar uma conta nova.
+
+### 3. Modelo comercial/arquitetura proposto (sem duplicar o atleta)
+
+- **Conta (`accounts`) = unidade de faturamento/família.** Continua como está.
+- **`account_members` = quem pode acessar/editar os atletas daquela conta**, com papéis: `owner` (responsável/pai, controla faturamento), `guardian` (responsável adicional, ex.: outro pai/mãe), **`coach`/`viewer`** (já existem no enum, para técnico/observador futuro), e um papel para "o próprio atleta logando na própria conta" — aqui há uma decisão em aberto (ver 3.1).
+- **Múltiplos atletas por conta**: já suportado (`athletes.account_id`, sem alteração de schema), limitado por `plans.max_athletes`/`accounts.max_athletes_override`.
+- **Convite por e-mail para conta existente**: novo fluxo — proposta de uma tabela `account_invites` (`id, account_id, email, role, invited_by, status, expires_at, token`) + uma função `SECURITY DEFINER` (`accept_account_invite(token)`) chamada pelo app depois do login/signup do convidado, que insere a linha em `account_members` daquela conta (respeitando `max_members`) em vez de deixar o trigger `bootstrap_new_user()` criar conta nova. Isso exige adaptar `enforce_authorized_signup`/`bootstrap_new_user` para verificar primeiro se existe um convite pendente para aquele e-mail e, se existir, **pular** a criação de conta nova e só criar o `account_members` via `accept_account_invite`.
+- **3.1 — Decisão em aberto, não decidida aqui**: como representar "atleta com login próprio" dentro de `account_members`. Duas opções, ambas viáveis sem migração pesada:
+  - (a) reaproveitar `role='guardian'` mesmo para o próprio atleta logado (mais simples, zero mudança de enum, mas semanticamente estranho — "o Vinícius é guardian de si mesmo");
+  - (b) adicionar um novo valor ao enum `member_role` (ex.: `'athlete_self'`), migração aditiva simples (`ALTER TYPE ... ADD VALUE`), semântica mais clara e permite no futuro dar ao atleta permissões diferentes de um responsável (ex.: não poder remover outros membros).
+  - Recomendação de Code: opção (b), mas fica para o chat decidir — é uma decisão de produto, não técnica.
+
+### 4. Impacto por sistema
+
+| Sistema | Impacto | Mudança necessária |
+|---|---|---|
+| RLS (`athletes`,`results`,`monitor_jobs`,`athlete_source_configs`,`accounts`) | **Nenhum** — já é baseado em `account_members`, já suporta múltiplos membros | Nenhuma |
+| `account_members` | Falta caminho de escrita | Nova função `SECURITY DEFINER` para aceitar convite (não pode ser INSERT direto do cliente, não há policy) |
+| `athletes.account_id` | Nenhum | Nenhuma mudança de schema |
+| Trigger `bootstrap_new_user()` | É a causa raiz | Adaptar para checar convite pendente antes de criar conta nova |
+| `CommercialAdmin` (admin) | Só cria e-mail novo | Adicionar opção "convidar para conta existente" |
+| Frontend (app) | Não existe UI de convite/membros | Nova tela: listar membros da conta, enviar convite, tela de "aceitar convite" pós-login |
+| Limite de perfis (`plans.max_athletes`/`max_members`) | Já existe no schema | **Pendência de verificação**: ainda não confirmei se o código hoje efetivamente checa esse limite antes de criar atleta/membro, ou só está no schema sem enforcement — fica como item a verificar antes de implementar convites (senão dá para violar o limite contratado) |
+| `monitor_jobs`/`refresh_requests`/`athlete_source_configs`/historical jobs/`results` | Nenhum | Já escopados corretamente via `athlete → account → account_members`; ao consolidar os 2 perfis, só precisa garantir que sobra 1 `athlete_id` ativo coletando (ver seção 5) |
+| Storage (`athlete-photos`) | Menor, não bloqueante | Path hoje é `uid-do-uploader/athlete_id.jpg`, RLS scoped ao uid de quem fez upload, não à conta/atleta — um segundo membro que faça upload cria um objeto sob outro prefixo; `photo_data_url` continua funcionando (guarda a URL mais recente), mas pode deixar objetos órfãos ao longo do tempo. Recomendação: revisitar convenção de path (`account_id/athlete_id.jpg`) numa frente futura, não bloqueia o convite. |
+
+### 5. Estratégia de consolidação dos 2 perfis do Vinícius — PROPOSTA, NÃO EXECUTADA
+
+Fato levantado nesta investigação (query read-only, ponte com a auditoria P0-C): comparei os 22 results pós-reparo do Perfil A (`af41d466-479b-47e5-8ffb-6dd03ae26e4f`, conta do Vinícius) contra os 43 do Perfil B (`f02e62f2-4987-4c99-aa21-1b8d89b80e65`, conta do Henrique) por `(evento, data, piscina)`. 17 batem exatamente. Os outros 5 batem por tempo/status/prova/piscina/competição idênticos, só com **1 dia de diferença na data** — exatamente o padrão de imprecisão de data do legado já documentado em frentes anteriores (mesma competição, data de importação diferente por perfil). **Conclusão: o Perfil A não tem nenhum resultado real genuinamente ausente do Perfil B** — todo resultado do A já existe, em essência, no B.
+
+Isso **não decide sozinho** qual perfil deve ser o canônico (conforme instrução explícita do chat de não decidir só por "B tem mais resultados") — é um dos fatores, não o único. Fatores considerados:
+
+| Fator | Perfil A (`af41d466`, conta Vinícius) | Perfil B (`f02e62f2`, conta Henrique) |
+|---|---|---|
+| Login em uso ativamente | Vinícius (recente, criado 25/09/2026) | Henrique (conta original) |
+| Antiguidade da conta | Nova | Original, contém dados migrados do legado |
+| Resultado real exclusivo | Nenhum confirmado (ver acima) | — |
+| Contato comercial primário (`commercial_access.notes`) | — | "Owner reset para novo cadastro" — tratado como contato principal |
+| `athlete_limit` contratado | 1 | 10 |
+| Nome bate com registro oficial da federação | Sim | Sim (ambos corretos, é a mesma pessoa) |
+
+**Recomendação de Code (não é decisão final)**: usar o athlete/conta do Henrique (`f02e62f2` / conta `8213ebbb`) como canônico — é a conta original, com histórico migrado, maior `athlete_limit` contratado, e tratada como contato comercial principal; e usar o convite (seção 3) para adicionar o login do Vinícius como membro dessa mesma conta, no papel definido em 3.1. Mas esta é uma recomendação para o chat/Henrique avaliarem, não uma decisão de Code.
+
+**Passo a passo proposto para quando houver autorização (nenhum destes passos foi executado)**:
+1. Confirmar decisão do canônico com chat/Henrique (não assumir).
+2. Snapshot completo dos dois perfis antes de qualquer mudança (mesmo padrão do P0-C).
+3. Implementar o mecanismo de convite (seção 3) e usá-lo para adicionar o Vinícius como membro da conta canônica.
+4. Vinícius aceita o convite — mantém o mesmo login (`auth.users` intacto), passa a enxergar o atleta canônico via `account_members` novo.
+5. Desativar (não apagar) os `monitor_jobs`/`athlete_source_configs` do perfil não-canônico, para impedir nova coleta duplicada.
+6. Arquivar (não fazer DELETE) a conta/atleta não-canônico — `status` para inativo, mantendo histórico para auditoria, até decisão final sobre remoção.
+7. Validação read-only pós-migração (mesmo rigor do P0-C: contagens, `personal_bests`, ausência de duplicata na timeline).
+
+### 6. Riscos identificados
+
+- Trigger `bootstrap_new_user()` é chamado para **todo** signup, incluindo o futuro fluxo de convite — precisa de cuidado para não criar conta nova por engano quando já existe convite pendente (condição de corrida entre trigger e aceitação do convite deve ser tratada dentro da própria função, não no frontend).
+- Falta confirmar se `max_athletes`/`max_members` é hoje enforced em algum lugar do código (RPC/trigger) ou só existe no schema — se não for enforced, o convite pode furar o limite contratado sem que ninguém perceba.
+- Consolidação dos 2 perfis do Vinícius tem risco de FK/histórico (resultados, `personal_bests`, `audit_log`, fotos) apontando para o `athlete_id` não-canônico — por isso a recomendação é arquivar, não apagar, até ficar comprovado que nada depende exclusivamente dele.
+- Enum novo (`member_role` opção 3.1-b) é aditivo e reversível, mas qualquer lugar do frontend que hoje faça `switch`/checagem exaustiva de `member_role` precisa ser revisto para não quebrar com um valor novo.
+
+### 7. Sequência recomendada de implementação
+
+1. Chat/Henrique decide: canônico entre os 2 perfis (seção 5) e formato do papel "atleta com login próprio" (seção 3.1).
+2. Verificar enforcement real de `max_athletes`/`max_members` no código atual (investigação read-only rápida, sem mudar nada).
+3. Migration aditiva: tabela `account_invites` + (se decidido) novo valor de `member_role`.
+4. Função `SECURITY DEFINER` de aceitar convite + adaptação de `bootstrap_new_user()`/`enforce_authorized_signup()` para checar convite pendente.
+5. UI: `CommercialAdmin` ganha "convidar para conta existente"; app ganha tela de membros + aceitar convite.
+6. Testes sintéticos (contas/usuários sintéticos dedicados, nunca reaproveitar dados reais) validando: convite, aceite, RLS multi-membro, limite de plano.
+7. Só então, com tudo testado: consolidação dos 2 perfis reais do Vinícius, seguindo o passo a passo da seção 5, com autorização explícita do Henrique em cada escrita real (mesmo padrão do P0-C).
+
+**Nada disso foi executado.** Todos os achados acima vieram de leitura de schema/RLS/triggers/código e de queries `SELECT` read-only. Aguardando avaliação do chat.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
