@@ -1272,5 +1272,111 @@ Contas/usuários/atletas sintéticos dedicados (nunca reaproveitar dados reais),
 
 **Nada foi executado nesta etapa** — só leitura de schema/RLS/triggers/funções via `SELECT`, leitura de código do frontend/edge function via grep/read, e este documento. Aguardando decisão do chat para iniciar a implementação (migrations 1-3 da seção H).
 
+## MIGRATION 1 EXECUTADA — account_invites + role='athlete' (27/09/2026): schema aditivo, nada mais
+
+**Status**: executada e validada com dados sintéticos. Escopo estritamente limitado ao autorizado pelo chat: só estrutura (tabela + valor de enum + constraints/índices). **Nenhuma função (`create/accept/revoke_account_invite`), nenhuma adaptação de `bootstrap_new_user()`, nenhum frontend, nenhuma alteração de RLS existente, nenhuma mudança de comportamento de signup.** Migration 2 (functions + `enforce_member_limit`) NÃO iniciada — aguarda nova aprovação do chat, como determinado.
+
+### 1. Migration / commit
+
+- Supabase: migration `20260927172406` — `account_invites_schema_and_athlete_role`, aplicada via `apply_migration` (transação única).
+- HANDOFF.md: este commit (a migration em si não gera arquivo `.sql` versionado em git — este projeto nunca versionou migrations de schema em git, só a Edge Function `monitor-runner`; o SQL completo aplicado está reproduzido no item 2 abaixo para rastreabilidade).
+
+### 2. Schema final de `account_invites` (SQL exato aplicado)
+
+```sql
+alter type public.member_role add value if not exists 'athlete';
+
+create table if not exists public.account_invites (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references public.accounts(id) on delete cascade,
+  email text not null,
+  role public.member_role not null,
+  token_hash text not null,
+  status text not null default 'pending',
+  created_by uuid references auth.users(id) on delete set null,
+  accepted_by uuid references auth.users(id) on delete set null,
+  revoked_by uuid references auth.users(id) on delete set null,
+  expires_at timestamptz not null default (now() + interval '7 days'),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  accepted_at timestamptz,
+  revoked_at timestamptz,
+  constraint account_invites_email_normalized check (email = lower(btrim(email))),
+  constraint account_invites_status_check check (status in ('pending','accepted','revoked','expired')),
+  constraint account_invites_token_hash_format check (token_hash ~ '^[0-9a-f]{64}$'),
+  constraint account_invites_token_hash_key unique (token_hash)
+);
+
+create unique index account_invites_pending_account_email_key
+  on public.account_invites (account_id, email) where status = 'pending';
+create index account_invites_account_id_idx on public.account_invites(account_id);
+create index account_invites_email_idx on public.account_invites(email);
+
+create trigger account_invites_set_updated_at
+  before update on public.account_invites
+  for each row execute function app.set_updated_at();
+
+alter table public.account_invites enable row level security;
+```
+
+Colunas: `id, account_id, email, role, token_hash, status, created_by, accepted_by, revoked_by, expires_at, created_at, updated_at, accepted_at, revoked_at` — todas as pedidas pelo chat presentes (`created_by`/`accepted_at`/`revoked_at` incluídos, mais `accepted_by`/`revoked_by` para auditoria completa de quem aceitou/revogou).
+
+### 3. Token vs. token_hash — decisão tomada
+
+**Persistido só o hash** (`token_hash`, sha256 em hex minúsculo, 64 caracteres, `CHECK` de formato + `UNIQUE`), conforme preferência do chat. Justificativa técnica: o fluxo Supabase não complica nada com isso — a futura `create_account_invite` (Migration 2, não implementada ainda) vai gerar o token em claro com `encode(gen_random_bytes(32),'hex')` (pgcrypto já instalado no projeto), devolver esse valor **uma única vez** no retorno da função (para o admin montar o link de convite), e persistir só `encode(digest(token,'sha256'),'hex')`. A futura `accept_account_invite(p_token)` recebe o token em claro do link, calcula o hash na hora (`digest(p_token,'sha256')`) e busca por `token_hash` — nenhuma etapa adicional de infraestrutura, nenhuma dependência nova, mesmo padrão de "segredo em trânsito, hash em repouso" já usado noutros lugares do schema (ex.: `backend_credential_hash`, migration `20260921011540`, já presente no projeto). Zero custo de complexidade extra.
+
+### 4. Enum/constraint alterado
+
+`member_role` ganhou o valor `'athlete'` (`ALTER TYPE ... ADD VALUE IF NOT EXISTS`). Confirmado via `pg_enum`: `{owner,admin,guardian,coach,viewer,athlete}`. Rodou na mesma migration da criação da tabela, sem usar o valor novo em nenhum INSERT/UPDATE na mesma transação (restrição do Postgres) — só usado depois, em transações separadas, nos testes sintéticos.
+
+**Nenhuma das 8 RLS policies de escrita que já enumeravam `owner/admin/guardian` foi tocada** — `'athlete'` não ganhou nenhuma permissão de escrita automaticamente, exatamente como decidido (semântica inicial = leitura, conforme o RLS já existente para membros ativos).
+
+### 5. Policies / grants
+
+- `RLS ENABLE` na tabela nova, **zero policies criadas** — confirmado via `pg_policy` (count=0) e `pg_class.relrowsecurity=true`. Resultado prático: `anon`/`authenticated` têm os grants de schema padrão do Supabase (como toda tabela nova), mas RLS sem nenhuma policy nega tudo por padrão — só `service_role`/`postgres` (que ignoram RLS) conseguem ler/escrever, até uma função `SECURITY DEFINER` futura mediar o acesso. Mesmo padrão hoje aplicado a `account_members` (que também só tem 1 policy de SELECT e depende de funções para qualquer escrita).
+- Nenhuma policy nova, nenhuma alteração de policy existente.
+- `get_advisors(security)` rodado após a migration: **só 1 achado novo, nível INFO** — `rls_enabled_no_policy` em `account_invites` (esperado e intencional; mesma categoria já existe hoje para `platform_admins` e `support_password_resets`, tabelas também sem policy própria ainda). Nenhum achado ERROR/WARN novo.
+- `get_advisors(performance)`: achados novos são só INFO — 3 FKs sem índice cobrindo (`created_by`, `accepted_by`, `revoked_by` — colunas de auditoria "quem fez", baixa frequência de filtro, mesmo padrão de FKs já não-indexadas em `commercial_access.user_id`/`athlete_source_configs.source_id` hoje) e 1 índice "nunca usado" (`account_invites_email_idx`, esperado — tabela recém-criada, zero tráfego real ainda). Nenhum WARN/ERROR novo. Não fiz nenhuma correção adicional por estar fora do escopo autorizado desta migration (schema mínimo); fica registrado para revisão futura se quiserem indexar essas 3 colunas.
+
+### 6. Testes sintéticos executados (todos com conta `aaaaaaaa-0000-0000-0000-000000000001`, limpa ao final)
+
+| # | Teste | Resultado |
+|---|---|---|
+| 1 | Insert válido, `role='athlete'`, `token_hash` sha256 hex válido, `status='pending'` | ✅ aceito |
+| 2 | `status='bogus_status'` | ✅ rejeitado (`account_invites_status_check`) |
+| 3 | E-mail não normalizado (maiúsculas/espaços) | ✅ rejeitado (`account_invites_email_normalized`) |
+| 4 | `token_hash` mal formatado (`'NOTAVALIDHASH'`) | ✅ rejeitado (`account_invites_token_hash_format`) |
+| 5 | `token_hash` duplicado (mesmo hash do teste 1, e-mail/conta diferentes) | ✅ rejeitado (`account_invites_token_hash_key`) |
+| 6 | Segundo `pending` para o mesmo par `(account_id,email)` do teste 1 | ✅ rejeitado (`account_invites_pending_account_email_key`) |
+| 7 | Teste 1 marcado `accepted` → novo `pending` para o **mesmo par** agora aceito | ✅ aceito (índice parcial só bloqueia `pending` concorrente, permite novo ciclo) |
+| 8 | `status='expired'` com `expires_at` no passado | ✅ representável |
+| 9 | `status='revoked'` com `revoked_at` preenchido | ✅ representável |
+| — | `updated_at` avança sozinho após `UPDATE` (trigger) | ✅ confirmado (bateu com o horário do UPDATE do teste 7) |
+| — | Nenhuma policy nova abre escrita indevida | ✅ confirmado (`pg_policy` count=0 sobre a tabela) |
+| — | Nenhuma regressão em `account_members`/`athletes` | ✅ confirmado (contagens idênticas antes/depois: 4 `athletes` reais, 4 `account_members`) |
+| — | Limpeza total dos artefatos sintéticos | ✅ confirmado (`account_invites`=0 e conta sintética=0 residuais após DELETE) |
+
+### 7. Confirmação de zero alteração em dados reais
+
+`results`=65 (idêntico ao pós-P0-C), `athletes` reais=4, `account_members`=4 — todos idênticos antes/depois da migration e dos testes. Nenhum `UPDATE`/`DELETE` tocou qualquer linha real em nenhum momento desta etapa; todas as escritas de teste foram isoladas sob a conta sintética `aaaaaaaa-0000-...`, removida ao final.
+
+### 8. Rollback desta migration
+
+Reversível de forma limpa e isolada, sem tocar em nada pré-existente:
+```sql
+drop trigger if exists account_invites_set_updated_at on public.account_invites;
+drop table if exists public.account_invites;
+-- o valor 'athlete' do enum member_role NÃO tem rollback simples (Postgres não suporta
+-- DROP VALUE em enum) — permanece no tipo mesmo se a tabela for revertida, mas não tem
+-- nenhum efeito colateral sozinho: nenhuma policy/função hoje concede permissão extra
+-- a esse valor, e nenhuma linha real usa esse role.
+```
+
+### 9. Incompatibilidades encontradas
+
+Nenhuma. A migration rodou de primeira, sem erro, sem precisar de ajuste. Único ponto técnico validado antes de aplicar: `ALTER TYPE ... ADD VALUE` (PG 17) não pode ser usado na mesma transação em que o valor novo é referenciado numa DML — resolvido simplesmente não fazendo isso na mesma migration (o valor só foi exercitado em testes de transações separadas, depois do commit da migration).
+
+**Próximo passo**: aguardar avaliação do chat sobre esta execução antes de iniciar a Migration 2 (funções `create/accept/revoke_account_invite`, `account_member_limit`, `enforce_member_limit`) — não vou avançar automaticamente, conforme instruído.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
