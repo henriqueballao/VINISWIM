@@ -971,5 +971,22 @@ Nenhum `UPDATE`/`DELETE`/`INSERT` real. Nenhuma reimportação. Nenhum "Atualiza
 
 Aguardando o chat revisar este plano e, se aprovado, levá-lo ao Henrique para autorização explícita antes de qualquer escrita real.
 
+### Plano APROVADO tecnicamente pelo chat — execução ainda BLOQUEADA até o Henrique autorizar (27/09/2026)
+
+Chat confirmou a estratégia (9 UPDATE / 16 DELETE / DELETE condicional do meet fabricado / 18 sem evidência intocados / `results` 81→65) e acrescentou um checklist obrigatório de pré-voo, execução e pós-operação para quando a autorização vier:
+
+1. Antes de executar: `SELECT` final dos 25 IDs para confirmar que nada mudou desde `fdb3783`.
+2. Criar snapshot JSON versionado no repo dos 25 registros completos (`results` + `result_sources` + `personal_bests` pertinentes + o meet dos 3 casos de data) **antes** de qualquer escrita — o `audit_log` é uma segunda camada, não substitui esse snapshot.
+3. Reverificar, imediatamente antes da operação, que cada um dos 16 gêmeos correto ainda existe e está igual para o mesmo `athlete_id` — se algum tiver sumido ou mudado, **abortar tudo e reportar**, não seguir parcialmente.
+4. Executar em transação única se o mecanismo disponível garantir atomicidade; se não for possível garantir, **parar e voltar ao chat** antes de rodar qualquer coisa.
+5. Nos 9 UPDATE: alterar somente os campos previstos no plano (`time_ms`, `status` onde aplicável, `result_fingerprint`), nada além disso.
+6. Nos 16 DELETE: remover só os IDs explicitamente aprovados — sem deduplicação genérica.
+7. Meet fabricado: só apagar depois de reconfirmar, pós-DELETE dos 3 results, que está de fato órfão (`results=0`, `meet_entries=0`, sem outra dependência).
+8. Pós-operação obrigatória: conferir as contagens exatas (`results=65`, incorretos conhecidos=0, sem evidência=18, perfil A=22, perfil B=43), `personal_bests` recalculado, `result_sources` íntegro, views consistentes, **nenhum result fora dos 25 tocado**, `audit_log` gravado, ausência da competição fantasma, e um smoke test read-only do gráfico.
+9. Não disparar "Atualizar Resultados"/reimportação durante a validação.
+10. Qualquer pré-condição divergente → abortar, não improvisar.
+
+**Nada foi executado.** Nenhum `UPDATE`/`DELETE` rodou nesta etapa nem vai rodar até o Henrique autorizar explicitamente. Code está de prontidão, seguindo este checklist à risca quando/se a autorização vier.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
