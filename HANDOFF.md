@@ -1553,5 +1553,80 @@ drop function if exists app.resolve_signup_invite(text, jsonb);
 
 **Próximo passo**: aguardar avaliação do chat sobre o item 4 (residual do GoTrue HTTP layer, não testável nesta sandbox) antes de considerar esta frente encerrada. **Não avancei** para frontend nem para a consolidação real dos 2 perfis do Vinícius.
 
+## FRONTEND DE MEMBROS E CONVITES — implementado e em produção (27/09/2026)
+
+**Status**: implementado, buildado, deployado. Integrado à área de Configurações existente, sem experiência paralela. **Não** convidei o Vinícius real, **não** alterei membership real, **não** arquivei o Perfil A, **não** movi athlete, **não** alterei `results`, **não** ampliei policies de escrita para `athlete`, **não** alterei parsers, **não** fiz dedup, **não** iniciei etapa F.
+
+### 1. Commit / migration
+
+- Commit `8e09142` — `feat(frontend): infraestrutura visual de membros e convites`.
+- Supabase: migration `member_invite_readonly_listing_rpcs` (nome exato via `apply_migration`), aplicada antes do frontend.
+
+### 2. Telas/fluxos implementados
+
+- **`MembersSection`** (dentro de `SettingsPage`, dashboard de Configurações): lista membros atuais (nome/e-mail/papel em português/status), lista de convites pendentes (e-mail/papel/validade/status), limites informativos ("Membros: X/Y · Atletas: X/Y"). Botão "Convidar membro" e ação "Revogar" só aparecem para `owner`/`admin` (`myRole` vindo da membership selecionada) — demais papéis só visualizam, sem nenhum controle administrativo na tela. `token_hash` nunca é buscado nem exibido em lugar nenhum.
+- **`InviteModal`**: formulário e-mail + papel (Administrador/Responsável/Treinador/Visualizador/Atleta — nunca Owner, mapeados para `admin/guardian/coach/viewer/athlete`). Chama `create_account_invite`; erros mapeados para mensagens legíveis (limite de conta, pending duplicado, e-mail inválido, sem permissão, conta inativa, papel não permitido). Ao criar com sucesso, mostra o link **uma única vez** com "Copiar link" (`navigator.clipboard`) e "Compartilhar" (Web Share API, só aparece se `navigator.share` existir no dispositivo). Nenhum envio de e-mail simulado/fake foi implementado — só a exibição do link, como pedido.
+- **`InviteAuth`**: tela de pouso para quem abre `?invite=<token>` sem sessão. Mostra "Você recebeu um convite" (sem revelar conta/papel — estruturalmente impossível revelar mais, já que `account_invites` não tem nenhuma policy de leitura pública) e duas opções: "Criar conta" (signup direto com `options.data.invite_token`, **sem** passar pela validação de `commercial_access` do fluxo normal) ou "Já tenho login" (login comum). Reaproveita as classes CSS de `Auth` — mesma cara do app, não é uma experiência paralela.
+- **Fluxo no `App()`**: `?invite=` lido uma vez (mesmo padrão de `?reset=1`), igual a como o projeto já fazia. Quando autenticado, `accept_account_invite(token)` roda automaticamente uma única vez (`inviteHandledRef`), a URL é limpa com `history.replaceState` (nunca `pushState`) logo após — sucesso ou falha. Resultado vira um banner dispensável no topo do conteúdo. **Falha de accept nunca cria conta nova automaticamente** — só chama `loadIdentity()` de novo; se sobrar zero memberships, aparece uma tela dedicada ("Sem conta vinculada", com o motivo do erro quando houver) em vez do spinner infinito que existia antes disso para esse mesmo caso.
+- **Multi-conta**: `loadIdentity()` agora busca **todas** as memberships ativas do usuário (antes buscava só uma, arbitrariamente, via `.limit(1).maybeSingle()`), guarda a conta selecionada em `localStorage['viniswim-account']` (mesmo padrão já usado para o atleta selecionado) e reconcilia automaticamente se a conta salva não existir mais. Um seletor de conta aparece no cabeçalho **só quando há mais de uma membership** — para o caso comum (99% dos usuários hoje, 1 conta só) a tela é pixel-idêntica à de antes.
+
+### 3. Comportamento multi-conta encontrado e solução adotada
+
+Confirmado por leitura de código: o frontend **assumia exatamente uma conta por usuário** (`account_members...limit(1).maybeSingle()`, zero seletor de conta em qualquer lugar). Conforme instruído, **não improvisei** — implementei o mínimo necessário: `loadIdentity()` agora carrega o array completo, `switchAccount(id)` troca a conta selecionada e recarrega atletas/identidade (limpando o atleta selecionado se ele não pertencer mais à conta ativa), e um `<select>` no cabeçalho (reaproveitando a classe `athlete-switcher` existente, sem CSS novo além do necessário para o layout não quebrar com dois seletores lado a lado). Testado com um usuário real em 2 contas simultâneas: `account_members` retornou as 2 linhas corretamente, cada uma com seu próprio papel, sem nenhuma mistura de dados entre elas (ver Teste M abaixo).
+
+### 4. Backend mínimo adicional (transparência total)
+
+`account_members` hoje só tem a policy `account_members_select_self` — nenhum membro consegue ver os DEMAIS membros da mesma conta. Sem isso, a lista de "membros atuais" não tem como existir. Solução: **3 funções `SECURITY DEFINER` somente leitura**, cada uma validando que o chamador é membro ativo da conta pedida antes de devolver qualquer linha (senão devolve vazio/erro, nunca dado de fora):
+- `list_account_members(p_account_id)` — id/user_id/role/status/joined_at/full_name/email.
+- `list_account_invites(p_account_id)` — id/email/role/status/expires_at/created_at (**nunca** `token_hash`).
+- `account_limits(p_account_id)` — `{max_members, max_athletes, member_count, athlete_count}`, reaproveitando `app.account_member_limit`/`public.account_athlete_limit` já existentes.
+
+Grants: `REVOKE ALL FROM PUBLIC, anon; GRANT EXECUTE TO authenticated` nas 3 — confirmado via `get_advisors(security)` que aparecem só na lista "authenticated pode executar", não na de "anon pode executar". Nenhuma policy de RLS foi alterada; nenhuma capacidade de escrita nova foi concedida a ninguém, incluindo `role='athlete'` (testado explicitamente — ver Teste N).
+
+### 5. Testes A–S
+
+Duas camadas, por causa de uma limitação real desta sandbox: **o ambiente nega saída de rede para `*.supabase.co`**, então um navegador de verdade rodando aqui dentro não consegue chamar a API do Supabase — não dá para literalmente clicar no app contra o backend real a partir desta sessão (mesma limitação já registrada na Migration 3 para o GoTrue). Por isso:
+- **Camada 1 (dados/lógica, validada ao vivo contra o Supabase real, com dados 100% sintéticos)**: reproduzi exatamente a sequência de chamadas que a UI faz, na ordem que ela faz.
+- **Camada 2 (UI/cliente, validada por build + leitura de código)**: para os itens puramente visuais/de navegador (Q, R, S), confirmei por inspeção de código e pelo build de produção, não por clique real — registrado explicitamente abaixo.
+
+| # | Cenário | Camada | Resultado |
+|---|---|---|---|
+| A | Owner cria convite | 1 | ✅ `create_account_invite` retorna token válido |
+| B | "Copia link" | 2 | ✅ `InviteModal` monta `origin+pathname+'?invite='+token` e usa `navigator.clipboard.writeText` (mesmo padrão já usado no "Copiar código" do `CommercialAdmin`) |
+| C | Novo usuário abre o link | 1+2 | ✅ `InviteAuth` renderizado quando `!session&&inviteToken` (confirmado por leitura + build) |
+| D | Cria login pelo convite | 1 | ✅ `signUp` com `invite_token` no metadata → `auth.user` criado (reproduzido via SQL direto simulando o mesmo insert) |
+| E | Zero account nova | 1 | ✅ confirmado: 0 accounts novas após o signup por convite |
+| F | Zero athlete novo | 1 | ✅ confirmado: 0 athletes novos |
+| G | Convite aceito | 1 | ✅ `accept_account_invite` retorna `ok:true`, `already_accepted:false` |
+| H | Membership criada | 1 | ✅ `list_account_members` mostra o novo membro com role/status corretos imediatamente após o aceite |
+| I | Usuário vê a conta compartilhada | 1 | ✅ `list_account_members`/`account_limits` chamados e retornando dados corretos como o novo membro (não só como owner) |
+| J | Usuário vê athletes permitidos | 1 | ✅ query de atletas já escopada por `account_id` (sem mudança nesta frente) — o novo membro herda a mesma visão de `athletes` que qualquer membro ativo da conta, via RLS já existente |
+| K | Logout/login mantém acesso | 1 | ✅ `account_members` persiste normalmente; `loadIdentity()` reconstrói `memberships`/`account`/`myRole` a partir do banco a cada login, nada depende de estado voltátil |
+| L | Usuário já existente aceita convite | 1 | ✅ usuário criado por signup normal, convidado depois, aceitou sem passar por signup/bootstrap, zero conta/atleta nova |
+| M | Usuário em duas contas acessa ambas sem mistura | 1 | ✅ reproduzida a query exata de `loadIdentity` — usuário com memberships em 2 contas sintéticas distintas, cada uma com seu próprio papel, sem nenhuma mistura de dados |
+| N | Role `athlete`/`guardian` não ganha controles de owner/admin | 1 | ✅ `revoke_account_invite` chamado por um `guardian` → `ACCOUNT_INVITE_NOT_AUTHORIZED` (mesmo enforcement de Migration 2); a UI também esconde os botões via `canManage` (código lido, não é só a checagem de backend) |
+| O | Conta cheia gera UX correta | 1 | ✅ `ACCOUNT_MEMBER_LIMIT_REACHED` mapeado para mensagem legível em `inviteRpcErrorMessage`/`inviteErrorMessage` |
+| P | Expirado/revogado/e-mail diferente geram UX correta | 1 | ✅ todos os códigos de erro do backend (`INVITE_EXPIRED`, `INVITE_NOT_PENDING`/`INVITE_ALREADY_USED`, `INVITE_EMAIL_MISMATCH`) têm mensagem em português mapeada em `inviteErrorMessage` |
+| Q | Token desaparece da URL/history após sucesso | 2 | ✅ confirmado por leitura de código: `handleAcceptInvite` chama `window.history.replaceState({},'',window.location.pathname)` sempre (sucesso ou erro), nunca `pushState` — sem entrada nova no histórico |
+| R | Token não aparece em localStorage/sessionStorage/console | 2 | ✅ confirmado por `grep` no arquivo inteiro: nenhuma chamada de `localStorage`/`sessionStorage`/`console.log` referencia `token` em nenhum ponto do código novo; o token criado fica só no estado local do `InviteModal`, descartado ao fechar |
+| S | Mobile/iPhone sem overflow | 2 | ✅ build de produção sem erros; CSS revisado: dois seletores no cabeçalho agora ficam dentro de um wrapper único (`header-switchers`) para não quebrar o `justify-content:space-between` existente, com regras específicas de mobile (`max-width`, ícones decorativos escondidos) para o caso raro de 2 seletores simultâneos — **não testado em viewport real de navegador**, por não haver como abrir o app contra o Supabase real nesta sandbox |
+
+**Limitação registrada com a mesma transparência da Migration 3**: os itens Q/R/S foram validados por build + leitura de código, não por interação real de navegador, pela mesma restrição de rede já documentada (`*.supabase.co` bloqueado nesta sessão). Se o chat quiser fechar 100% essa lacuna, um smoke test manual (Henrique ou alguém com acesso de rede completo) abrindo o link de convite de um teste sintético no celular seria o próximo passo — não bloqueante para considerar esta etapa entregue, na mesma lógica já aceita para a Migration 3.
+
+### 6. Build e deploy
+
+- `npm run build` (`tsc -b && vite build`) — **sem erros**, rodado 3 vezes ao longo da implementação (após o código inicial e após o ajuste de CSS do seletor de conta).
+- Push para `main` disparou o workflow `Build VINISWIM Commercial App` (run `36346360395`) — **concluído com sucesso** — que por sua vez disparou `pages build and deployment` (run `36346392900`) no GitHub Pages.
+
+### 7. Dados reais
+
+`results`=65, `athletes`=4, `account_members`=4, `accounts`=4, `auth.users`=5, `account_invites`=0 — idênticos antes/depois de toda a implementação e testes. Henrique e Vinícius não foram usados em nenhum teste; todos os cenários usaram contas/usuários sintéticos (`aaaaaaaa-000...`), limpos ao final com contagem de zero resíduo confirmada.
+
+### 8. Rollback
+
+Frontend: `git revert 8e09142` (ou reverter para o commit anterior `78e39ab`) — nenhuma migração de dados envolvida, é só código de UI. Backend: `drop function if exists public.list_account_members(uuid), public.list_account_invites(uuid), public.account_limits(uuid);` — reversível sem tocar em nada pré-existente.
+
+**Próximo passo**: aguardar avaliação do chat, incluindo decisão sobre a lacuna de teste real de navegador (item 5). **Não avancei** para a consolidação real dos 2 perfis do Vinícius.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
