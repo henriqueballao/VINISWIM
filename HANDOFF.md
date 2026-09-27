@@ -380,5 +380,28 @@ Todos os pontos que escrevem `monitor_jobs.last_run_at` (grep no `monitor-runner
 
 **Proposta preliminar (não implementada, aguardando decisão)**: trocar a fonte de "Última atualização" no frontend de `monitor_jobs.last_run_at` para `MAX(result_sources.retrieved_at)` do atleta (semântica **d**) — zero migration, só troca a query do `App.tsx`. Se o chat preferir a semântica (c) ("busca concluída"), fica dependente da migration do item 3 estar aprovada e aplicada primeiro.
 
+#### Etapa ESTABILIZAÇÃO — Migration do bug #1 aplicada e validada com 4 testes sintéticos (27/09/2026)
+
+Chat aprovou o mecanismo dos 2 triggers com ajustes de precedência e proteção (ver revisão anterior) e pediu a bateria de 4 testes antes de qualquer outra etapa. **Migration aplicada, corrigida em campo, e os 4 cenários passaram.**
+
+**Migrations aplicadas (Supabase, projeto `cdtvhagbgiwnjkgninqn`):**
+- `refresh_requests_terminal_snapshot`: colunas `job_count`, `terminal_status` (com `CHECK` para os 4 valores válidos), `completed_job_count`, `failed_job_count`, `finalized_at` em `refresh_requests`; `request_result_refresh` (2 args) passa a congelar `job_count`/`no_sources` na criação; `cancel_result_refresh_request` passa a congelar `cancelled` + contagem completed/failed no instante do cancelamento; nova função `finalize_refresh_request_if_terminal()` + 2 triggers `AFTER UPDATE` (`monitor_jobs`, `historical_archive_jobs`) que congelam `completed`/`failed` quando não sobra `pending`/`running` para o request; `v_refresh_request_status` revisada para preferir o snapshot quando `finalized_at is not null`.
+- **Erro pego em teste, antes de qualquer uso real**: a primeira versão do `cancel_result_refresh_request`/`finalize_refresh_request_if_terminal` fazia `UNION` entre `monitor_jobs.status` (enum `monitor_job_status`) e `historical_archive_jobs.status` (text) sem cast, o que o Postgres rejeita (`UNION types ... cannot be matched`). Corrigido na migration `fix_terminal_snapshot_status_cast` (adiciona `::text` nos dois lados), antes de qualquer request real ter passado por esse caminho — só afetou o teste sintético em andamento, que foi refeito com sucesso depois da correção.
+
+**Os 4 testes obrigatórios, todos com atleta 100% sintético dedicado (apagado ao final), fonte real (`fdap`, arquivos já existentes) exceto no caso `failed`:**
+
+| Cenário | Request A | job_count | completed | failed | terminal_status | A mudou após B? | B reaproveitou as linhas? |
+|---|---|---|---|---|---|---|---|
+| `no_sources→B` | congelado na criação (0 fontes válidas) | 0 | — | — | `no_sources` | **Não** (finalized_at/created_at/updated_at idênticos) | N/A (sem jobs) |
+| `completed→B` | 12 arquivos reais, todos completaram | 12 | 12 | 0 | `completed` | **Não** | **Sim**, mesmos 12 ids de `historical_archive_jobs`, `request_id`→B, `status`→`pending` |
+| `cancelled→B` | cancelado imediatamente (mesma transação da criação, 0 jobs chegaram a rodar) | 12 | 0 | 0 | `cancelled` | **Não** | **Sim**, mesmos 12 ids reaproveitados |
+| `failed→B` | 12 arquivos reais + 1 job injetado contra arquivo com URL inválida (`https://invalid.nonexistent.viniswim-test.invalid/`, fixture `historical_archives` inativa, apagada ao final) | 13 | 12 | 1 | `failed` (**falha vence sobre sucesso**, conforme regra de precedência) | **Não** | Os 12 reais reaproveitados por B; o job quebrado não (arquivo inativo, fora do `INSERT..SELECT` do RPC) — esperado |
+
+Em todos os 4 casos: comparação campo a campo de A (job_count/terminal_status/completed_job_count/failed_job_count/finalized_at/created_at/updated_at) antes e depois de criar B veio **idêntica**; B funcionou normalmente em todos; a reutilização operacional da linha física (mesma `id` de `historical_archive_jobs`) ocorreu exatamente como esperado, sem que isso alterasse o snapshot de A. Erro de DNS do job injetado (`failed to lookup address information`) confirma que o `failed` foi uma falha real de rede, não um erro do código de teste.
+
+**Limpeza**: 5 atletas sintéticos (`eeeeeeee-0007-...-f01` a `f05`), seus `athlete_source_configs`/`athlete_identifiers`/`historical_archive_jobs`, todos os `refresh_requests` criados nos 4 testes, e a fixture `historical_archives` do arquivo quebrado — todos apagados, contagem zero confirmada em cada tabela. `results` do Vinícius real: 28 linhas antes e depois, intocado.
+
+**Pendências que dependem desta migration, ainda não implementadas**: (1) frontend "Última atualização" com a semântica que o chat escolher — se for a opção (c) ("última busca concluída com sucesso"), agora já é possível via `terminal_status='completed'` + `finalized_at`; (2) nenhuma mudança de frontend foi feita ainda para isso.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
