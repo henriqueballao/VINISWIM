@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import {Activity,AlertTriangle,Bell,Camera,ChartNoAxesCombined,ChevronDown,Eye,EyeOff,Gauge,LogOut,Medal,Menu,MoreHorizontal,Plus,Printer,RefreshCw,Settings,ShieldCheck,Trophy,UserPlus,X} from 'lucide-react'
-import {CartesianGrid,Legend,Line,LineChart,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
+import {CartesianGrid,Legend,Line,LineChart,ReferenceLine,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
 import {formatSwimTime,parseSwimTime} from '@viniswim/shared'
 import {supabase} from './supabase'
 
@@ -228,7 +228,7 @@ export default function App(){
   <div className="content"><section className="athlete-hero"><AthleteAvatar athlete={athlete} size="lg"/><div className="athlete-main"><h2>{athlete?.full_name}</h2><p>{[athlete?.club_name,athlete?.status==='active'?'fonte oficial ativa':'fonte oficial pendente'].filter(Boolean).join(' · ')}</p><div className="athlete-meta"><span>Idade: {age==null?'—':age+' anos'}</span><span>Categoria: {athlete?.category||'—'}</span></div></div></section>
   {page==='dashboard'&&<Dashboard overview={overview} pbs={pbs} results={results} entries={entries} events={events} setPage={setPage}/>}
   {page==='results'&&<ResultsPage filtered={filtered} allResults={results} events={events} filters={filters} setFilters={setFilters} meets={meets} sourceConfigs={sourceConfigs} selectedSources={searchSources} setSelectedSources={setSearchSources} onNew={()=>setModal({})} onEdit={setModal} onDelete={del} onRefresh={refresh} onCancelRefresh={cancelActiveRequest} refreshMsg={refreshMsg} lastSync={lastSync} athlete={athlete} activeRequest={activeRequest}/>}
-  {page==='evolution'&&<Evolution results={results} events={events}/>}
+  {page==='evolution'&&<Evolution key={athleteId} results={results} events={events}/>}
   {page==='meets'&&<MeetsPage meets={meets} entries={entries} results={results} events={events} athlete={athlete} athleteId={athleteId} onNew={()=>setMeetModal(true)} reload={loadAthlete}/>}
   {page==='expectations'&&<Expectations results={results} entries={entries} events={events}/>}
   {page==='settings'&&<SettingsPage athlete={athlete} accountId={account.id} userId={session.user.id} sourceConfigs={sourceConfigs} reload={async()=>{await loadIdentity();await loadAthlete()}} onAddAthlete={()=>setAthleteModal(true)}/>}
@@ -316,48 +316,62 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,source
 }
 
 function Evolution({results,events}:{results:any[],events:any[]}){
- const [event,setEvent]=useState('__all'),[course,setCourse]=useState(''),[category,setCategory]=useState('')
+ const [event,setEvent]=useState(''),[course,setCourse]=useState(''),[category,setCategory]=useState('')
  const categories=[...new Set(results.map(r=>r.category).filter(Boolean))].sort()
  const labels=new Map(events.map(e=>[e.id,e.label]))
+ const validAll=results.filter(r=>r.status==='valid'&&r.time_ms)
+ const eventCounts=new Map<string,number>()
+ validAll.forEach(r=>eventCounts.set(r.event_id,(eventCounts.get(r.event_id)||0)+1))
+ const autoEvent=(()=>{
+   if(!validAll.length)return ''
+   const maxDate=validAll.reduce((m,r)=>r.result_date>m?r.result_date:m,validAll[0].result_date)
+   const candidates=[...new Set(validAll.filter(r=>r.result_date===maxDate).map(r=>r.event_id))]
+   return candidates.sort((a,b)=>(eventCounts.get(b)||0)-(eventCounts.get(a)||0)||String(labels.get(a)||'').localeCompare(String(labels.get(b)||'')))[0]
+ })()
+ const effectiveEvent=event||autoEvent
  const valid=results
-  .filter(r=>r.status==='valid'&&r.time_ms&&(!course||r.course===course)&&(!category||r.category===category))
-  .sort((a,b)=>a.result_date.localeCompare(b.result_date)||String(a.created_at||'').localeCompare(String(b.created_at||'')))
- const selected=event==='__all'?valid:valid.filter(r=>r.event_id===event)
- const eventIds=[...new Set(selected.map(r=>r.event_id))]
- const dates=[...new Set(selected.map(r=>r.result_date))].sort()
- const palette=['#159aa4','#3656bd','#14805e','#b27a15','#9b4aa2','#c75d45','#4d6fb6','#8b6a3d','#5d7b83','#a35f7d']
+  .filter(r=>r.status==='valid'&&r.time_ms&&r.event_id===effectiveEvent&&(!course||r.course===course)&&(!category||r.category===category))
+  .sort((a,b)=>a.result_date.localeCompare(b.result_date)||String(a.created_at||'').localeCompare(String(b.created_at||''))||String(a.id).localeCompare(String(b.id)))
+ const courseMeta:Record<string,{label:string,color:string}>={SCM:{label:'25 m',color:'#159aa4'},LCM:{label:'50 m',color:'#3656bd'}}
  const badColor='#c94747'
- const rows:any[]=dates.map(date=>({_date:date,date:d(date),_items:[]}))
- const rowByDate=new Map(rows.map(r=>[r._date,r]))
- const groups=eventIds.map((id,gi)=>{
-   const pts=selected.filter(r=>r.event_id===id).sort((a,b)=>a.result_date.localeCompare(b.result_date)||String(a.created_at||'').localeCompare(String(b.created_at||'')))
-   const pointKey='point_'+gi
-   pts.forEach(p=>{const row=rowByDate.get(p.result_date);if(row){row[pointKey]=p.time_ms/1000;row._items.push({label:labels.get(id)||'Prova',time:p.time_ms,category:p.category,course:p.course})}})
+ const rows:any[]=valid.map(p=>({_id:p.id,date:d(p.result_date),_items:[] as any[]}))
+ const rowById=new Map(rows.map(r=>[r._id,r]))
+ const courses=[...new Set(valid.map(r=>r.course).filter(Boolean))]
+ const groups=courses.map(c=>{
+   const pts=valid.filter(r=>r.course===c)
+   const pointKey='point_'+c
+   pts.forEach(p=>{const row=rowById.get(p.id);if(row){row[pointKey]=p.time_ms/1000;row._items.push({label:labels.get(effectiveEvent)||'Prova',time:p.time_ms,category:p.category,course:p.course})}})
    const segments=pts.slice(1).map((p,i)=>{
-     const a=pts[i],key='seg_'+gi+'_'+i,from=rowByDate.get(a.result_date),to=rowByDate.get(p.result_date)
+     const a=pts[i],key='seg_'+c+'_'+i,from=rowById.get(a.id),to=rowById.get(p.id)
      if(from)from[key]=a.time_ms/1000
      if(to)to[key]=p.time_ms/1000
      return{key,worse:p.time_ms>a.time_ms}
    })
-   return{id,label:labels.get(id)||String(id),pts,pointKey,segments,color:palette[gi%palette.length]}
+   return{course:c,label:courseMeta[c]?.label||c,color:courseMeta[c]?.color||'#5d7b83',pts,pointKey,segments}
  })
- const times=selected.map(r=>r.time_ms/1000)
+ const times=valid.map(r=>r.time_ms/1000)
  let yMin:number|undefined,yMax:number|undefined
  if(times.length){
    let min=Math.min(...times),max=Math.max(...times)
    if(min===max){min*=.97;max*=1.03}else{const margin=(max-min)*.12;min-=margin;max+=margin}
    yMin=min;yMax=max
  }
- const stats=times.length?{n:times.length,best:Math.min(...times),first:selected[0]?.time_ms/1000,last:selected[selected.length-1]?.time_ms/1000}:null
+ const transitions:{rowId:string,label:string}[]=[]
+ let prevCategory:string|undefined
+ valid.forEach(p=>{
+   if(p.category&&p.category!==prevCategory){
+     if(prevCategory!==undefined)transitions.push({rowId:p.id,label:p.category})
+     prevCategory=p.category
+   }
+ })
+ const stats=times.length?{n:times.length,best:Math.min(...times),first:valid[0]?.time_ms/1000,last:valid[valid.length-1]?.time_ms/1000}:null
  const worseExists=groups.some(g=>g.segments.some(s=>s.worse))
  const summary=stats
-   ? event==='__all'
-     ? String(stats.n)+' resultado(s) comparável(is) · '+String(groups.length)+' prova(s) no período'
-     : String(stats.n)+' resultado(s) comparável(is) · melhor '+formatSwimTime(Math.round(stats.best*1000))+' · evolução de '+formatSwimTime(Math.round(stats.first*1000))+' para '+formatSwimTime(Math.round(stats.last*1000))
+   ? String(stats.n)+' resultado(s) comparável(is) · melhor '+formatSwimTime(Math.round(stats.best*1000))+' · evolução de '+formatSwimTime(Math.round(stats.first*1000))+' para '+formatSwimTime(Math.round(stats.last*1000))
    : 'Sem resultados comparáveis para os filtros selecionados.'
  return <section className="section">
   <div className="section-head"><h3>Evolução</h3><div className="filters">
-   <select value={event} onChange={e=>setEvent(e.target.value)}><option value="__all">Todos os estilos</option>{events.map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select>
+   <select value={effectiveEvent} onChange={e=>setEvent(e.target.value)}>{events.map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select>
    <select value={course} onChange={e=>setCourse(e.target.value)}><option value="">Todas as piscinas</option><option value="SCM">25 m</option><option value="LCM">50 m</option></select>
    <select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Todas as categorias</option>{categories.map((x:any)=><option key={x} value={x}>{x}</option>)}</select>
   </div></div>
@@ -365,15 +379,16 @@ function Evolution({results,events}:{results:any[],events:any[]}){
    <ResponsiveContainer width="100%" height="100%">
     <LineChart data={rows} margin={{top:28,right:22,bottom:18,left:18}}>
      <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-     <XAxis dataKey="date" interval="preserveStartEnd" tickMargin={10}/>
-     <YAxis domain={yMin!=null&&yMax!=null?[yMin,yMax]:['auto','auto']} tickCount={5} width={62} tickFormatter={(v:any)=>formatSwimTime(Math.round(Number(v)*1000))}/>
-     <Tooltip content={({active,label}:any)=>{if(!active)return null;const row=rows.find(r=>r.date===label);if(!row?._items?.length)return null;return <div className="chart-tooltip"><b>{label}</b>{row._items.map((x:any,i:number)=><div key={i}><span>{x.label}</span><strong>{formatSwimTime(x.time)}</strong><small>{[poolLabel(x.course),x.category].filter(Boolean).join(' · ')}</small></div>)}</div>}}/>
+     <XAxis dataKey="_id" tickFormatter={(id:any)=>rowById.get(id)?.date||''} interval="preserveStartEnd" tickMargin={10}/>
+     <YAxis reversed domain={yMin!=null&&yMax!=null?[yMin,yMax]:['auto','auto']} tickCount={5} width={62} tickFormatter={(v:any)=>formatSwimTime(Math.round(Number(v)*1000))}/>
+     <Tooltip content={({active,label}:any)=>{if(!active)return null;const row=rowById.get(label);if(!row?._items?.length)return null;return <div className="chart-tooltip"><b>{row.date}</b>{row._items.map((x:any,i:number)=><div key={i}><span>{x.label}</span><strong>{formatSwimTime(x.time)}</strong><small>{[poolLabel(x.course),x.category].filter(Boolean).join(' · ')}</small></div>)}</div>}}/>
+     {transitions.map(t=><ReferenceLine key={t.rowId} x={t.rowId} stroke="#c8d2d7" strokeDasharray="4 4" label={{value:t.label,position:'insideTopRight',fontSize:11,fill:'#8a97a1'}}/>)}
      {groups.flatMap(g=>g.segments.map(s=><Line key={s.key} type="linear" dataKey={s.key} stroke={s.worse?badColor:g.color} strokeWidth={2.3} dot={false} activeDot={false} connectNulls={false} isAnimationActive={false} legendType="none"/>))}
      {groups.map(g=><Line key={g.pointKey} type="linear" dataKey={g.pointKey} stroke="transparent" strokeWidth={0} connectNulls={false} isAnimationActive={false} dot={{r:4,fill:g.color,stroke:g.color,strokeWidth:1}} activeDot={{r:5,fill:'#fff',stroke:g.color,strokeWidth:2}} legendType="none"/>)}
     </LineChart>
    </ResponsiveContainer>
   </div>
-  <div className="chart-legend-custom">{groups.map(g=><span key={g.id}><i style={{background:g.color}}></i>{g.label}</span>)}{worseExists&&<span><i style={{background:badColor}}></i>Piora de tempo</span>}</div>
+  <div className="chart-legend-custom">{groups.map(g=><span key={g.course}><i style={{background:g.color}}></i>{g.label}</span>)}{worseExists&&<span><i style={{background:badColor}}></i>Piora de tempo</span>}</div>
   <div className="notice">{summary}</div>
  </section>
 }
