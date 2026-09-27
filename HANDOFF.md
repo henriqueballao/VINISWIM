@@ -1463,5 +1463,95 @@ Todas reversíveis sem tocar em nada pré-existente; `bootstrap_new_user()` não
 
 **Próximo passo**: aguardar avaliação do chat. Migration 3 (adaptar `bootstrap_new_user()` para o branch de `invite_token`, fluxo signup+convite) **não iniciada** — não vou avançar automaticamente.
 
+## MIGRATION 3 EXECUTADA — signup por convite não cria account/athlete; aceite continua só via accept_account_invite (27/09/2026)
+
+**Status**: executada e validada com 13 cenários sintéticos (A–L) + confirmação empírica do item M. **Mudança arquitetural do chat respeitada integralmente**: `bootstrap_new_user()` **não** insere `account_members` do convidado, **não** marca convite `accepted`, **não** roda lógica de aceite — isso continua sendo feito **só** por `accept_account_invite(token)` (Migration 2), já autenticado. O único problema resolvido aqui foi: signup por convite não deve criar `account`/`athlete` novos, e não deve depender de `commercial_access` próprio. **Não** alterei frontend, dados reais, perfil do Vinícius, RLS de escrita para `athlete`, `claim_monitor_jobs`, nem fiz dedup/etapa F.
+
+### 1. Fluxo implementado
+
+```
+LINK DE CONVITE (token em claro, entregue uma única vez por create_account_invite)
+        │
+        ▼
+signup (options.data={invite_token}) ──ou── login (usuário já existe)
+        │
+        ▼
+enforce_authorized_signup (BEFORE INSERT auth.users)
+  → app.resolve_signup_invite(email, raw_user_meta_data)
+      • sem invite_token no metadata → segue o gate de commercial_access de sempre (inalterado)
+      • invite_token presente e VÁLIDO → autoriza o signup SEM exigir commercial_access próprio
+      • invite_token presente e INVÁLIDO/expirado/revogado/email não bate/conta inativa
+        → ABORTA o signup inteiro (não cria auth.user, não cai silenciosamente no fluxo normal)
+        │
+        ▼
+bootstrap_new_user (AFTER INSERT auth.users)
+  → app.resolve_signup_invite(email, raw_user_meta_data) [revalidado, mesmo helper]
+      • sem invite → comportamento 100% de hoje (cria account+account_members(owner)+subscription)
+      • com invite válido → NÃO cria account/athlete/subscription, NÃO mexe em commercial_access;
+        só cria o profile básico e REMOVE o invite_token do raw_user_meta_data (mesma transação)
+        │
+        ▼
+sessão estabelecida (usuário pode ficar temporariamente sem nenhuma conta/atleta — RLS já
+mostra zero contas até aqui, sem mudança nenhuma de policy)
+        │
+        ▼
+accept_account_invite(token) — chamado já autenticado (Migration 2, sem alteração)
+  → membership criada na conta destino, convite marcado accepted
+```
+
+Usuário que já tem login: pula direto para o último passo (login → `accept_account_invite`), exatamente como já funcionava desde a Migration 2.
+
+### 2. Validação do token centralizada — `app.resolve_signup_invite(p_email, p_raw_meta)`
+
+Único helper (schema `app`, **não exposto via PostgREST**) chamado por `enforce_authorized_signup` E por `bootstrap_new_user` — nunca duas implementações divergentes. Contrato: retorna `NULL` se não há `invite_token` no metadata (sinaliza "signup normal"); retorna o `id` do convite se ele é `pending`, não expirado, e-mail bate (normalizado) e a conta destino está `active`; **lança uma única mensagem genérica** (`VINISWIM_SIGNUP_INVITE_INVALID`) para **todas** as 4 causas de invalidez (não existe / expirado / revogado-ou-não-pending / e-mail não bate / conta inativa) — decisão deliberada para não criar um oráculo que deixe alguém descobrir, por tentativa de signup, se um token específico existe ou por que motivo é inválido.
+
+### 3. `commercial_access` — tratado exatamente como pedido
+
+Convidado **não** recebe nenhuma linha de `commercial_access` própria, nem antes nem depois do signup — o convite válido **substitui** essa exigência inteiramente no `enforce_authorized_signup` (branch novo, checado antes do `commercial_access`). Nada é escrito em `commercial_access` para o caminho de convite. Confirmado no teste L: e-mail com convite válido e **zero** linha de `commercial_access` completou o signup normalmente.
+
+### 4. Token no metadata — investigação empírica do item 5
+
+**Achado confirmado por teste real (não só leitura de código)**: `auth.users.raw_user_meta_data` É persistente — um `INSERT` com `raw_user_meta_data={"invite_token":"...","full_name":"..."}` grava esse jsonb de verdade na linha. **Mitigação implementada**: `bootstrap_new_user()`, ao identificar um signup por convite válido, executa `UPDATE auth.users SET raw_user_meta_data = raw_user_meta_data - 'invite_token' WHERE id=new.id` **na mesma transação**, antes de qualquer commit — o token nunca fica em repouso no banco depois que a transação termina. Confirmado empiricamente (Teste B/M): depois do signup, `SELECT raw_user_meta_data FROM auth.users` mostrou `{"full_name":"Sintético Convidado"}` — **sem** a chave `invite_token`, só as demais chaves preservadas. Verificado que essa `UPDATE` é segura: `auth.users` só tem 2 triggers, ambos restritos a `INSERT` (`enforce_authorized_signup` BEFORE, `bootstrap_new_user` AFTER) — nenhum trigger de `UPDATE` existe para disparar recursão ou efeito colateral.
+
+**Limitação de investigação que preciso registrar com transparência**: o ambiente desta sessão nega saída de rede para `*.supabase.co` (regra já documentada neste HANDOFF), então **não consegui chamar o endpoint real `/auth/v1/signup` do GoTrue** para confirmar o que a *resposta HTTP* do próprio `signUp()` devolve ao cliente no instante da chamada (antes do `UPDATE` de limpeza rodar). Só consegui confirmar, com toda a certeza, o estado **persistido no banco** (que é limpo). Considero esse resíduo de risco baixo e aceitável pelos seguintes motivos, que registro para o chat julgar: (a) a resposta do `signUp()` só é vista pelo próprio cliente que acabou de enviar aquele token — não é exposição a um terceiro, é o sistema devolvendo ao autor da requisição algo que ele mesmo já possuía; (b) este projeto já desativa a confirmação real de e-mail no signup (`email_confirmed_at` é setado na hora, sem link de verificação) — ou seja, o "e-mail bate" nunca foi uma fronteira de segurança neste sistema, quem protege de fato é o token secreto, e isso não muda com essa mitigação; (c) a fonte real de verdade — o banco — não guarda o segredo depois de usado, que era a preocupação central levantada. Se o chat quiser fechar 100% essa lacuna, a forma correta seria testar isso com acesso de rede real ao projeto (fora desta sessão) ou aceitar o risco residual descrito.
+
+### 5. Testes sintéticos A–L (contas/usuários `aaaaaaaa-000[89a]-...`, limpos ao final)
+
+| # | Cenário | Resultado |
+|---|---|---|
+| A | Signup normal (sem `invite_token`), `commercial_access` presente | ✅ inalterado — cria `account`+`account_members(owner,active)`+`subscription`. **Nota de precisão**: `bootstrap_new_user()` nunca criou `athlete` (nem antes, nem agora) — isso é feito depois pelo frontend; reporto essa diferença em relação à redação do item A do chat por transparência, não é uma regressão desta migration. |
+| B | Signup com `invite_token` válido | ✅ `auth.user` criado, **zero** `account`/`account_members` novos, `profile` criado; depois `accept_account_invite(token)` → membership criada na conta destino |
+| C | `invite_token` inexistente (hash não bate com nenhum convite) | ✅ signup abortado inteiro — confirmado que a linha em `auth.users` nunca chegou a existir |
+| D | `invite_token` de convite expirado | ✅ signup abortado |
+| E | `invite_token` de convite revogado | ✅ signup abortado |
+| F | `invite_token` válido mas e-mail do signup diferente do `invite.email` | ✅ signup abortado |
+| G | `invite_token` válido mas conta destino `cancelled` | ✅ signup abortado |
+| H | Signup por convite concluído, `accept` **não** chamado na hora (mesmo teste do B, com consultas de verificação entre um e outro) | ✅ usuário fica sem membership; reabrir e chamar `accept_account_invite(token)` depois conclui normalmente |
+| I | Usuário **já existente** (criado por signup normal, próprio `commercial_access`) recebe convite de uma segunda conta e aceita | ✅ `accept_account_invite` funciona sem passar por signup/bootstrap; **zero** conta/atleta nova; usuário fica membro de 2 contas |
+| J | `max_members` da conta destino enche **entre** o signup e o `accept` (outro membro entra no meio) | ✅ signup do convidado é aceito normalmente (não mexe em `account_members`); `accept_account_invite` posterior é bloqueado por `VINISWIM_MEMBER_LIMIT_REACHED`; usuário fica com `auth.user` existente e sem membership — exatamente o comportamento aceitável descrito pelo chat |
+| K | Signup normal sem `commercial_access` e sem `invite_token` | ✅ continua bloqueado (`VINISWIM_SIGNUP_NOT_AUTHORIZED`) |
+| L | Signup com `invite_token` válido e **sem nenhuma linha de `commercial_access`** para aquele e-mail | ✅ permitido só pelo convite — mesmo teste do B, confirma que convite substitui `commercial_access` |
+| M | Token não persiste em claro em `raw_user_meta_data` após o fluxo | ✅ confirmado no banco (ver seção 4); ressalva sobre a camada HTTP do GoTrue, não testável nesta sandbox, registrada acima |
+| N | Zero resíduo sintético ao final | ✅ confirmado (1 conta sintética escapou da primeira varredura por nome — `Família de sint.jaexistente` do Teste I — localizada e removida antes do fechamento) |
+
+### 6. Confirmação de signup normal sem regressão
+
+Teste A cobre isso diretamente. Adicionalmente, o próprio Teste I (usuário criado via signup 100% normal, com seu próprio `commercial_access`) funcionou de ponta a ponta sem nenhuma diferença de comportamento.
+
+### 7. Dados reais
+
+`results`=65, `athletes`=4, `account_members`=4, `accounts`=4, `auth.users`=5, `profiles`=4, `commercial_access`=4, `account_invites`=0 — todos idênticos ao estado anterior a esta migration. Henrique/Vinícius não foram usados em nenhum teste.
+
+### 8. Rollback
+
+```sql
+-- Reverte bootstrap_new_user e enforce_authorized_signup para as versões sem o branch de convite
+-- (basta reaplicar o corpo exato de antes da Migration 3, disponível nos commits anteriores).
+drop function if exists app.resolve_signup_invite(text, jsonb);
+```
+`bootstrap_new_user()`/`enforce_authorized_signup()` são `CREATE OR REPLACE FUNCTION` — reverter é reaplicar a versão anterior (registrada nos commits de Migration 1/2 deste HANDOFF, antes de qualquer menção a `resolve_signup_invite`). Nenhuma tabela ou coluna nova foi criada nesta migration — só 1 função nova e 2 funções substituídas.
+
+**Próximo passo**: aguardar avaliação do chat sobre o item 4 (residual do GoTrue HTTP layer, não testável nesta sandbox) antes de considerar esta frente encerrada. **Não avancei** para frontend nem para a consolidação real dos 2 perfis do Vinícius.
+
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
