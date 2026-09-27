@@ -24,6 +24,7 @@
 button.kpi{appearance:none;text-align:left;color:inherit}
 .kpi small{display:block;color:var(--muted);margin-top:5px;font-size:11px}
 .header-left{display:flex;align-items:center;gap:12px;min-width:0}
+.header-switchers{display:flex;align-items:center;gap:10px;min-width:0}
 .athlete-switcher{display:flex;align-items:center;gap:8px;min-width:0}
 .athlete-switcher select{min-width:150px;max-width:230px}
 .switch-add{width:42px;height:42px;display:grid;place-items:center;border:1px solid var(--line);background:#fff;border-radius:10px;color:var(--nav)}
@@ -61,10 +62,15 @@ button.kpi{appearance:none;text-align:left;color:inherit}
  .menu{display:grid;width:44px;height:44px;min-width:44px;place-items:center;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink);z-index:80;padding:0}
  .header-left h1{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
  .header-left small{display:none}
- .athlete-switcher{margin-left:auto;max-width:52vw}
+ .header-switchers{margin-left:auto;max-width:60vw}
+ .athlete-switcher{margin-left:0;max-width:52vw}
  .athlete-switcher select{min-width:0;max-width:150px;height:44px;font-size:16px}
  .switch-add{display:none}
  .athlete-switcher .athlete-avatar{display:none}
+ .header-switchers.multi{gap:6px}
+ .header-switchers.multi .athlete-switcher{max-width:none}
+ .header-switchers.multi .athlete-switcher select{max-width:108px}
+ .header-switchers.multi .athlete-switcher>svg{display:none}
  .sidebar{display:flex;position:fixed;z-index:110;left:0;top:0;bottom:0;width:min(84vw,320px);max-width:320px;height:100dvh;transform:translateX(-102%);transition:transform .22s cubic-bezier(.2,.8,.2,1);padding:calc(18px + env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom));overflow-y:auto;box-shadow:18px 0 44px rgba(8,18,13,.22)}
  .sidebar.open{left:0;transform:translateX(0)}
  .sidebar-backdrop{display:block;position:fixed;inset:0;z-index:108;background:rgba(12,20,17,.42);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .2s}

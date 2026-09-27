@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
-import {Activity,AlertTriangle,Bell,Camera,ChartNoAxesCombined,ChevronDown,Eye,EyeOff,Gauge,LogOut,Medal,Menu,MoreHorizontal,Plus,Printer,RefreshCw,Settings,ShieldCheck,Trophy,UserPlus,X} from 'lucide-react'
+import {Activity,AlertTriangle,Bell,Camera,ChartNoAxesCombined,ChevronDown,Copy,Eye,EyeOff,Gauge,LogOut,Medal,Menu,MoreHorizontal,Plus,Printer,RefreshCw,Settings,ShieldCheck,Trophy,UserPlus,Users,X} from 'lucide-react'
 import {CartesianGrid,Legend,Line,LineChart,ReferenceLine,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
 import {formatSwimTime,parseSwimTime} from '@viniswim/shared'
 import {supabase} from './supabase'
@@ -81,6 +81,46 @@ function Auth({onAuthenticated}:{onAuthenticated:(session:any)=>void}){
  </div></div>
 }
 
+function InviteAuth({token,onAuthenticated}:{token:string,onAuthenticated:(session:any)=>void}){
+ const [mode,setMode]=useState<'choice'|'login'|'signup'>('choice')
+ const [name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[confirmPassword,setConfirmPassword]=useState(''),[showPassword,setShowPassword]=useState(false),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false)
+ function authMessage(error:any){
+  const raw=String(error?.message||'')
+  if(/VINISWIM_SIGNUP_INVITE_INVALID/.test(raw))return'Este convite não é válido, já foi usado, expirou ou foi revogado.'
+  if(/already registered|already been registered/i.test(raw))return'Este e-mail já possui cadastro. Use "Já tenho login" com sua senha.'
+  if(/invalid login credentials/i.test(raw))return'E-mail ou senha incorretos.'
+  if(/rate limit|security purposes|too many requests/i.test(raw))return'Limite temporário do servidor. Tente novamente.'
+  return raw||'Não foi possível concluir a operação.'
+ }
+ async function submitLogin(e:any){
+  e.preventDefault();setBusy(true);setMsg('')
+  const {data,error}=await supabase.auth.signInWithPassword({email:email.trim().toLowerCase(),password})
+  setBusy(false)
+  if(error){setMsg(authMessage(error));return}
+  if(data.session)onAuthenticated(data.session)
+ }
+ async function submitSignup(e:any){
+  e.preventDefault();setMsg('')
+  if(password.length<8){setMsg('A senha deve ter pelo menos 8 caracteres.');return}
+  if(password!==confirmPassword){setMsg('As senhas não conferem.');return}
+  setBusy(true)
+  const {data,error}=await supabase.auth.signUp({email:email.trim().toLowerCase(),password,options:{data:{full_name:name.trim(),invite_token:token}}})
+  setBusy(false)
+  if(error){setMsg(authMessage(error));return}
+  if(data.session)onAuthenticated(data.session)
+  else setMsg('Conta criada. Faça login para continuar.')
+ }
+ return <div className="auth"><div className="auth-card">
+  <img className="auth-logo" src="../apple-touch-icon.png" alt="VINISWIM"/><h1>VINISWIM</h1><div className="performance-tracker">PERFORMANCE TRACKER</div>
+  <p>Você recebeu um convite para acessar uma conta no VINISWIM.</p>
+  {mode==='choice'&&<div className="modal-actions" style={{border:0,padding:'10px 0 0',justifyContent:'stretch',gap:10}}><button type="button" className="btn primary" style={{flex:1}} onClick={()=>setMode('signup')}>Criar conta</button><button type="button" className="btn" style={{flex:1}} onClick={()=>setMode('login')}>Já tenho login</button></div>}
+  {mode==='login'&&<form onSubmit={submitLogin}><label>E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label><label>Senha<div className="password-field"><input type={showPassword?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} required/><button type="button" className="password-toggle" onClick={()=>setShowPassword(v=>!v)}>{showPassword?<EyeOff size={21}/>:<Eye size={21}/>}</button></div></label><button className="btn primary" disabled={busy}>{busy?'Entrando...':'Entrar e aceitar convite'}</button></form>}
+  {mode==='signup'&&<form onSubmit={submitSignup}><label>Nome completo<input value={name} onChange={e=>setName(e.target.value)} required/></label><label>E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label><label>Senha<div className="password-field"><input type={showPassword?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} minLength={8} required/><button type="button" className="password-toggle" onClick={()=>setShowPassword(v=>!v)}>{showPassword?<EyeOff size={21}/>:<Eye size={21}/>}</button></div></label><label>Confirmar senha<input type={showPassword?'text':'password'} value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} minLength={8} required/></label><button className="btn primary" disabled={busy}>{busy?'Criando...':'Criar conta e aceitar convite'}</button></form>}
+  {msg&&<div className="notice">{msg}</div>}
+  {mode!=='choice'&&<button className="link" type="button" onClick={()=>{setMode('choice');setMsg('')}}>Voltar</button>}
+ </div></div>
+}
+
 function AthleteModal({accountId,onClose,onSaved}:{accountId:string,onClose:()=>void,onSaved:()=>void}){
  const [name,setName]=useState(''),[birth,setBirth]=useState(''),[club,setClub]=useState(''),[category,setCategory]=useState(''),[photo,setPhoto]=useState(''),[msg,setMsg]=useState('')
  async function file(e:any){try{const f=e.target.files?.[0];if(f)setPhoto(await compressPhoto(f))}catch(err:any){setMsg(err.message)}}
@@ -140,9 +180,32 @@ function Kpi({k,v,s,onClick}:{k:string,v:any,s?:string,onClick?:()=>void}){retur
 export default function App(){
  const identityRun=useRef(0)
  const firstRequestPollRef=useRef(true)
- const [session,setSession]=useState<any>(null),[authReady,setAuthReady]=useState(false),[identityLoading,setIdentityLoading]=useState(false),[identityLoaded,setIdentityLoaded]=useState(false),[needsInitialAthlete,setNeedsInitialAthlete]=useState(false),[recovery,setRecovery]=useState(()=>new URLSearchParams(window.location.search).get('reset')==='1'),[page,setPage]=useState<Page>('dashboard'),[open,setOpen]=useState(false),[actionsOpen,setActionsOpen]=useState(false),[profile,setProfile]=useState<any>(null),[account,setAccount]=useState<any>(null),[athletes,setAthletes]=useState<any[]>([]),[athleteId,setAthleteId]=useState(localStorage.getItem('viniswim-athlete')||''),[events,setEvents]=useState<any[]>([]),[results,setResults]=useState<any[]>([]),[overview,setOverview]=useState<any>(null),[pbs,setPbs]=useState<any[]>([]),[meets,setMeets]=useState<any[]>([]),[entries,setEntries]=useState<any[]>([]),[audit,setAudit]=useState<any[]>([]),[sources,setSources]=useState<any[]>([]),[sourceConfigs,setSourceConfigs]=useState<any[]>([]),[searchSources,setSearchSources]=useState<string[]>([]),[monitorJobs,setMonitorJobs]=useState<any[]>([]),[archiveJobs,setArchiveJobs]=useState<any[]>([]),[modal,setModal]=useState<any>(null),[athleteModal,setAthleteModal]=useState(false),[meetModal,setMeetModal]=useState(false),[tutorial,setTutorial]=useState(false),[alertsModal,setAlertsModal]=useState(false),[auditModal,setAuditModal]=useState(false),[filters,setFilters]=useState({event:[] as string[],course:[] as string[],category:[] as string[],origin:[] as string[]}),[refreshMsg,setRefreshMsg]=useState(''),[activeRequest,setActiveRequest]=useState<any>(null),[lastSuccessfulSync,setLastSuccessfulSync]=useState<string|null>(null)
+ const [session,setSession]=useState<any>(null),[authReady,setAuthReady]=useState(false),[identityLoading,setIdentityLoading]=useState(false),[identityLoaded,setIdentityLoaded]=useState(false),[needsInitialAthlete,setNeedsInitialAthlete]=useState(false),[recovery,setRecovery]=useState(()=>new URLSearchParams(window.location.search).get('reset')==='1'),[inviteToken,setInviteToken]=useState<string|null>(()=>new URLSearchParams(window.location.search).get('invite')),[inviteNotice,setInviteNotice]=useState<{type:'success'|'error',message:string}|null>(null),[page,setPage]=useState<Page>('dashboard'),[open,setOpen]=useState(false),[actionsOpen,setActionsOpen]=useState(false),[profile,setProfile]=useState<any>(null),[account,setAccount]=useState<any>(null),[memberships,setMemberships]=useState<any[]>([]),[myRole,setMyRole]=useState(''),[athletes,setAthletes]=useState<any[]>([]),[athleteId,setAthleteId]=useState(localStorage.getItem('viniswim-athlete')||''),[events,setEvents]=useState<any[]>([]),[results,setResults]=useState<any[]>([]),[overview,setOverview]=useState<any>(null),[pbs,setPbs]=useState<any[]>([]),[meets,setMeets]=useState<any[]>([]),[entries,setEntries]=useState<any[]>([]),[audit,setAudit]=useState<any[]>([]),[sources,setSources]=useState<any[]>([]),[sourceConfigs,setSourceConfigs]=useState<any[]>([]),[searchSources,setSearchSources]=useState<string[]>([]),[monitorJobs,setMonitorJobs]=useState<any[]>([]),[archiveJobs,setArchiveJobs]=useState<any[]>([]),[modal,setModal]=useState<any>(null),[athleteModal,setAthleteModal]=useState(false),[meetModal,setMeetModal]=useState(false),[tutorial,setTutorial]=useState(false),[alertsModal,setAlertsModal]=useState(false),[auditModal,setAuditModal]=useState(false),[filters,setFilters]=useState({event:[] as string[],course:[] as string[],category:[] as string[],origin:[] as string[]}),[refreshMsg,setRefreshMsg]=useState(''),[activeRequest,setActiveRequest]=useState<any>(null),[lastSuccessfulSync,setLastSuccessfulSync]=useState<string|null>(null)
  useEffect(()=>{supabase.auth.getSession().then(x=>{setSession(x.data.session);setAuthReady(true)});const {data:{subscription}}=supabase.auth.onAuthStateChange((e,s)=>{setSession(s);setAuthReady(true);if(e==='PASSWORD_RECOVERY')setRecovery(true);if(!s){setIdentityLoading(false);setIdentityLoaded(false)}});return()=>subscription.unsubscribe()},[])
- useEffect(()=>{identityRun.current++;setNeedsInitialAthlete(false);if(session)void loadIdentity();else{setIdentityLoading(false);setIdentityLoaded(false)}},[session?.user?.id])
+ useEffect(()=>{identityRun.current++;setNeedsInitialAthlete(false);if(session){if(!inviteToken)void loadIdentity()}else{setIdentityLoading(false);setIdentityLoaded(false)}},[session?.user?.id])
+ const inviteHandledRef=useRef(false)
+ useEffect(()=>{
+  if(!session||!inviteToken||inviteHandledRef.current)return
+  inviteHandledRef.current=true
+  void handleAcceptInvite(inviteToken)
+ },[session?.user?.id,inviteToken])
+ function inviteErrorMessage(raw:string){
+  if(/INVITE_NOT_FOUND|INVITE_EMAIL_MISMATCH/.test(raw))return'Este link de convite não é válido para esta conta.'
+  if(/INVITE_EXPIRED/.test(raw))return'Este convite expirou. Peça um novo link.'
+  if(/INVITE_NOT_PENDING|INVITE_ALREADY_USED/.test(raw))return'Este convite já foi usado ou não está mais disponível.'
+  if(/ACCOUNT_NOT_ACTIVE/.test(raw))return'Esta conta não está mais ativa.'
+  if(/VINISWIM_MEMBER_LIMIT_REACHED/.test(raw))return'Esta conta atingiu o limite de membros do plano. Peça ao responsável para liberar uma vaga.'
+  return'Não foi possível concluir o acesso a esta conta.'
+ }
+ async function handleAcceptInvite(token:string){
+  const {data,error}=await supabase.rpc('accept_account_invite',{p_token:token})
+  window.history.replaceState({},'',window.location.pathname)
+  setInviteToken(null)
+  if(error){setInviteNotice({type:'error',message:inviteErrorMessage(error.message)})}
+  else{setInviteNotice({type:'success',message:'Você agora faz parte desta conta.'});if(data?.account_id)localStorage.setItem('viniswim-account',data.account_id)}
+  identityRun.current++
+  await loadIdentity()
+ }
  useEffect(()=>{firstRequestPollRef.current=true},[athleteId])
  useEffect(()=>{if(athleteId){localStorage.setItem('viniswim-athlete',athleteId);void loadAthlete()}},[athleteId])
  useEffect(()=>{if(!athleteId)return;const t=window.setInterval(()=>void loadAthlete(),2000);return()=>window.clearInterval(t)},[athleteId])
@@ -151,9 +214,10 @@ export default function App(){
   const {error}=await supabase.auth.signOut({scope:'local'})
   if(error){console.error('VINISWIM signOut:',error.message);return}
   localStorage.removeItem('viniswim-athlete')
+  localStorage.removeItem('viniswim-account')
   setNeedsInitialAthlete(false);setSession(null);setIdentityLoading(false);setIdentityLoaded(false)
   setOpen(false);setActionsOpen(false);setTutorial(false);setAlertsModal(false);setAuditModal(false);setModal(null);setAthleteModal(false);setMeetModal(false)
-  setAthleteId('');setProfile(null);setAccount(null);setAthletes([]);setEvents([]);setResults([]);setOverview(null);setPbs([]);setMeets([]);setEntries([]);setAudit([]);setSources([]);setSourceConfigs([]);setSearchSources([]);setMonitorJobs([]);setArchiveJobs([]);setRefreshMsg('');setActiveRequest(null);setPage('dashboard')
+  setAthleteId('');setProfile(null);setAccount(null);setMemberships([]);setMyRole('');setInviteNotice(null);setAthletes([]);setEvents([]);setResults([]);setOverview(null);setPbs([]);setMeets([]);setEntries([]);setAudit([]);setSources([]);setSourceConfigs([]);setSearchSources([]);setMonitorJobs([]);setArchiveJobs([]);setRefreshMsg('');setActiveRequest(null);setPage('dashboard')
   window.location.replace(window.location.pathname)
  }
  async function loadIdentity(){
@@ -161,28 +225,42 @@ export default function App(){
   setIdentityLoading(true);setIdentityLoaded(false);setNeedsInitialAthlete(false)
   try{
    const uid=session.user.id
-   const [{data:p},{data:m},{data:e}]=await Promise.all([
+   const [{data:p},{data:ms},{data:e}]=await Promise.all([
     supabase.from('profiles').select('*').eq('id',uid).maybeSingle(),
-    supabase.from('account_members').select('account_id,role,accounts(*)').eq('user_id',uid).eq('status','active').limit(1).maybeSingle(),
+    supabase.from('account_members').select('account_id,role,accounts(*)').eq('user_id',uid).eq('status','active').order('created_at'),
     supabase.from('events').select('*').order('sort_order')
    ])
    if(run!==identityRun.current)return
-   setProfile(p);setAccount((m as any)?.accounts||null);setEvents(e||[])
+   setProfile(p);setEvents(e||[])
+   const list=ms||[]
+   setMemberships(list)
+   const savedAccountId=localStorage.getItem('viniswim-account')
+   const current=(list as any[]).find(x=>x.account_id===savedAccountId)||list[0]||null
+   setAccount(current?.accounts||null)
+   setMyRole(current?.role||'')
+   if(current?.account_id)localStorage.setItem('viniswim-account',current.account_id)
    let nextAthletes:any[]=[]
-   if((m as any)?.account_id){
-    const {data:a}=await supabase.from('athletes').select('*').eq('account_id',(m as any).account_id).eq('active',true).order('created_at')
+   if(current?.account_id){
+    const {data:a}=await supabase.from('athletes').select('*').eq('account_id',current.account_id).eq('active',true).order('created_at')
     if(run!==identityRun.current)return
     nextAthletes=a||[]
     setAthletes(nextAthletes)
     if(!athleteId&&nextAthletes[0])setAthleteId(nextAthletes[0].id)
+    else if(athleteId&&!nextAthletes.find((x:any)=>x.id===athleteId))setAthleteId(nextAthletes[0]?.id||'')
    }else{
     setAthletes([])
    }
    if(run!==identityRun.current)return
-   setNeedsInitialAthlete(!!(m as any)?.account_id&&nextAthletes.length===0)
+   setNeedsInitialAthlete(!!current?.account_id&&nextAthletes.length===0)
   }finally{
    if(run===identityRun.current){setIdentityLoading(false);setIdentityLoaded(true)}
   }
+ }
+ async function switchAccount(id:string){
+  if(id===account?.id)return
+  localStorage.setItem('viniswim-account',id)
+  identityRun.current++
+  await loadIdentity()
  }
  async function loadAthlete(){const [{data:r},{data:o},{data:pb},{data:en},{data:au},{data:rs},{data:sc},{data:mj},{data:hj},{data:rr},{data:ls}]=await Promise.all([supabase.from('v_result_timeline').select('*').eq('athlete_id',athleteId).order('result_date',{ascending:false}).order('created_at',{ascending:false}),supabase.from('v_athlete_overview').select('*').eq('athlete_id',athleteId).maybeSingle(),supabase.from('personal_bests').select('*,results(*)').eq('athlete_id',athleteId),supabase.from('meet_entries').select('*,meets(*)').eq('athlete_id',athleteId),supabase.from('audit_log').select('*').eq('athlete_id',athleteId).order('created_at',{ascending:false}).limit(120),supabase.from('result_sources').select('*,sources(name,code)').in('result_id',(results||[]).map(x=>x.id).length?(results||[]).map(x=>x.id):['00000000-0000-0000-0000-000000000000']),supabase.from('athlete_source_configs').select('*,sources(code,name)').eq('athlete_id',athleteId).eq('active',true).order('sort_order').order('display_name'),supabase.from('monitor_jobs').select('*').eq('athlete_id',athleteId),supabase.from('historical_archive_jobs').select('*').eq('athlete_id',athleteId),supabase.from('v_refresh_request_status').select('*').eq('athlete_id',athleteId).order('created_at',{ascending:false}).limit(1).maybeSingle(),supabase.from('v_refresh_request_status').select('finalized_at').eq('athlete_id',athleteId).eq('terminal_status','completed').order('finalized_at',{ascending:false}).limit(1).maybeSingle()]);setResults(r||[]);setOverview(o||null);setPbs((pb||[]).map((x:any)=>({...x.results,pb_id:x.id})));setEntries(en||[]);setMeets([...new Map((en||[]).map((x:any)=>[x.meets?.id,x.meets])).values()].filter(Boolean));setAudit(au||[]);setSources(rs||[]);setSourceConfigs(sc||[]);const codes=(sc||[]).map((x:any)=>x.sources?.code).filter(Boolean);setSearchSources(prev=>{const kept=prev.filter(x=>codes.includes(x));return kept.length?kept:codes});setMonitorJobs(mj||[]);setArchiveJobs(hj||[]);setLastSuccessfulSync(ls?.finalized_at||null);const isFirstRequestPoll=firstRequestPollRef.current;firstRequestPollRef.current=false;if(!rr){setActiveRequest(null)}else if(isFirstRequestPoll){setActiveRequest(['pending','running','cancelled'].includes(rr.derived_status)?rr:null)}else{setActiveRequest(rr.derived_status==='completed'?null:rr)}}
  useEffect(()=>{if(results.length&&athleteId)void supabase.from('result_sources').select('*,sources(name,code)').in('result_id',results.map(x=>x.id)).then(({data})=>setSources(data||[]))},[results.length,athleteId])
@@ -195,9 +273,10 @@ export default function App(){
  )
  if(!authReady)return <div className="loading">Carregando VINISWIM...</div>
  if(recovery&&session)return <PasswordRecovery onDone={()=>{window.history.replaceState({},'',window.location.pathname);setRecovery(false);setSession(null)}}/>
+ if(!session&&inviteToken)return <InviteAuth token={inviteToken} onAuthenticated={s=>{identityRun.current++;setNeedsInitialAthlete(false);setIdentityLoaded(false);setSession(s)}}/>
  if(!session)return <Auth onAuthenticated={s=>{identityRun.current++;setNeedsInitialAthlete(false);setIdentityLoaded(false);setSession(s)}}/>
  if(identityLoading||!identityLoaded)return <div className="loading">Preparando sua conta VINISWIM...</div>
- if(!account)return <div className="loading">Preparando sua conta VINISWIM...</div>
+ if(!account)return <div className="empty"><h2>Sem conta vinculada</h2><p>{inviteNotice?.type==='error'?inviteNotice.message:'Sua conta ainda não está vinculada a nenhuma família no VINISWIM. Se você recebeu um convite, abra o link novamente.'}</p><button className="btn" onClick={logout}>Sair</button></div>
  if(needsInitialAthlete)return <><AthleteModal accountId={account.id} onClose={()=>{}} onSaved={loadIdentity}/></>
  async function del(r:any){
   const label=ev.get(r.event_id)||'prova'
@@ -224,14 +303,15 @@ export default function App(){
  const title=nav.find(x=>x[0]===page)?.[1]||'VINISWIM',age=calcAge(athlete?.birth_date),lastSync=lastSuccessfulSync||undefined
  return <div className="app">
   <aside className={open?'sidebar open':'sidebar'}><div className="sidebar-head"><div className="brand"><img className="brand-logo" src="../apple-touch-icon.png"/><div><b>VINISWIM</b><small>Performance Tracker</small></div></div><button className="sidebar-close" onClick={()=>setOpen(false)} aria-label="Fechar menu"><X size={22}/></button></div><nav>{nav.map(([id,label,Icon])=><button className={page===id?'active':''} onClick={()=>{setPage(id);setOpen(false)}} key={id}><Icon size={18}/>{label}</button>)}</nav><div className="sidebar-actions"><button className="sidebar-actions-toggle" onClick={()=>setActionsOpen(v=>!v)} aria-expanded={actionsOpen}><span>Ações</span><ChevronDown size={18} className={actionsOpen?'rotated':''}/></button>{actionsOpen&&<div className="sidebar-actions-menu"><button onClick={()=>{setTutorial(true);setOpen(false)}}>Como usar</button><button onClick={()=>{setAlertsModal(true);setOpen(false)}}><Bell size={16}/> Alertas</button><button onClick={()=>{setAuditModal(true);setOpen(false)}}><ShieldCheck size={16}/> Auditoria</button><button onClick={()=>window.print()}><Printer size={16}/> Imprimir / PDF</button><button onClick={logout}><LogOut size={17}/> Sair</button></div>}</div><div className="sidebar-legal">© 2026 VINISWIM<br/><span>Todos os direitos reservados · v0.1.0</span></div></aside><div className={open?'sidebar-backdrop open':'sidebar-backdrop'} onClick={()=>setOpen(false)}/>
-  <main><header><div className="header-left"><button className="menu" onClick={()=>setOpen(v=>!v)} aria-label="Abrir menu"><Menu/></button><div><h1>{title}</h1><small>{profile?.full_name||session.user.email}</small></div></div><div className="athlete-switcher"><AthleteAvatar athlete={athlete} size="sm"/><select aria-label="Selecionar atleta" value={athleteId} onChange={e=>setAthleteId(e.target.value)}>{athletes.map(a=><option key={a.id} value={a.id}>{a.preferred_name||a.full_name}</option>)}</select><button className="switch-add" onClick={()=>setAthleteModal(true)} title="Adicionar atleta"><UserPlus size={18}/></button></div></header>
+  <main><header><div className="header-left"><button className="menu" onClick={()=>setOpen(v=>!v)} aria-label="Abrir menu"><Menu/></button><div><h1>{title}</h1><small>{profile?.full_name||session.user.email}</small></div></div><div className={memberships.length>1?'header-switchers multi':'header-switchers'}>{memberships.length>1&&<div className="athlete-switcher"><Users size={16}/><select aria-label="Selecionar conta" value={account.id} onChange={e=>void switchAccount(e.target.value)}>{memberships.map((m:any)=><option key={m.account_id} value={m.account_id}>{m.accounts?.name||'Conta'}</option>)}</select></div>}<div className="athlete-switcher"><AthleteAvatar athlete={athlete} size="sm"/><select aria-label="Selecionar atleta" value={athleteId} onChange={e=>setAthleteId(e.target.value)}>{athletes.map(a=><option key={a.id} value={a.id}>{a.preferred_name||a.full_name}</option>)}</select><button className="switch-add" onClick={()=>setAthleteModal(true)} title="Adicionar atleta"><UserPlus size={18}/></button></div></div></header>
+  {inviteNotice&&<div className="notice" style={{margin:'14px 22px 0',display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><span>{inviteNotice.message}</span><button className="icon-btn" onClick={()=>setInviteNotice(null)} aria-label="Fechar"><X size={16}/></button></div>}
   <div className="content"><section className="athlete-hero"><AthleteAvatar athlete={athlete} size="lg"/><div className="athlete-main"><h2>{athlete?.full_name}</h2><p>{[athlete?.club_name,athlete?.status==='active'?'fonte oficial ativa':'fonte oficial pendente'].filter(Boolean).join(' · ')}</p><div className="athlete-meta"><span>Idade: {age==null?'—':age+' anos'}</span><span>Categoria: {athlete?.category||'—'}</span></div></div></section>
   {page==='dashboard'&&<Dashboard overview={overview} pbs={pbs} results={results} entries={entries} events={events} setPage={setPage}/>}
   {page==='results'&&<ResultsPage filtered={filtered} allResults={results} events={events} filters={filters} setFilters={setFilters} meets={meets} sourceConfigs={sourceConfigs} selectedSources={searchSources} setSelectedSources={setSearchSources} onNew={()=>setModal({})} onEdit={setModal} onDelete={del} onRefresh={refresh} onCancelRefresh={cancelActiveRequest} refreshMsg={refreshMsg} lastSync={lastSync} athlete={athlete} activeRequest={activeRequest}/>}
   {page==='evolution'&&<Evolution key={athleteId} results={results} events={events}/>}
   {page==='meets'&&<MeetsPage meets={meets} entries={entries} results={results} events={events} athlete={athlete} athleteId={athleteId} onNew={()=>setMeetModal(true)} reload={loadAthlete}/>}
   {page==='expectations'&&<Expectations results={results} entries={entries} events={events}/>}
-  {page==='settings'&&<SettingsPage athlete={athlete} accountId={account.id} userId={session.user.id} sourceConfigs={sourceConfigs} reload={async()=>{await loadIdentity();await loadAthlete()}} onAddAthlete={()=>setAthleteModal(true)}/>}
+  {page==='settings'&&<SettingsPage athlete={athlete} accountId={account.id} myRole={myRole} userId={session.user.id} sourceConfigs={sourceConfigs} reload={async()=>{await loadIdentity();await loadAthlete()}} onAddAthlete={()=>setAthleteModal(true)}/>}
   </div></main>
   <nav className="mobile-nav">{([['dashboard','Início',Gauge],['results','Resultados',Medal],['evolution','Evolução',ChartNoAxesCombined],['meets','Campeonatos',Trophy]] as any[]).map(([id,label,Icon])=><button key={id} className={page===id?'active':''} onClick={()=>setPage(id)}><Icon size={20}/><span>{label}</span></button>)}<button onClick={()=>setOpen(true)}><MoreHorizontal size={20}/><span>Mais</span></button></nav>
   {modal&&<ResultModal athleteId={athleteId} events={events} meets={meets} row={modal.id?modal:null} onClose={()=>setModal(null)} onSaved={loadAthlete}/>}
@@ -646,6 +726,71 @@ function SourceConfigEditor({athleteId,cfg,onSaved,onDeleted,onMessage,isNew,onC
  </form>
 }
 
-function SettingsPage({athlete,accountId,userId,sourceConfigs,reload,onAddAthlete}:{athlete:any,accountId:string,userId:string,sourceConfigs:any[],reload:()=>void,onAddAthlete:()=>void}){const [name,setName]=useState(athlete.full_name||''),[club,setClub]=useState(athlete.club_name||''),[birth,setBirth]=useState(athlete.birth_date||''),[category,setCategory]=useState(athlete.category||''),[photo,setPhoto]=useState(athlete.photo_data_url||''),[addingSource,setAddingSource]=useState(false),[msg,setMsg]=useState(''),[newPassword,setNewPassword]=useState(''),[confirmNewPassword,setConfirmNewPassword]=useState(''),[passwordMsg,setPasswordMsg]=useState(''),[passwordBusy,setPasswordBusy]=useState(false);useEffect(()=>{setName(athlete.full_name||'');setClub(athlete.club_name||'');setBirth(athlete.birth_date||'');setCategory(athlete.category||'');setPhoto(athlete.photo_data_url||'')},[athlete.id]);async function file(e:any){const f=e.target.files?.[0];if(!f)return;try{const next=await compressPhoto(f);setPhoto(next);const blob=await (await fetch(next)).blob();const path=userId+'/'+athlete.id+'.jpg';const up=await supabase.storage.from('athlete-photos').upload(path,blob,{contentType:'image/jpeg',upsert:true});if(up.error){setMsg('Foto não salva: '+up.error.message);return}const pub=supabase.storage.from('athlete-photos').getPublicUrl(path).data.publicUrl+'?v='+Date.now();const {error}=await supabase.from('athletes').update({photo_data_url:pub}).eq('id',athlete.id);if(error){setMsg('Foto não salva: '+error.message);return}setPhoto(pub);setMsg('Foto salva.');await reload()}catch(err:any){setMsg(err.message||'Não foi possível salvar a foto.')}}async function save(){const {error}=await supabase.from('athletes').update({full_name:name,preferred_name:name.split(' ')[0],club_name:club||null,birth_date:birth||null,category:category||null,photo_data_url:photo||null}).eq('id',athlete.id);setMsg(error?error.message:'Dados salvos automaticamente no Supabase.');if(!error)await reload()}async function changePassword(e:any){e.preventDefault();setPasswordMsg('');if(newPassword.length<8){setPasswordMsg('Use pelo menos 8 caracteres.');return}if(newPassword!==confirmNewPassword){setPasswordMsg('As senhas não conferem.');return}setPasswordBusy(true);const {error}=await supabase.auth.updateUser({password:newPassword});setPasswordBusy(false);if(error){setPasswordMsg(error.message);return}setNewPassword('');setConfirmNewPassword('');setPasswordMsg('Senha alterada com sucesso.')}return <><section className="section"><div className="section-head"><h3>Perfil do atleta</h3><button className="btn" onClick={onAddAthlete}><UserPlus size={16}/> Adicionar irmão / atleta</button></div><div className="settings-profile"><div className="profile-photo-editor">{photo?<img src={photo}/>:<AthleteAvatar athlete={athlete} size="lg"/>}<label className="btn"><Camera size={16}/> Alterar foto<input type="file" accept="image/*" hidden onChange={file}/></label></div><div className="form-grid"><label>Nome<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Clube<input value={club} onChange={e=>setClub(e.target.value)}/></label><label>Nascimento<input type="date" value={birth} onChange={e=>setBirth(e.target.value)}/></label><label>Categoria<div className="category-filter"><select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Escolha a categoria</option>{category&&!ATHLETE_CATEGORIES.includes(category)&&<option value={category}>{category}</option>}{ATHLETE_CATEGORIES.map(x=><option key={x} value={x}>{x}</option>)}</select><ChevronDown size={20}/></div></label><div className="wide"><button className="btn primary" onClick={save}>Salvar perfil</button></div></div></div></section><section className="section"><div className="section-head"><div><h3>Fontes de resultados</h3><p className="muted">Os quatro sites padrão já vêm com seus endereços nativos. Preencha nome e registro do atleta em cada fonte que deseja usar.</p></div><button className="btn" onClick={()=>setAddingSource(true)}><Plus size={15}/> Adicionar fonte</button></div><div className="source-config-list">{sourceConfigs.map((cfg:any)=><SourceConfigEditor key={cfg.id} athleteId={athlete.id} cfg={cfg} onSaved={reload} onDeleted={reload} onMessage={setMsg}/>)}{addingSource&&<SourceConfigEditor athleteId={athlete.id} isNew onSaved={reload} onCancel={()=>setAddingSource(false)} onMessage={setMsg}/>}</div>{msg&&<div className="notice">{msg}</div>}</section><section className="section"><h3>Segurança da conta</h3><p className="muted">Altere sua senha diretamente no Supabase Auth. A nova senha vale em todos os aparelhos.</p><form className="form" onSubmit={changePassword}><label>Nova senha<input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} minLength={8} required/></label><label>Confirmar nova senha<input type="password" value={confirmNewPassword} onChange={e=>setConfirmNewPassword(e.target.value)} minLength={8} required/></label><button className="btn primary" disabled={passwordBusy}>{passwordBusy?'Alterando...':'Alterar senha'}</button></form>{passwordMsg&&<div className="notice">{passwordMsg}</div>}</section><CommercialAdmin/></>}
+const ROLE_LABELS:Record<string,string>={owner:'Titular',admin:'Administrador',guardian:'Responsável',coach:'Treinador',viewer:'Visualizador',athlete:'Atleta'}
+const MEMBER_STATUS_LABELS:Record<string,string>={active:'Ativo',invited:'Convidado',suspended:'Suspenso',removed:'Removido'}
+const INVITE_STATUS_LABELS:Record<string,string>={pending:'Pendente',accepted:'Aceito',revoked:'Revogado',expired:'Expirado'}
+const INVITABLE_ROLES:[string,string][]=[['admin','Administrador'],['guardian','Responsável'],['coach','Treinador'],['viewer','Visualizador'],['athlete','Atleta']]
+
+function inviteRpcErrorMessage(raw:string){
+ if(/ACCOUNT_INVITE_NOT_AUTHORIZED/.test(raw))return'Você não tem permissão para convidar/gerenciar membros nesta conta.'
+ if(/ACCOUNT_NOT_ACTIVE/.test(raw))return'Esta conta não está ativa.'
+ if(/INVALID_EMAIL/.test(raw))return'Informe um e-mail válido.'
+ if(/INVITE_ROLE_NOT_ALLOWED/.test(raw))return'Este papel não pode ser convidado.'
+ if(/ACCOUNT_INVITE_ALREADY_PENDING/.test(raw))return'Já existe um convite pendente para este e-mail.'
+ if(/ACCOUNT_MEMBER_LIMIT_REACHED/.test(raw))return'O plano desta conta já atingiu o limite de membros.'
+ if(/INVITE_NOT_FOUND|INVITE_NOT_PENDING/.test(raw))return'Este convite não está mais disponível.'
+ return raw||'Não foi possível concluir a operação.'
+}
+
+function InviteModal({accountId,onClose,onCreated}:{accountId:string,onClose:()=>void,onCreated:()=>void}){
+ const [email,setEmail]=useState(''),[role,setRole]=useState('guardian'),[busy,setBusy]=useState(false),[msg,setMsg]=useState(''),[link,setLink]=useState(''),[copied,setCopied]=useState(false)
+ async function submit(e:any){
+  e.preventDefault();setBusy(true);setMsg('')
+  const {data,error}=await supabase.rpc('create_account_invite',{p_account_id:accountId,p_email:email.trim(),p_role:role})
+  setBusy(false)
+  if(error){setMsg(inviteRpcErrorMessage(error.message));return}
+  const token=data?.token
+  if(!token){setMsg('Convite criado, mas o link não pôde ser montado.');return}
+  setLink(window.location.origin+window.location.pathname+'?invite='+encodeURIComponent(token))
+  onCreated()
+ }
+ async function copyLink(){
+  try{await navigator.clipboard.writeText(link);setCopied(true);setTimeout(()=>setCopied(false),2500)}
+  catch{setMsg('Não foi possível copiar automaticamente. Selecione o link manualmente.')}
+ }
+ async function shareLink(){try{if((navigator as any).share)await (navigator as any).share({title:'Convite VINISWIM',text:'Você foi convidado para o VINISWIM.',url:link})}catch{}}
+ if(link)return <div className="modal"><div className="modal-card"><div className="modal-head"><h3>Convite criado</h3><button className="icon-btn" onClick={onClose} aria-label="Fechar"><X/></button></div><div className="modal-body"><p>Copie o link e envie ao convidado. Por segurança, ele só é exibido uma vez.</p><div className="reset-code-row"><input readOnly value={link} onFocus={e=>e.currentTarget.select()} aria-label="Link de convite"/><button type="button" className="btn" onClick={copyLink}><Copy size={15}/> {copied?'Copiado!':'Copiar link'}</button></div>{typeof navigator!=='undefined'&&(navigator as any).share&&<button type="button" className="btn" onClick={shareLink}>Compartilhar</button>}{msg&&<div className="notice">{msg}</div>}</div><div className="modal-actions"><button className="btn primary" onClick={onClose}>Concluir</button></div></div></div>
+ return <div className="modal"><form className="modal-card" onSubmit={submit}><div className="modal-head"><h3>Convidar membro</h3><button type="button" className="icon-btn" onClick={onClose} aria-label="Fechar"><X/></button></div><div className="modal-body"><div className="form-grid"><label className="wide">E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label><label className="wide">Papel<div className="category-filter"><select value={role} onChange={e=>setRole(e.target.value)}>{INVITABLE_ROLES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select><ChevronDown size={20}/></div></label></div>{msg&&<div className="notice">{msg}</div>}</div><div className="modal-actions"><button type="button" className="btn" onClick={onClose}>Cancelar</button><button className="btn primary" disabled={busy}>{busy?'Criando...':'Criar convite'}</button></div></form></div>
+}
+
+function MembersSection({accountId,myRole,userId}:{accountId:string,myRole:string,userId:string}){
+ const [members,setMembers]=useState<any[]>([]),[invites,setInvites]=useState<any[]>([]),[limits,setLimits]=useState<any>(null),[inviteModal,setInviteModal]=useState(false),[msg,setMsg]=useState('')
+ const canManage=myRole==='owner'||myRole==='admin'
+ useEffect(()=>{void load()},[accountId])
+ async function load(){
+  const [{data:m},{data:i},{data:l}]=await Promise.all([
+   supabase.rpc('list_account_members',{p_account_id:accountId}),
+   supabase.rpc('list_account_invites',{p_account_id:accountId}),
+   supabase.rpc('account_limits',{p_account_id:accountId})
+  ])
+  setMembers(m||[]);setInvites((i||[]).filter((x:any)=>x.status==='pending'));setLimits(l||null)
+ }
+ async function revoke(id:string){
+  if(!confirm('Revogar este convite? O link deixará de funcionar.'))return
+  setMsg('')
+  const {error}=await supabase.rpc('revoke_account_invite',{p_invite_id:id})
+  if(error){setMsg(inviteRpcErrorMessage(error.message));return}
+  await load()
+ }
+ return <section className="section">
+  <div className="section-head"><div><h3><Users size={17} style={{verticalAlign:-3,marginRight:6}}/>Membros e convites</h3>{limits&&<p className="muted">Membros: {limits.member_count}/{limits.max_members} · Atletas: {limits.athlete_count}/{limits.max_athletes}</p>}</div>{canManage&&<button className="btn" onClick={()=>setInviteModal(true)}><UserPlus size={16}/> Convidar membro</button>}</div>
+  <div className="table-wrap"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Status</th></tr></thead><tbody>{members.map((m:any)=><tr key={m.id}><td>{m.full_name||'—'}{m.user_id===userId?' (você)':''}</td><td>{m.email||'—'}</td><td><span className="tag">{ROLE_LABELS[m.role]||m.role}</span></td><td>{MEMBER_STATUS_LABELS[m.status]||m.status}</td></tr>)}</tbody></table></div>
+  {invites.length>0&&<><h4 style={{margin:'16px 0 8px'}}>Convites pendentes</h4><div className="table-wrap"><table><thead><tr><th>E-mail</th><th>Papel</th><th>Validade</th><th>Status</th>{canManage&&<th></th>}</tr></thead><tbody>{invites.map((i:any)=><tr key={i.id}><td>{i.email}</td><td><span className="tag">{ROLE_LABELS[i.role]||i.role}</span></td><td>{new Date(i.expires_at).toLocaleDateString('pt-BR')}</td><td>{INVITE_STATUS_LABELS[i.status]||i.status}</td>{canManage&&<td><div className="actions"><button className="danger" onClick={()=>revoke(i.id)}>Revogar</button></div></td>}</tr>)}</tbody></table></div></>}
+  {msg&&<div className="notice">{msg}</div>}
+  {inviteModal&&<InviteModal accountId={accountId} onClose={()=>setInviteModal(false)} onCreated={load}/>}
+ </section>
+}
+
+function SettingsPage({athlete,accountId,myRole,userId,sourceConfigs,reload,onAddAthlete}:{athlete:any,accountId:string,myRole:string,userId:string,sourceConfigs:any[],reload:()=>void,onAddAthlete:()=>void}){const [name,setName]=useState(athlete.full_name||''),[club,setClub]=useState(athlete.club_name||''),[birth,setBirth]=useState(athlete.birth_date||''),[category,setCategory]=useState(athlete.category||''),[photo,setPhoto]=useState(athlete.photo_data_url||''),[addingSource,setAddingSource]=useState(false),[msg,setMsg]=useState(''),[newPassword,setNewPassword]=useState(''),[confirmNewPassword,setConfirmNewPassword]=useState(''),[passwordMsg,setPasswordMsg]=useState(''),[passwordBusy,setPasswordBusy]=useState(false);useEffect(()=>{setName(athlete.full_name||'');setClub(athlete.club_name||'');setBirth(athlete.birth_date||'');setCategory(athlete.category||'');setPhoto(athlete.photo_data_url||'')},[athlete.id]);async function file(e:any){const f=e.target.files?.[0];if(!f)return;try{const next=await compressPhoto(f);setPhoto(next);const blob=await (await fetch(next)).blob();const path=userId+'/'+athlete.id+'.jpg';const up=await supabase.storage.from('athlete-photos').upload(path,blob,{contentType:'image/jpeg',upsert:true});if(up.error){setMsg('Foto não salva: '+up.error.message);return}const pub=supabase.storage.from('athlete-photos').getPublicUrl(path).data.publicUrl+'?v='+Date.now();const {error}=await supabase.from('athletes').update({photo_data_url:pub}).eq('id',athlete.id);if(error){setMsg('Foto não salva: '+error.message);return}setPhoto(pub);setMsg('Foto salva.');await reload()}catch(err:any){setMsg(err.message||'Não foi possível salvar a foto.')}}async function save(){const {error}=await supabase.from('athletes').update({full_name:name,preferred_name:name.split(' ')[0],club_name:club||null,birth_date:birth||null,category:category||null,photo_data_url:photo||null}).eq('id',athlete.id);setMsg(error?error.message:'Dados salvos automaticamente no Supabase.');if(!error)await reload()}async function changePassword(e:any){e.preventDefault();setPasswordMsg('');if(newPassword.length<8){setPasswordMsg('Use pelo menos 8 caracteres.');return}if(newPassword!==confirmNewPassword){setPasswordMsg('As senhas não conferem.');return}setPasswordBusy(true);const {error}=await supabase.auth.updateUser({password:newPassword});setPasswordBusy(false);if(error){setPasswordMsg(error.message);return}setNewPassword('');setConfirmNewPassword('');setPasswordMsg('Senha alterada com sucesso.')}return <><section className="section"><div className="section-head"><h3>Perfil do atleta</h3><button className="btn" onClick={onAddAthlete}><UserPlus size={16}/> Adicionar irmão / atleta</button></div><div className="settings-profile"><div className="profile-photo-editor">{photo?<img src={photo}/>:<AthleteAvatar athlete={athlete} size="lg"/>}<label className="btn"><Camera size={16}/> Alterar foto<input type="file" accept="image/*" hidden onChange={file}/></label></div><div className="form-grid"><label>Nome<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Clube<input value={club} onChange={e=>setClub(e.target.value)}/></label><label>Nascimento<input type="date" value={birth} onChange={e=>setBirth(e.target.value)}/></label><label>Categoria<div className="category-filter"><select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Escolha a categoria</option>{category&&!ATHLETE_CATEGORIES.includes(category)&&<option value={category}>{category}</option>}{ATHLETE_CATEGORIES.map(x=><option key={x} value={x}>{x}</option>)}</select><ChevronDown size={20}/></div></label><div className="wide"><button className="btn primary" onClick={save}>Salvar perfil</button></div></div></div></section><section className="section"><div className="section-head"><div><h3>Fontes de resultados</h3><p className="muted">Os quatro sites padrão já vêm com seus endereços nativos. Preencha nome e registro do atleta em cada fonte que deseja usar.</p></div><button className="btn" onClick={()=>setAddingSource(true)}><Plus size={15}/> Adicionar fonte</button></div><div className="source-config-list">{sourceConfigs.map((cfg:any)=><SourceConfigEditor key={cfg.id} athleteId={athlete.id} cfg={cfg} onSaved={reload} onDeleted={reload} onMessage={setMsg}/>)}{addingSource&&<SourceConfigEditor athleteId={athlete.id} isNew onSaved={reload} onCancel={()=>setAddingSource(false)} onMessage={setMsg}/>}</div>{msg&&<div className="notice">{msg}</div>}</section><section className="section"><h3>Segurança da conta</h3><p className="muted">Altere sua senha diretamente no Supabase Auth. A nova senha vale em todos os aparelhos.</p><form className="form" onSubmit={changePassword}><label>Nova senha<input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} minLength={8} required/></label><label>Confirmar nova senha<input type="password" value={confirmNewPassword} onChange={e=>setConfirmNewPassword(e.target.value)} minLength={8} required/></label><button className="btn primary" disabled={passwordBusy}>{passwordBusy?'Alterando...':'Alterar senha'}</button></form>{passwordMsg&&<div className="notice">{passwordMsg}</div>}</section><MembersSection accountId={accountId} myRole={myRole} userId={userId}/><CommercialAdmin/></>}
 
 // custom-domain-build-trigger
