@@ -41,14 +41,16 @@ Escopo: nome do módulo/função (`monitor-runner`, `results-page`, `handoff`, e
 
 Exemplo: `security(monitor-runner): remove delete automático em processArchiveJob [D-001]`
 
-## Estado atual conhecido (snapshot atualizado em 27/09/2026, pós D-004 etapas A+B+C+D+E)
+## Estado atual conhecido (snapshot atualizado em 27/09/2026, pós DEPLOY da D-004 para produção)
 
-- HEAD do GitHub (main): `7c26358703c9f0f4c9b427c850f7b8a228e97ba2`. A branch de trabalho está à frente com os commits de D-001/D-002/D-004/FIX-001, nada mergeado em `main` ainda.
-- Último deploy público confirmado: Pages run #503, 26/09 13:27:07Z, sobre o frontend **anterior** à etapa D. **Nenhum novo deploy público aconteceu** — a mudança de frontend da D-004 segue só na branch de trabalho, aguardando autorização explícita do chat para merge/deploy (já pedida e ainda não concedida na revisão da etapa D).
+- HEAD do GitHub (main): `ad665f5230545a146aff9311c63e9e7dbfa4beb2` — **inclui a D-004 (etapas A–E) em produção**. Merge feito por fast-forward puro (branch de trabalho era 0 commits atrás / 12 à frente de `main`, sem divergência), então nenhum código além do já revisado e aprovado entrou no deploy.
+- **Deploy público CONFIRMADO em 27/09/2026 00:46 UTC**: workflow `Build VINISWIM Commercial App` (run #105, sucesso) gerou o build e o bot commitou `ad665f5` em `app/` (novo bundle `assets/index-CzxNKciv.js`, substituindo `assets/index-BSw2K2bF.js`); workflow `pages build and deployment` (run #505) publicou esse commit com sucesso. `app/index.html` em `main` já referencia o novo arquivo — conferido lendo o arquivo direto do GitHub.
+- **Limitação de verificação**: por causa da mesma restrição de rede da regra 9 (que aqui bloqueia não só `*.supabase.co`, mas qualquer domínio externo, incluindo `viniswim.com.br` e `*.github.io`), o Code **não conseguiu abrir a URL pública ao vivo para conferir visualmente**. A confirmação acima é a mais forte disponível pelas ferramentas desta sessão: os dois workflows do GitHub (build e Pages) reportam sucesso para o commit exato que contém o novo bundle, e o conteúdo do `index.html` publicado já foi lido diretamente do repositório. A conferência visual final (abrir `https://viniswim.com.br/app/` de verdade) fica para o smoke test do Henrique (ver Etapa D-DEPLOY abaixo).
+- **Service worker/PWA**: `app/sw.js` só trata notificações push (`install`/`activate`/`push`/`notificationclick`) — **não implementa cache de `fetch`**, então não há risco de Service Worker servindo JS/CSS antigos. Como o Vite gera nomes de arquivo com hash de conteúdo (`index-CzxNKciv.js`), o único artefato sem hash é `index.html`; um cache de CDN/navegador desatualizado nele é resolvido por um hard-refresh simples, sem qualquer ação de código.
 - `monitor-runner` (Edge Function): **versão 60 ACTIVE**, SHA `a590564ef67d6ac374d5513849e144860ffbbd41c089ff0d28134fc460382b0e`. Mirror em git verificado byte-a-byte igual ao deploy real.
 - **RESOLVIDO (D-001)**: `DELETE` automático em `results` removido; RPCs de claim travadas para `anon`/`authenticated`.
-- **D-004 etapas A, B, C, D e E EXECUTADAS** (ver log de decisões). Regra de agregação de estado **APROVADA e CONGELADA** pelo chat. Etapa E confirmou toda a máquina de estados contra o backend real usando uma identidade 100% sintética e isolada (usuário Auth + conta + account_member + atleta, todos descartáveis), mas **não conseguiu concluir o teste visual em navegador real** por um bloqueio de rede do ambiente de execução (ver regra 9) — documentado com transparência, nada foi simulado ou marcado como aprovado sem evidência.
-- **Etapa F (limpeza de legado) ainda NÃO iniciada** — aguardando revisão cruzada deste relatório. Merge/deploy para produção segue **não autorizado**.
+- **D-004 etapas A, B, C, D e E EXECUTADAS, e frontend (etapa D) EM PRODUÇÃO** (ver log de decisões). Regra de agregação de estado **APROVADA e CONGELADA** pelo chat.
+- **Etapa F (limpeza de legado) continua NÃO iniciada** — aguardando smoke test visual do Henrique + revisão cruzada final do chat.
 - `VINISWIM-MONITOR` (Render): serviço legado sem relação com o Supabase atual — pendente decisão do usuário sobre manter/arquivar.
 
 ## Achados/fixes independentes (fora da numeração D-XXX)
@@ -78,7 +80,7 @@ Exemplo: `security(monitor-runner): remove delete automático em processArchiveJ
 - **Status**: aprovada em arquitetura pelo chat, com uma correção: a parte que previa `refresh_requests.status` persistido + trigger de reconciliação **foi substituída** pela abordagem 100% derivada da D-004 (ver abaixo). O restante do desenho original (tabela `refresh_requests`, coluna `request_id`, RPC de cancelamento por request, frontend guardando `request_id`) segue valendo e foi incorporado à D-004.
 
 ### D-004 — Implementação da correlação por request_id (arquitetura simplificada, sem status persistido)
-- **Status**: etapas A, B, C, D e E EXECUTADAS. Regra de agregação de estado **APROVADA e CONGELADA** pelo chat. Etapa D **APROVADA** pelo chat, com instrução explícita de **NÃO fazer merge/deploy para produção ainda**. Etapa E autorizada e executada com uma ressalva de ambiente (ver abaixo). Aguardando revisão cruzada deste relatório antes de iniciar etapa F.
+- **Status**: etapas A, B, C, D e E EXECUTADAS. Regra de agregação de estado **APROVADA e CONGELADA** pelo chat. Etapa E revisada e **APROVADA PARCIALMENTE** (backend/identidade sintética validados; visual em navegador segue não testado, aceito como limitação de ambiente). **Merge/deploy para produção AUTORIZADO pelo chat e EXECUTADO em 27/09/2026** (ver "Etapa DEPLOY" abaixo). Etapa F continua **bloqueada**, aguardando smoke test visual do Henrique + revisão final do chat.
 - **Decisões de produto já aprovadas pelo chat**: request_id é por atleta/conta (não por aba/dispositivo); duas abas enxergam o mesmo estado; pausar cancela só o request_id exibido; `request_result_refresh` reutiliza solicitação ativa em vez de criar concorrente; `cancel_result_refresh(p_athlete_id)` legado é preservado; nova RPC `cancel_result_refresh_request(p_request_id)` para o frontend novo; etapas em commits separados (A schema, B RPCs, C monitor-runner, D frontend, E validação, F limpeza de legado depois); zero linha de `results` tocada para testar; frontend novo só publica depois do backend validado.
 
 #### Etapa A — Migration aditiva de schema (EXECUTADA E VERIFICADA)
@@ -213,6 +215,25 @@ Justificativa completa da regra 1 e a tabela de combinações (pending/running/c
 **Pendências**:
 - Se o usuário ampliar o acesso de rede deste ambiente (ou uma sessão futura rodar num ambiente sem essa restrição), refazer o teste de navegador real descrito nos passos 1–4 acima antes do deploy final — cobre especificamente os itens 1, 2, 4, 6–14 (aparência visual) e 20 desta lista, que hoje estão como "não testado" ou "parcial".
 - Etapa F (limpeza de RPCs/legado) e merge/deploy para produção continuam **não autorizados**, aguardando decisão do chat sobre este relatório.
+
+#### Etapa DEPLOY — Merge e publicação da D-004 em produção (EXECUTADA, aguardando smoke test + revisão final)
+
+**Autorização do chat**: revisão da etapa E aprovada parcialmente (limitação de rede aceita como externa, não deve ser contornada de forma insegura); merge/deploy da versão já validada **autorizado**, com condições: nenhuma mudança funcional adicional junto do merge; usar exatamente o código da branch; confirmar build de novo; confirmar commit/merge efetivo; confirmar deploy do Pages; confirmar que a URL pública serve os assets certos; considerar service worker/cache/PWA; não disparar Atualizar para atleta real; não alterar `results`; não iniciar etapa F ainda.
+
+**O que foi feito, em ordem:**
+1. Conferido que `main` (`7c26358`) era exatamente o ponto de partida (`merge-base`) da branch de trabalho — **fast-forward puro, 0 commits de `main` ausentes na branch, 12 commits da branch ausentes em `main`**, todos já revisados e aprovados nas etapas A–E. Nenhuma mudança funcional adicional foi feita.
+2. Rodado `npm run build:web` (`tsc -b && vite build`) sobre a árvore já mesclada, antes do push — sem erros, confirmando o build uma segunda vez conforme pedido.
+3. `git push origin main` (fast-forward de `7c26358` para `13bfd7d`) — commit efetivo confirmado por `git log`/API do GitHub.
+4. Workflow `Build VINISWIM Commercial App` (run `36283472312`, #105) disparado automaticamente pelo push (`paths: commercial/**`), concluído com sucesso; o bot `github-actions[bot]` commitou `ad665f5` em `app/` com o novo bundle (`assets/index-CzxNKciv.js` substituindo `assets/index-BSw2K2bF.js`, `index.html` atualizado).
+5. Workflow `pages build and deployment` (run `36283498069`, #505) processou exatamente o commit `ad665f5` e concluiu com sucesso — deploy do GitHub Pages confirmado pela própria API do GitHub.
+6. Lido `app/index.html` direto do repositório em `main` — confirma que a tag `<script>` aponta para `./assets/index-CzxNKciv.js`, o bundle novo.
+7. Lido `app/sw.js` direto do repositório — confirma que o service worker só trata push/notificação, **não** implementa cache de `fetch`; combinado com nomes de arquivo com hash de conteúdo do Vite, não há risco de Service Worker servindo JS/CSS antigos. O único ponto sem hash (`index.html`) só teria problema com um cache de CDN/navegador muito agressivo, resolvido por um hard-refresh.
+8. **Não foi possível abrir `https://viniswim.com.br/app/` nem o domínio padrão `*.github.io` a partir desta sessão** — o mesmo bloqueio de rede da regra 9 se mostrou mais amplo do que só `*.supabase.co`: nega qualquer domínio externo fora da lista fechada (npm, GitHub, APIs Anthropic), incluindo o próprio site publicado. Tentativas registradas com `WebFetch` para os dois domínios, ambas recusadas pelo proxy de egresso (`EGRESS_BLOCKED`). Por isso a confirmação visual final de que a URL pública está servindo a versão nova fica para o smoke test do Henrique, não para o Code.
+9. Nenhuma chamada a `request_result_refresh`/`cancel_result_refresh*` foi feita para nenhum atleta real durante todo o processo de deploy. Nenhuma linha de `results` foi lida, criada, atualizada ou apagada.
+
+**Roteiro de smoke test visual entregue ao Henrique** (fora deste arquivo, no bloco de retorno da conversa): login, abrir Resultados, layout, presença do botão Atualizar (sem tocar nele, para não disparar uma busca real), navegação/reload, responsividade — deliberadamente sem nenhum passo que dispare busca/importação real, conforme instrução do chat.
+
+**Pendências**: aguardando o Henrique confirmar o smoke test visual, e o chat dar a revisão final antes de autorizar a etapa F.
 
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
