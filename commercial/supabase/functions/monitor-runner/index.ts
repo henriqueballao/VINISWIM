@@ -592,6 +592,17 @@ async function processJob(j:any){
 }
 
 Deno.serve(async()=>{
+ const invocationStart=Date.now();
+ // Free-plan wall-clock budget is 150s. Reserve a safety margin for the
+ // links/monitor_jobs sections above and general jitter, and only start the
+ // next archive job if there's still enough safe time for its worst case
+ // (base page ~12s + ProgressionDetails.pdf ~18s + up to 2 result links at
+ // ~18s each = ~66s, rounded up). This replaces a fixed 1-per-invocation
+ // cap with "as many as safely fit", so fast real-world runs (sub-second,
+ // as observed) drain the queue in one invocation instead of one per minute.
+ const WALL_CLOCK_BUDGET_MS=150000;
+ const SAFETY_MARGIN_MS=20000;
+ const PER_ARCHIVE_WORST_CASE_MS=70000;
  const summary={links:0,jobs:0,archives:0,errors:[] as string[]};
  try{
   await db.from('historical_archive_jobs').update({
@@ -627,11 +638,16 @@ Deno.serve(async()=>{
    try{await processJob(j)}catch(e:any){summary.errors.push(e.message||String(e))}
   }
 
-  const {data:archiveJobs,error:archiveClaimError}=await db.rpc('claim_historical_archive_jobs',{p_limit:1});
-  if(archiveClaimError)throw archiveClaimError;
-  for(const aj of archiveJobs||[]){
-   summary.archives++;
-   try{await processArchiveJob(aj)}catch(e:any){summary.errors.push(e.message||String(e))}
+  while(true){
+   const remaining=WALL_CLOCK_BUDGET_MS-SAFETY_MARGIN_MS-(Date.now()-invocationStart);
+   if(remaining<PER_ARCHIVE_WORST_CASE_MS)break;
+   const {data:archiveJobs,error:archiveClaimError}=await db.rpc('claim_historical_archive_jobs',{p_limit:1});
+   if(archiveClaimError)throw archiveClaimError;
+   if(!archiveJobs||!archiveJobs.length)break;
+   for(const aj of archiveJobs){
+    summary.archives++;
+    try{await processArchiveJob(aj)}catch(e:any){summary.errors.push(e.message||String(e))}
+   }
   }
 
   return json({ok:true,...summary})
