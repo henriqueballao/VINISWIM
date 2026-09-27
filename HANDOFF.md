@@ -50,7 +50,8 @@ Exemplo: `security(monitor-runner): remove delete automático em processArchiveJ
 - `monitor-runner` (Edge Function): **versão 60 ACTIVE**, SHA `a590564ef67d6ac374d5513849e144860ffbbd41c089ff0d28134fc460382b0e`. Mirror em git verificado byte-a-byte igual ao deploy real.
 - **RESOLVIDO (D-001)**: `DELETE` automático em `results` removido; RPCs de claim travadas para `anon`/`authenticated`.
 - **D-004 etapas A, B, C, D e E EXECUTADAS, e frontend (etapa D) EM PRODUÇÃO** (ver log de decisões). Regra de agregação de estado **APROVADA e CONGELADA** pelo chat.
-- **Etapa F (limpeza de legado) continua NÃO iniciada** — aguardando smoke test visual do Henrique + revisão cruzada final do chat.
+- **D-004 AINDA NÃO ESTÁ ESTABILIZADA** — o smoke test do Henrique na versão publicada encontrou um bug real introduzido pela etapa B (reassociação de jobs cancelados) e expôs uma característica de performance pré-existente que faz o botão Atualizar parecer travado. Ver "Etapa ESTABILIZAÇÃO" no log de decisões.
+- **Etapa F (limpeza de legado) continua BLOQUEADA** — não pode começar antes da D-004 ser estabilizada.
 - `VINISWIM-MONITOR` (Render): serviço legado sem relação com o Supabase atual — pendente decisão do usuário sobre manter/arquivar.
 
 ## Achados/fixes independentes (fora da numeração D-XXX)
@@ -234,6 +235,76 @@ Justificativa completa da regra 1 e a tabela de combinações (pending/running/c
 **Roteiro de smoke test visual entregue ao Henrique** (fora deste arquivo, no bloco de retorno da conversa): login, abrir Resultados, layout, presença do botão Atualizar (sem tocar nele, para não disparar uma busca real), navegação/reload, responsividade — deliberadamente sem nenhum passo que dispare busca/importação real, conforme instrução do chat.
 
 **Pendências**: aguardando o Henrique confirmar o smoke test visual, e o chat dar a revisão final antes de autorizar a etapa F.
+
+#### Etapa ESTABILIZAÇÃO — achados do smoke test em produção (INVESTIGAÇÃO CONCLUÍDA, correção do bug #1 aguardando decisão sobre conflito arquitetural; nenhum código alterado ainda)
+
+**Contexto**: o Henrique fez o smoke test na versão publicada (produção real, athlete real "Vinícius") e, apesar de instruído a não tocar em Atualizar, tocou — o que revelou, sem querer, um problema real. Investiguei tudo com SELECT puro contra o Supabase real (a mesma leitura que fiz nos logs reais do teste dele) e depois reproduzi cada achado com um atleta 100% sintético dedicado para não deixar dúvida. Nenhuma linha de código foi alterada, nenhuma migration aplicada, nenhum deploy feito, `results` não foi tocado em nenhum momento (confirmado por contagem zero antes/depois de cada teste sintético).
+
+**1) BUG CRÍTICO DA D-004 — jobs de um request cancelado são "ressuscitados" por um request posterior**
+
+*Onde exatamente*: `request_result_refresh`, nos dois `INSERT ... ON CONFLICT DO UPDATE`:
+```sql
+-- monitor_jobs
+on conflict(athlete_id,source_id,job_type) do update set
+  status='pending',next_run_at=now(),locked_at=null,last_error=null,updated_at=now(),request_id=v_request_id;
+
+-- historical_archive_jobs
+on conflict(athlete_id,archive_id) do update set
+  status='pending',...,request_id=v_request_id;
+```
+Essas duas cláusulas sobrescrevem `status` e `request_id` **incondicionalmente**, sem checar se a linha existente pertencia a um request já cancelado.
+
+*Por que acontece*: `monitor_jobs` tem `UNIQUE(athlete_id,source_id,job_type)` e `historical_archive_jobs` tem `UNIQUE(athlete_id,archive_id)` — ou seja, só pode existir **uma linha física** por combinação atleta+fonte (ou atleta+arquivo histórico), para sempre. Isso é anterior à D-004; a D-004 só acrescentou a coluna `request_id` nessa linha única. Como só existe uma linha, uma nova solicitação **precisa** reaproveitar essa mesma linha para a busca acontecer de novo — não há como criar uma linha "nova" para o mesmo atleta+fonte sem violar a constraint.
+
+*Reprodução com dados 100% sintéticos (atleta descartável, apagado ao final, zero linha de `results` tocada)*:
+1. `request_result_refresh` → request A, `queued:13`.
+2. `cancel_result_refresh_request(A)` → A vira `cancelled`.
+3. `request_result_refresh` de novo, imediatamente → request B, `queued:13`, `reused:false` (correto, A está cancelado então não é reutilizado).
+4. **Resultado**: `v_refresh_request_status` mostra A com `derived_status='cancelled'` (correto) mas **`job_count=0`** — as 13 linhas de job que pertenciam a A foram fisicamente reatribuídas (`request_id` trocado) para B, que agora aparece com `job_count=13`.
+5. Cancelar B depois **não afeta** o `cancel_requested_at` de A (isso está ok).
+6. `results` = 0 linhas tocadas durante todo o teste.
+
+*Impacto real*: não há corrupção de dados nem falha de segurança — o pior efeito é que o histórico do request A fica **enganoso** (parece que nunca teve jobs) e a garantia de "cancelar é definitivo" não é tão sólida quanto o texto "PAUSA SOLICITADA" sugere: se alguém clicar Atualizar de novo rápido, os jobs que estavam cancelados voltam a rodar sob um novo request_id, sem que isso fique visível em lugar nenhum além de uma auditoria manual como esta.
+
+*Conflito arquitetural (reportado antes de improvisar, conforme pedido)*: as três regras que o chat pediu para o teste sintético —
+- "jobs de A continuam ligados a A" (para sempre)
+- "B recebe somente seus próprios jobs" (fisicamente distintos dos de A)
+- "nenhum job muda de request_id"
+
+— **não podem ser satisfeitas simultaneamente com o schema atual**, porque as constraints `UNIQUE(athlete_id,source_id,job_type)` e `UNIQUE(athlete_id,archive_id)` garantem que só existe uma linha de trabalho por atleta+fonte/arquivo. Satisfazer as três ao pé da letra exigiria permitir múltiplas linhas de job para o mesmo atleta+fonte (uma por request) — o que abriria uma porta perigosa: duas linhas do mesmo atleta+fonte poderiam ser reivindicadas (`claim_monitor_jobs`/`claim_historical_archive_jobs`) e processadas **em paralelo** por duas execuções do `monitor-runner`, e confirmei que `results` **não tem nenhuma constraint UNIQUE** (só chave primária) — ou seja, duas gravações concorrentes para o mesmo resultado poderiam criar duplicatas reais na tabela oficial. Relaxar essa constraint sem antes resolver a deduplicação de `results` seria trocar um bug cosmético por um risco real de dado duplicado.
+
+**Duas opções, nenhuma implementada ainda — aguardando decisão do chat:**
+
+- **Opção A (recomendada, aditiva, sem tocar nas constraints existentes)**: criar uma tabela nova, só de histórico/auditoria (ex.: `refresh_request_job_links(request_id, job_table, job_id, linked_at)`, inserção pura, nunca update), gravada toda vez que um job é associado a um request. Isso preserva rastreabilidade completa e permanente de "quais jobs cada request teve, mesmo depois de reatribuídos" sem mudar o comportamento de agendamento nem o risco de concorrência. **Não resolve** "o job nunca muda de request_id" na linha viva (isso seguiria mudando, é inerente ao modelo de linha única) — resolve a rastreabilidade histórica, que parece ser a preocupação real por trás da regra.
+- **Opção B (mudança maior, não recomendada sem mais análise)**: permitir múltiplas linhas de job por atleta+fonte (uma por request), com filtro de "só uma pode estar pending/running por vez" garantido por outra constraint (ex.: unique index parcial `WHERE status IN ('pending','running')`). Resolveria as três regras ao pé da letra, mas exige repensar `claim_monitor_jobs`/`claim_historical_archive_jobs` e, antes de mexer nisso, resolver a ausência de constraint única em `results` para eliminar de vez o risco de duplicata em concorrência.
+
+**Pergunta ao chat**: aprovar a Opção A (tabela de histórico aditiva, sem risco, resolve a rastreabilidade) para eu implementar, ou preferem outra direção? Não implementei nenhuma das duas ainda.
+
+**2) Throughput real da busca — investigação concluída, NADA foi alterado (p_limit continua 1)**
+
+Dados levantados, todos do Supabase real:
+- `claim_historical_archive_jobs(p_limit)`: o Edge Function chama com `p_limit:1`, e a própria função RPC **limita o máximo a 3** mesmo que um valor maior fosse passado (`limit greatest(1,least(coalesce(p_limit,1),3))`) — ou seja, mesmo mudando só o parâmetro no Edge Function, o teto real é 3.
+- Duração real de `processArchiveJob` **para o Vinícius (records_found=0)**: entre 0,15s e 0,7s por arquivo — muito rápido porque não encontrou nada. Isso **não representa o pior caso**: o código faz até 1 fetch da página base + 1 fetch do PDF de progressão + até 2 fetches de listas de resultado por arquivo, cada um com timeout de 18s (`quickReaderText`) — no pior caso (fontes lentas/fora do ar), um único arquivo pode levar até ~54s.
+- **Limite da Edge Function (plano free confirmado no projeto)**: 150s de wall-clock por invocação, 2s de CPU por request (não conta espera de rede). Processar 3 arquivos no pior caso (~162s) **já estouraria os 150s do plano free** — ou seja, subir `p_limit` para o teto de 3 sem mais nada é arriscado por si só, pode matar a invocação no meio e deixar jobs presos em `running` até a recuperação automática de lock (3 min para arquivos históricos, 5 min para jobs de monitor).
+- Frequência real do agendador externo observada nos dados do teste do Henrique: praticamente **1 vez por minuto** (intervalos de 51 a 63 segundos entre execuções), mais frequente do que o "~2 minutos" registrado anteriormente no achado FIX-002 — não sabemos por que mudou nem temos controle sobre esse agendador (é externo ao código do VINISWIM).
+- Quantidade de arquivos históricos para o Vinícius: 12 (bate com os testes sintéticos anteriores). Não temos dado de qual é o máximo possível no catálogo geral.
+- Comportamento se um arquivo travar/falhar: `claim_historical_archive_jobs` já recupera locks de `running` com mais de 3 minutos sem heartbeat, revertendo para `pending` com uma mensagem de erro anexada — existe uma rede de segurança, mas ela não acelera nada, só evita ficar preso para sempre.
+
+**Conclusão desta etapa**: com o teto de 3 do RPC e o limite de 150s do plano free, **não é seguro simplesmente aumentar `p_limit` sem também colocar um orçamento de tempo dentro do próprio loop do Edge Function** (processar arquivos até estourar um limite de tempo seguro, ex. ~100s, e devolver o resto para a próxima invocação, em vez de um número fixo de arquivos). Isso é uma mudança de lógica no `monitor-runner`, não só um parâmetro — por isso não implementei nada e trago essa análise para decisão antes de qualquer mudança de throughput, conforme pedido.
+
+**3) Cronômetro / UX — proposta (nenhuma mudança de frontend feita ainda)**
+
+Confirmado: como cada job "roda" por menos de 1 segundo e volta para `pending`, e a tela consulta o backend a cada 2 segundos, a chance de pegar o instante exato em que algo está `running` é próxima de zero — por isso o nadador fica parado e o cronômetro em `00:00` durante os ~12 minutos reais que a busca leva.
+
+**Proposta**: trocar a base do cronômetro de `running_started_at` (de um job específico, que quase nunca é observável) para `refresh_requests.created_at` (já exposto pela view, o instante em que a solicitação foi aceita pelo backend) — o relógio passaria a contar a partir do clique, ativo enquanto `derived_status` for `pending` OU `running`, refletindo o tempo real da solicitação como um todo, não de um job individual. O limiar de "BUSCA DEMORADA" (hoje 20 segundos) precisaria ser recalibrado para um valor compatível com a duração real observada (~12 minutos) — isso é uma decisão de produto que prefiro trazer para vocês antes de mexer no código, já que muda o que o usuário vê e quando.
+
+**Nenhuma mudança de frontend foi feita** — isso é só a proposta pedida.
+
+**4) "Última atualização"**: sem alteração, conforme instrução do chat — diagnóstico permanece "mostra a última conclusão real", já registrado como correto.
+
+**5) Gráfico de Evolução (eixo Y/X)**: confirmado que a D-004 nunca tocou o componente `Evolution` — registrado aqui como problema separado, meramente para constar, **sem nenhuma ação** até a D-004 estar estabilizada.
+
+**Limpeza**: atleta sintético de reprodução do bug #1 e todos os jobs/requests criados para o teste foram apagados; contagem zero confirmada. Zero linha de `results` tocada em toda a etapa de estabilização.
 
 ---
 *Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
