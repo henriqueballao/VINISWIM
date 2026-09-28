@@ -380,19 +380,19 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,meetOp
   {(isPending||isRunning||isCancelled||isFailed||isNoSources||refreshMsg)&&<div className={'sync-msg'+(isRunning?' swimming':'')}>
    {isNoSources?'Nenhuma fonte aplicável foi encontrada para esta busca.':(isPending||isRunning||isCancelled||isFailed)?<><div className="swim-status-copy"><div><b>{isActive?(slow?'BUSCA DEMORADA':'BUSCA EM ANDAMENTO')+' · '+syncClock:'Buscando novos resultados...'}</b><small>Consultando fontes oficiais e processando campeonatos.</small></div>{!isActive&&<strong className="swim-timer">{syncClock}</strong>}</div><div className={'swim-lane'+(syncAlert?' alert':'')} aria-label={syncAlert?'Busca paralisada':'Atualização em andamento'}><div className={'swimmer '+((athlete?.gender||'').toLowerCase().startsWith('f')?'female':'male')+(syncAlert?' stopped':'')}><span className="swim-head"/><span className="swim-body"/><span className="swim-arm arm-a"/><span className="swim-arm arm-b"/><span className="swim-splash">•••</span>{syncAlert&&<span className="swim-alert-sign"><AlertTriangle size={15}/></span>}</div></div>{syncAlert&&<div className="swim-alert-copy"><span>{isCancelled?'PAUSA SOLICITADA':isFailed?'ERRO NA BUSCA':'BUSCA DEMORADA'}</span></div>}</>:refreshMsg}
   </div>}
-  <div className="search-source-control">
-   <button type="button" className="source-select-button" onClick={()=>setSourceOpen(v=>!v)} aria-expanded={sourceOpen}>
-    <span>Fontes da busca</span>
-    <b>{allSelected?'Todas':selectedSources.length?selectedSources.length+' selecionada(s)':'Nenhuma'}</b>
-    <ChevronDown size={18} className={sourceOpen?'rotated':''}/>
-   </button>
-   {sourceOpen&&<div className="source-select-menu">
-    <label className="source-option all"><input type="checkbox" checked={allSelected} onChange={toggleAll}/><span>Todas</span></label>
-    {sourceConfigs.map((cfg:any)=>{const code=cfg.sources?.code||'';const checked=selectedSources.includes(code);return <label className="source-option" key={cfg.id}><input type="checkbox" checked={checked} onChange={()=>setSelectedSources((prev:string[])=>checked?prev.filter(x=>x!==code):[...prev,code])}/><span>{cfg.display_name}</span>{(!cfg.external_id||!cfg.external_name)&&<small>não configurada</small>}</label>})}
-    {!sourceConfigs.length&&<div className="source-empty">Nenhuma fonte cadastrada em Configurações.</div>}
-   </div>}
-  </div>
   <div className="result-filter-grid">
+   <div className="result-filter-control">
+    <button type="button" className="result-filter-button" onClick={()=>setSourceOpen(v=>!v)} aria-expanded={sourceOpen}>
+     <span>Fontes da busca</span>
+     <b>{allSelected?'Todas':selectedSources.length?selectedSources.length+' selecionada(s)':'Nenhuma'}</b>
+     <ChevronDown size={18} className={sourceOpen?'rotated':''}/>
+    </button>
+    {sourceOpen&&<div className="result-filter-menu result-filter-checks">
+     <label className="source-option all"><input type="checkbox" checked={allSelected} onChange={toggleAll}/><span>Todas</span></label>
+     {sourceConfigs.map((cfg:any)=>{const code=cfg.sources?.code||'';const checked=selectedSources.includes(code);return <label className="source-option" key={cfg.id}><input type="checkbox" checked={checked} onChange={()=>setSelectedSources((prev:string[])=>checked?prev.filter(x=>x!==code):[...prev,code])}/><span>{cfg.display_name}</span>{(!cfg.external_id||!cfg.external_name)&&<small>não configurada</small>}</label>})}
+     {!sourceConfigs.length&&<div className="source-empty">Nenhuma fonte cadastrada em Configurações.</div>}
+    </div>}
+   </div>
    <CompetitionFilter options={meetOptions} value={resultFilter} onChange={setResultFilter}/>
    <ResultMultiFilter label="Prova" values={filters.event} allLabel="Todas as provas" options={athleteEvents.map((e:any)=>({value:e.id,label:e.label}))} onChange={v=>setFilters({...filters,event:v})}/>
    <ResultMultiFilter label="Piscina" values={filters.course} allLabel="Ambas" options={[{value:'SCM',label:'25 m'},{value:'LCM',label:'50 m'}]} onChange={v=>setFilters({...filters,course:v})}/>
