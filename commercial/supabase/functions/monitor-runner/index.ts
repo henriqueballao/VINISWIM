@@ -263,6 +263,90 @@ function parseClubDetailResults(text:string,i:any,fallbackCourse:any,fallbackDat
  }
  return out
 }
+const MASTERS_PARANA_STROKE:any={LIVRE:'Livre',COSTAS:'Costas',PEITO:'Peito',BORBOLETA:'Borboleta',MEDLEY:'Medley'};
+function parseMastersParanaResults(text:string,i:any,fallbackDate:string|null,url:string){
+ // Masters Paraná publishes one PDF per etapa with every event's full standings
+ // (grouped by age bracket, "FAIXA: NN +"), never one PDF per athlete — so unlike
+ // parseClubDetailResults (which anchors on the athlete's own header block), here
+ // we anchor on each "# Nª PROVA - <dist> METROS <stroke> <gender>" event header
+ // and search that whole block for the athlete's name. Relay events
+ // ("REVEZAMENTO") list team rosters with no individual time and are skipped.
+ // Rows have no fixed column widths, so the same bounded-window-after-the-name
+ // technique used elsewhere in this file is what finds the athlete's own time
+ // without accidentally picking up a neighboring swimmer's — the block text is
+ // whitespace-flattened first so string positions from a normalized-text search
+ // line up with positions in the (still original-case) block being sliced.
+ const headerRe=/#\s*\d+[ºª]\s*PROVA\s*-\s*(\d+)\s*METROS\s+(LIVRE|COSTAS|PEITO|BORBOLETA|MEDLEY)(?:\s+(FEMININO|MASCULINO))?/g;
+ const headers=[...text.matchAll(headerRe)];
+ const nm=names(i);
+ const out:any[]=[];
+ for(let k=0;k<headers.length;k++){
+  const h=headers[k];
+  if(/REVEZAMENTO/.test(h[0]))continue;
+  const stroke=MASTERS_PARANA_STROKE[h[2]];if(!stroke)continue;
+  const eventLabel=h[1]+' '+stroke;
+  const start=h.index!+h[0].length;
+  const end=k+1<headers.length?headers[k+1].index!:text.length;
+  const block=text.slice(start,end).replace(/\s+/g,' ').trim();
+  if(!nm.some((x:string)=>x&&looseNameMatch(block,x)))continue;
+  let namePos=-1,matched='';
+  for(const x of nm){const idx=n(block).indexOf(x);if(idx>=0){namePos=idx;matched=x;break}}
+  if(namePos<0)continue;
+  const after=block.slice(namePos+matched.length);
+  const nextMarker=after.match(/\s(?:N\/C|DQL|DQ|DNS)\s|\s\d{1,2}[ºª°]\s/);
+  const seg=nextMarker?after.slice(0,nextMarker.index):after.slice(0,200);
+  const tm=seg.match(/(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})/);
+  const timeMs=tm?parseTime(tm[1]):null;
+  const st=timeMs==null&&/N\/C|DQL|DQ\b/.test(seg)?'dsq':null;
+  if(timeMs==null&&!st)continue;
+  out.push({eventLabel,timeMs,status:st||'valid',sourceUrl:url,resultDate:fallbackDate})
+ }
+ return out
+}
+async function ensureMastersParanaArchives(){
+ const {data:mp}=await db.from('sources').select('id').eq('code','masters_parana').maybeSingle();
+ if(!mp?.id)return;
+ let pages:any[];
+ try{
+  const raw=await get('http://mastersparana.com.br/associacao/index.php?rest_route=/wp/v2/pages&per_page=50');
+  pages=JSON.parse(raw)
+ }catch(e){console.error('MASTERS_PARANA_PAGES_LIST',String(e));return}
+ const meeting=pages.filter((p:any)=>/MEETING MASTERS\s+\d{4}/i.test(p?.title?.rendered||'')).sort((a:any,b:any)=>String(b.modified).localeCompare(String(a.modified)))[0];
+ if(!meeting)return;
+ const html=String(meeting.content?.rendered||'');
+ const year=(meeting.title.rendered.match(/(\d{4})/)||[])[1]||String(new Date().getFullYear());
+ // Enfold (the page builder this site uses) doesn't put each etapa's PDF
+ // buttons as DOM siblings of its heading — sibling-walking from the heading
+ // never reached them in testing. Bounding by raw HTML position between one
+ // "Nª ETAPA" heading and the next works instead, but the boundary must be the
+ // next heading of ANY kind, not just the next ETAPA one: this page also has a
+ // yearly championship heading ("6° CAMPEONATO ESTADUAL ...") that doesn't
+ // match the etapa pattern, and bounding only by etapa headings let the last
+ // etapa's window run past it and pick up ITS result PDF as if it were the
+ // etapa's own — confirmed against the real page before this shipped.
+ const allHeadingPositions=[...html.matchAll(/<h[1-3][^>]*>/gi)].map(m=>m.index!);
+ const headingRe=/<h[1-3][^>]*>\s*(\d+)[ºª°]\s*ETAPA\s+([^<]+)<\/h[1-3]>/gi;
+ const headings=[...html.matchAll(headingRe)];
+ for(const h of headings){
+  const etapaNum=h[1],label=('Etapa '+etapaNum+' '+h[2]).replace(/\s+/g,' ').trim();
+  const nextAny=allHeadingPositions.find(pos=>pos>h.index!);
+  const block=html.slice(h.index!,nextAny!==undefined?nextAny:html.length);
+  const hrefRe=/href='([^']+)'[^>]*class='[^']*avia-button[^']*'[^>]*aria-label="([^"]*)"/gi;
+  let resultUrl='',hm;
+  while((hm=hrefRe.exec(block))){
+   const href=hm[1],aria=hm[2].toUpperCase();
+   if(/RESULTADOS/.test(aria)&&!/EQUIPE/.test(aria)&&/\.pdf$/i.test(href)){resultUrl=href;break}
+  }
+  if(!resultUrl)continue;
+  const eventKey='masters-parana-'+year+'-etapa-'+etapaNum;
+  const {data:existing}=await db.from('historical_archives').select('id,base_url').eq('provider','masters_parana').eq('event_key',eventKey).maybeSingle();
+  if(existing){
+   if(existing.base_url!==resultUrl)await db.from('historical_archives').update({base_url:resultUrl,updated_at:new Date().toISOString()}).eq('id',existing.id);
+   continue
+  }
+  await db.from('historical_archives').insert({source_id:mp.id,provider:'masters_parana',event_key:eventKey,name:'Meeting Masters '+year+' - '+label,base_url:resultUrl,active:true,updated_at:new Date().toISOString()});
+ }
+}
 function parseResults(html:string,url:string,label:string,i:any,course:any,resultDate:any){
  const $=cheerio.load(html),eventLabel=eventFrom(label)||eventFrom($('h1,h2,h3').text())||'',out:any[]=[];
  $('tr').each((_,tr)=>{
@@ -354,7 +438,11 @@ async function processArchiveJob(aj:any){
        if(q.data?.external_id){cfg=q.data;identifierSourceId=ss.id}
      }
    }
-   if(!cfg||!cfg.external_id)throw new Error('Fonte histórica não configurada para o atleta (identificador ausente)');
+   // masters_parana has no per-athlete external id anywhere on the site (results
+   // are matched by full name against each etapa's PDF, same as the name-search
+   // already used elsewhere in this file) — only fdap/swimsystem need a real
+   // external_id, since their pipelines anchor on it directly.
+   if(!cfg||(!cfg.external_id&&archive.sources?.code!=='masters_parana'))throw new Error('Fonte histórica não configurada para o atleta (identificador ausente)');
    const {data:athlete}=await db.from('athletes').select('full_name,preferred_name,birth_date,gender,category').eq('id',aj.athlete_id).single();
    const {data:idn}=await db.from('athlete_identifiers').select('*').eq('athlete_id',aj.athlete_id).eq('source_id',identifierSourceId).maybeSingle();
    const i={...(idn||{}),external_id:cfg.external_id,external_name:cfg.external_name,athletes:athlete};
@@ -394,6 +482,36 @@ async function processArchiveJob(aj:any){
        }catch(e){dbg.push(pdfUrl.split('/').pop()+':ERR:'+String(e).slice(0,60))}
      }
      if(!results.length){
+       // No PDF result report exists yet for this meet at all (as opposed to one
+       // existing but not mentioning this athlete) — that's the signature of a
+       // meet that hasn't happened yet, not one this athlete skipped. Since the
+       // athlete already matched on /athletes above, register it now as a
+       // 'scheduled' meet with its entry list (seed times/heat/lane from the
+       // same /athletes page), so it shows up under Campeonatos right away
+       // instead of only appearing once results exist. A later run of this same
+       // archive job, once PDFs are published, upserts the same meet row
+       // (matched by source_id+external_id) to 'completed' with real results —
+       // that status flip is what the Campeonatos tab uses to stop showing it
+       // there, since by then it belongs in Resultados instead.
+       if(pdfLinks.length===0){
+         try{
+           const entries=parseEntries(athletesHtml,i);
+           if(entries.length){
+             const mq=await db.from('meets').upsert({
+               source_id:archive.source_id,external_id:archive.event_key,name:archive.name||meetParsed.name,
+               start_date:meetParsed.startDate||archive.start_date||null,end_date:archive.end_date||null,
+               course:meetParsed.course||archive.course,official_url:rootBase,status:'scheduled'
+             },{onConflict:'source_id,external_id'}).select('id').single();
+             if(!mq.error){
+               const ev=await eventMap();
+               for(const e of entries){
+                 const eid=ev.get(n(e.eventLabel));if(!eid)continue;
+                 await db.from('meet_entries').upsert({meet_id:mq.data.id,athlete_id:aj.athlete_id,event_id:eid,seed_time_ms:e.seedTimeMs,heat:e.heat,lane:e.lane,entry_status:'seeded',source_id:archive.source_id},{onConflict:'meet_id,athlete_id,event_id'})
+               }
+             }
+           }
+         }catch(e){console.error('SWIMSYSTEM_APP_SCHEDULED_ENTRIES',archive.event_key,String(e))}
+       }
        await db.from('historical_archive_jobs').update({status:'completed',records_found:0,records_inserted:0,records_promoted:0,heartbeat_at:null,finished_at:now(),updated_at:now(),last_error:'DEBUG:no_results pdfs='+pdfLinks.length+' ['+dbg.join(' | ').slice(0,800)+']'}).eq('id',aj.id).eq('status','running');
        return
      }
@@ -439,6 +557,80 @@ async function processArchiveJob(aj:any){
          category:categoryLabelFor(date,athlete?.birth_date,athlete?.category),result_fingerprint:fp
        }).select('id').single();
        if(ins.error)throw new Error('Resultado SwimSystem v2: '+ins.error.message);
+       insertedAdd++;
+       await db.from('result_sources').insert({result_id:ins.data.id,source_id:archive.source_id,source_url:r.sourceUrl,retrieved_at:now(),metadata:{historical_archive:archive.event_key}})
+     }
+     await db.from('historical_archive_jobs').update({
+       status:'completed',records_found:foundAdd,records_inserted:insertedAdd,records_promoted:promotedAdd,
+       heartbeat_at:null,finished_at:now(),updated_at:now()
+     }).eq('id',aj.id).eq('status','running');
+     return
+   }
+
+   if(archive.provider==='masters_parana'){
+     // Each archive here IS one etapa's results PDF (base_url points straight at
+     // it, no separate root/athletes page to check first) — Masters Paraná
+     // never publishes a machine-readable per-athlete entry list before an
+     // etapa (the pre-meet PDF is a blank registration form; the heat-sheet PDF
+     // is an image export with no extractable text), so unlike swimsystem_v2
+     // there is no "scheduled" pre-result stage possible for this source: we
+     // only ever learn about a result after it exists.
+     await beat();
+     let results:any[]=[];
+     try{
+       const txt=await quickReaderText(archive.base_url);
+       const fallbackDate=historicalMeetDate(txt)||archive.start_date||null;
+       results=parseMastersParanaResults(txt,i,fallbackDate,archive.base_url)
+     }catch(e){
+       await db.from('historical_archive_jobs').update({status:'completed',records_found:0,records_inserted:0,records_promoted:0,heartbeat_at:null,finished_at:now(),updated_at:now(),last_error:'DEBUG:fetch_error '+String(e).slice(0,300)}).eq('id',aj.id).eq('status','running');
+       return
+     }
+     if(!results.length){
+       await db.from('historical_archive_jobs').update({status:'completed',records_found:0,records_inserted:0,records_promoted:0,heartbeat_at:null,finished_at:now(),updated_at:now()}).eq('id',aj.id).eq('status','running');
+       return
+     }
+     const ev=await eventMap();
+     const mq=await db.from('meets').upsert({
+       source_id:archive.source_id,external_id:archive.event_key,name:archive.name,
+       start_date:results.find((r:any)=>r.resultDate)?.resultDate||archive.start_date||null,
+       course:'SCM',official_url:archive.base_url,status:'completed'
+     },{onConflict:'source_id,external_id'}).select('id,start_date,course').single();
+     if(mq.error)throw new Error('Meet Masters Paraná: '+mq.error.message);
+     const m=mq.data;
+     let foundAdd=0,insertedAdd=0,promotedAdd=0;const seen=new Set<string>();
+     for(const r of results){
+       const eid=ev.get(n(r.eventLabel));if(!eid)continue;
+       const date=r.resultDate||m.start_date,course=r.course||m.course;if(!date||!course)continue;
+       const key=[eid,date,course,r.timeMs,r.status].join('|');if(seen.has(key))continue;seen.add(key);
+       foundAdd++;
+       let q=db.from('results').select('id,is_official,origin').eq('athlete_id',aj.athlete_id).eq('event_id',eid).eq('result_date',date).eq('course',course).eq('status',r.status);
+       q=r.timeMs==null?q.is('time_ms',null):q.eq('time_ms',r.timeMs);
+       const {data:old}=await q.maybeSingle();
+       if(!old){
+         let cq=db.from('results').select('id,result_date,is_official').eq('athlete_id',aj.athlete_id).eq('event_id',eid).eq('course',course).eq('status',r.status);
+         cq=r.timeMs==null?cq.is('time_ms',null):cq.eq('time_ms',r.timeMs);
+         const {data:candidates}=await cq.limit(5);
+         const stale=(candidates||[]).find((x:any)=>x.is_official&&x.result_date!==date);
+         if(stale){
+           await db.from('result_sources').upsert({result_id:stale.id,source_id:archive.source_id,source_url:r.sourceUrl,retrieved_at:now(),metadata:{historical_archive:archive.event_key}},{onConflict:'result_id,source_id'});
+           promotedAdd++;continue
+         }
+       }
+       if(old){
+         if(!old.is_official){
+           await db.from('results').update({meet_id:m.id,origin:'official',source_id:archive.source_id,is_official:true,notes:'Confirmado por arquivo histórico oficial.',updated_at:now()}).eq('id',old.id);
+           await db.from('result_sources').upsert({result_id:old.id,source_id:archive.source_id,source_url:r.sourceUrl,retrieved_at:now(),metadata:{historical_archive:archive.event_key}},{onConflict:'result_id,source_id'});
+           promotedAdd++
+         }
+         continue
+       }
+       const fp=[aj.athlete_id,m.id,eid,date,course,r.timeMs,r.status].join('|');
+       const ins=await db.from('results').insert({
+         athlete_id:aj.athlete_id,meet_id:m.id,event_id:eid,result_date:date,course,time_ms:r.timeMs,status:r.status,
+         origin:'official',source_id:archive.source_id,is_official:true,
+         category:categoryLabelFor(date,athlete?.birth_date,athlete?.category),result_fingerprint:fp
+       }).select('id').single();
+       if(ins.error)throw new Error('Resultado Masters Paraná: '+ins.error.message);
        insertedAdd++;
        await db.from('result_sources').insert({result_id:ins.data.id,source_id:archive.source_id,source_url:r.sourceUrl,retrieved_at:now(),metadata:{historical_archive:archive.event_key}})
      }
@@ -674,11 +866,12 @@ async function processJob(j:any){
  const {data:run}=await db.from('monitor_runs').insert({job_id:j.id,status:'running'}).select('id').single();
  try{
    let meet:any,entries:any[]=[],results:any[]=[];
-   if(j.job_type==='historical'&&(sourceCode==='fdap'||sourceCode==='swimsystem')){
+   if(j.job_type==='historical'&&(sourceCode==='fdap'||sourceCode==='swimsystem'||sourceCode==='masters_parana')){
      // Historical archive jobs are the incremental pipeline. The monitor job only
      // schedules/reconciles that queue; it must not rescan PDFs synchronously.
      await ensureArchiveJobsForDiscovered(j,i);
      if(sourceCode==='swimsystem')await ensureSwimSystemAppArchives();
+     if(sourceCode==='masters_parana')await ensureMastersParanaArchives();
      const {data:archives}=await db.from('historical_archives').select('id').eq('active',true);
      for(const a of archives||[]){
        await db.from('historical_archive_jobs').upsert({
@@ -695,7 +888,7 @@ async function processJob(j:any){
      // from ever being claimed again until the user manually requests a refresh.
      // The legacy fdap path is a one-off cached web search, not a live listing
      // to re-poll, so it keeps its original finalize-when-drained behavior.
-     const keepWatching=sourceCode==='swimsystem'&&(remaining||0)===0
+     const keepWatching=(sourceCode==='swimsystem'||sourceCode==='masters_parana')&&(remaining||0)===0
      await db.from('monitor_jobs').update({
        status:(remaining||0)>0||keepWatching?'pending':'completed',
        last_run_at:new Date().toISOString(),
