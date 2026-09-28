@@ -1767,4 +1767,32 @@ Com as duas causas corrigidas e implantadas (v70): corrigi manualmente a `source
 - Duas contas que apontam para o mesmo campeonato real ainda podem gerar duas linhas de `meets` fisicamente distintas na primeira vez que a busca roda para cada uma (por causa de convenções diferentes de `external_id` entre importações antigas e novas) — resolvido manualmente nos dois casos encontrados até agora (master, na entrada anterior; Vinícius, nesta), mas não há uma prevenção estrutural para isso ainda. Fica registrado para decisão do chat se vale a pena investir numa normalização de `external_id` mais robusta.
 
 ---
+
+## Limpeza de 6 competições duplicadas no histórico (autorizada explicitamente) (28/09/2026)
+
+**Status**: ✅ executado e verificado. **Autorizado por**: Henrique, em resposta direta ("Sim, corrija agora") depois de eu confirmar que a operação nunca apaga resultado real — só reorganiza `meet_id` e remove duplicata interna byte-idêntica.
+
+### O quê foi encontrado
+
+Comparando o histórico completo de master (`f02e62f2...`) e da conta pessoal do Vinícius (`af41d466...`), 6 das 10 competições reais do histórico estavam gravadas em **`meets` duplicados** — a mesma competição real virou 2 ou 3 linhas diferentes em `meets`, cada uma "pertencendo" a um scraping/importação diferente, com os resultados de cada conta presos na linha errada. Confirmação de que era mesma competição, não coincidência: tempos idênticos ao centésimo de segundo entre as linhas (um atleta não nada o mesmo tempo exato em duas provas reais diferentes).
+
+### O quê foi feito, por competição (todas com leitura→verificação antes de qualquer escrita, contagem conferida depois de cada passo)
+
+1. **05/04/2025** — 2 linhas de meet unificadas em 1 (`90872859`); nenhuma duplicata interna.
+2. **13-14/09/2025** — 3 linhas unificadas em 1 (`5051b9f7`); nenhuma duplicata interna.
+3. **11-12/10/2025** — 3 linhas unificadas em 1 (`700b3c44`); **2 duplicatas internas removidas** (100 Livre e 50 Borboleta do master gravados duas vezes, valores idênticos, um sob nome de evento "Troféu Germano Bayer 2025" e outro sob "Campeonato Paranaense de Verão" — mesma prova real).
+4. **07-10/11/2025** — 2 linhas unificadas em 1 (`adb61289`); nenhuma duplicata interna.
+5. **06-16/03/2026** — 3 linhas unificadas em 1 (`b58a8b09`); **1 duplicata interna removida** (100 Livre do master gravado duas vezes).
+6. **17-19/04/2026** — 2 linhas unificadas em 1 (`1c5cfc42`); nenhuma duplicata interna.
+
+**Total**: 8 linhas de `meets` decoy apagadas (todas conferidas vazias antes, sem referência em `meet_entries`); 3 linhas de `results` fisicamente duplicadas removidas (nenhuma perda de dado — o resultado real continuou existindo, só a cópia redundante foi removida); todo o resto foi só religar `meet_id`, nunca mudar `time_ms`/`status`/`athlete_id`.
+
+### Resultado
+
+- Master: 43 → **40** resultados (só as 3 duplicatas internas saíram).
+- Vinícius (conta pessoal): permaneceu em **27** (nada removido do lado dele, só relinkado).
+- As 10 competições do histórico agora aparecem cada uma como **1 única linha em `meets`**, com nome/data corretos, e as duas contas compartilhando a mesma linha quando ambas têm resultado dela.
+- **A diferença de 13 (40 vs 27) que sobra agora é 100% real, não duplicata**: são exatamente 3 competições (22/03/2025, 04/07/2025, 15/08/2026) onde a conta pessoal do Vinícius nunca teve nenhum resultado importado — não tem como resolver isso com reorganização, só descobrindo essas competições de verdade (é exatamente o problema que o "motor de importação total" pedido por Henrique resolve, ver próxima seção).
+
+---
 *Atualizado por Code em 28/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
