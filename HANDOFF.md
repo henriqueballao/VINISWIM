@@ -1997,4 +1997,32 @@ Em `processJob` (branch `historical`), o update de `monitor_jobs` agora limpa `r
 Reverter o commit `1a0dafc` (só adiciona `const drained=...` e `...(drained?{request_id:null}:{})`; sem migração de schema, sem mudança em dados). O alívio manual (`request_id=null` nos dois jobs) não precisa de rollback — é o estado correto independente do código.
 
 ---
+
+## Bug crítico nº 2, mesma família: busca ficava presa em "BUSCA DEMORADA" para sempre (28/09/2026)
+
+**Status**: ✅ diagnosticado, corrigido no banco (migration, sem precisar redeploy do Edge Function) e **verificado com teste sintético transacional** reproduzindo o cenário exato do bug. **Motivado por**: Henrique reportou, com print de tela, a busca do Vinícius travada em "BUSCA DEMORADA · 05:20" sem nunca terminar, mesmo com o fix anterior (v79) já no ar — "vc e o chat nao consegue habilitar a procura de resultados".
+
+### Causa raiz (diferente da anterior, mas da mesma origem)
+
+A busca em si tinha terminado havia minutos (todos os 37 jobs de arquivo, mais o coordenador do SwimSystem, já haviam processado tudo). O problema era só de **sinalização**: existe um gatilho no banco (`trg_finalize_monitor_jobs` → `finalize_refresh_request_if_terminal()`) que fecha a solicitação (`refresh_requests.finalized_at`) sempre que um job vira `completed`/`failed`. Mas o motor "keepWatching" (a correção de ontem para o motor nunca morrer) faz o job coordenador do SwimSystem/Masters Paraná voltar para `status='pending'` quando termina de esvaziar a fila — **nunca** para `completed`/`failed`, de propósito, já que ele precisa continuar vivo para vigiar de novo em 6h. Como o gatilho só disparava nessas duas transições, ele nunca via a transição real de "terminei" desses dois motores — e a solicitação ficava com `finalized_at` nulo para sempre, mesmo com o trabalho 100% concluído. É um problema estrutural que já existia desde que o keepWatching foi criado (numa janela de sessão anterior a esta), só que a correção crítica de ontem (limpar o `request_id` ao re-armar) tornou o sintoma visível de forma consistente pela primeira vez.
+
+### Correção imediata
+
+Fechei manualmente a solicitação presa do Vinícius (`UPDATE refresh_requests SET finalized_at=now(), terminal_status='failed', completed_job_count=31, failed_job_count=6 WHERE id=...`, replicando exatamente o que o gatilho deveria ter feito) — a tela libera no próximo carregamento.
+
+### Correção definitiva (migration `fix_finalize_refresh_request_keepwatching`)
+
+`finalize_refresh_request_if_terminal()` agora resolve o id da solicitação como `coalesce(new.request_id, old.request_id)` em vez de só `new.request_id` — assim ele continua sabendo de qual solicitação estava falando mesmo quando o próprio update acabou de zerar esse campo. E o gatilho `trg_finalize_monitor_jobs` passou a disparar também quando `request_id` é zerado (`new.request_id is null and old.request_id is not null`), não só em `completed`/`failed` — exatamente o momento em que o keepWatching "solta" o job de uma solicitação antiga. Nenhuma mudança no Edge Function foi necessária (é só banco).
+
+**Verificado com teste sintético** (transação com `ROLLBACK` no final, sem deixar rastro nem tocar em dado real do Vinícius): criei uma solicitação, um job coordenador e um job de arquivo de teste (fonte `fgda`, arquivo sintético), simulei exatamente a sequência real (arquivo termina → `completed`; depois coordenador re-arma `running→pending` **e** zera `request_id` na mesma instrução, como o motor faz de verdade) e confirmei que `finalized_at` passa de nulo para preenchido logo após o re-arme — o comportamento que faltava. Conferido também que nenhuma outra solicitação no banco inteiro estava presa da mesma forma (restavam só duas de dias atrás, sem job nenhum, inofensivas).
+
+### Nota à parte (não corrigido, só observado)
+
+Existem dois cadastros de atleta quase idênticos: "Vinícius Suzin Ballão" e "Vinícius Suzin Ballao" (sem o til), ambos ativos. Não mexi em nada — só registro para o Henrique decidir se é duplicata a mesclar/apagar.
+
+### Rollback
+
+Reverter a migration (`drop trigger`/recriar a versão anterior da função e do gatilho, disponível no histórico do Supabase). Nenhuma mudança de dado real foi feita além do fechamento manual da solicitação do Vinícius, que é o estado correto e não precisa reverter.
+
+---
 *Atualizado por Code em 28/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
