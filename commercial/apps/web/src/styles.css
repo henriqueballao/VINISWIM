@@ -300,10 +300,10 @@ button.kpi{appearance:none;text-align:left;color:inherit}
 .result-filter-control{position:relative}
 .result-filter-button{
  width:100%;min-height:48px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);
- display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;text-align:left;cursor:pointer
+ display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;text-align:left;cursor:pointer
 }
-.result-filter-button span{font-size:10px;color:var(--muted)}
-.result-filter-button b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.result-filter-button span{font-size:10px;color:var(--muted);white-space:nowrap}
+.result-filter-button b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .result-filter-button svg{transition:transform .15s ease}
 .result-filter-button svg.rotated{transform:rotate(180deg)}
 .result-filter-menu{
@@ -357,7 +357,7 @@ button.kpi{appearance:none;text-align:left;color:inherit}
  .icon-btn{
   width:44px;height:44px;display:grid;place-items:center;border-radius:10px;
  }
- .result-filter-grid{grid-template-columns:1fr}
+ .result-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
  .result-filter-button{min-height:54px}
  .result-filter-menu button{min-height:50px;font-size:15px}
  .tutorial-step{min-height:auto;padding:18px 14px;align-items:flex-start}
