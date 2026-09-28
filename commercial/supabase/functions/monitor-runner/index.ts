@@ -889,11 +889,24 @@ async function processJob(j:any){
      // The legacy fdap path is a one-off cached web search, not a live listing
      // to re-poll, so it keeps its original finalize-when-drained behavior.
      const keepWatching=(sourceCode==='swimsystem'||sourceCode==='masters_parana')&&(remaining||0)===0
+     const drained=(remaining||0)===0
+     // request_result_refresh() treats a monitor_job that is still
+     // pending/running AND tagged with a given request_id as proof that
+     // request's search is still in flight, so it won't be re-queued by a
+     // fresh click on "Atualizar" — it just reuses the old one. That's correct
+     // while the backlog is still draining (this job IS still doing that
+     // request's work), but once it's fully drained, re-arming to 'pending'
+     // for keepWatching (or even finalizing to 'completed') must clear
+     // request_id too: otherwise this job keeps citing the now-finished
+     // request forever, and every future "Atualizar" click silently no-ops
+     // instead of queuing a new search — confirmed happening for real for an
+     // athlete whose keepWatching re-arm had never cleared it.
      await db.from('monitor_jobs').update({
        status:(remaining||0)>0||keepWatching?'pending':'completed',
        last_run_at:new Date().toISOString(),
        next_run_at:(remaining||0)>0?new Date(Date.now()+60000).toISOString():keepWatching?new Date(Date.now()+6*60*60*1000).toISOString():null,
-       locked_at:null,last_error:null,attempts:0
+       locked_at:null,last_error:null,attempts:0,
+       ...(drained?{request_id:null}:{})
      }).eq('id',j.id).eq('status','running');
      return
      const packs=await scanHistoricalCatalog(j,i);
