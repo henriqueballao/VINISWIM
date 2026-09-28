@@ -1951,4 +1951,24 @@ No frontend, a aba Campeonatos agora só lista competições com `status != 'com
 Reverter o commit desta entrada (`monitor-runner/index.ts` + `App.tsx`). No banco: os `historical_archives` com `provider='masters_parana'` e os `historical_archive_jobs`/`monitor_jobs` correspondentes podem ser apagados sem afetar `results`/`meets` de nenhum atleta (nenhum resultado real veio de lá ainda).
 
 ---
+
+## Fix: banner "ERRO NA BUSCA" ficava preso na aba Resultados + botão "Buscar campeonatos" na aba Campeonatos (28/09/2026)
+
+**Status**: ✅ ambos corrigidos/implementados e implantados. **Motivado por**: Henrique reportou o banner de erro preso (screenshot real) e perguntou onde, na aba Campeonatos, estava a opção de vasculhar os sites configurados.
+
+### Bug real: busca falhada nunca "terminava" na tela
+
+`loadAthlete()` só considerava a última solicitação de atualização como finalizada quando `derived_status==='completed'` — uma que terminasse em `'failed'` continuava sendo tratada como "ainda ativa" em todo recarregamento de tela depois do primeiro. Resultado: depois de qualquer falha (o caso real era de 28/09 11:26, pelo erro de certificado do domínio antigo já documentado), a tela de Resultados ficava mostrando "Buscando novos resultados... ERRO NA BUSCA" para sempre, mesmo horas depois e sem nenhuma busca em andamento — só por causa de um recarregamento normal (trocar de aba, por exemplo). Corrigido para usar `finalized_at` (que a view já marca tanto em sucesso quanto em falha) em vez de checar só o status de sucesso.
+
+### Botão "Buscar campeonatos" na aba Campeonatos
+
+A aba Campeonatos só tinha o fluxo manual ("Importar competição", colar URL) — o motor automático só era acionável pelo botão "Atualizar" da aba Resultados (mesma RPC `request_result_refresh`, mesmo motor que descobre resultados e campeonatos juntos). Adicionado o mesmo gatilho também na aba Campeonatos, reaproveitando o `activeRequest` já mantido pelo componente pai (sem estado novo nem RPC duplicada) — mostra "Buscando…" enquanto uma busca está em andamento e um aviso se a última tiver falhado.
+
+### Validação
+
+`npm run build` sem erros (`tsc -b` + `vite build`); conferido que o texto do novo botão está no bundle compilado. Não foi possível clicar de verdade no navegador (mesma limitação de rede já documentada). O fix do banner preso foi conferido diretamente contra a solicitação real que estava presa (`finalized_at` não-nulo confirmado no banco) — a lógica corrigida resolve exatamente esse caso.
+
+Implantado em produção via `Build VINISWIM Commercial App` (runs #120 e #121) → `pages build and deployment`.
+
+---
 *Atualizado por Code em 28/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
