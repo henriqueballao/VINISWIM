@@ -1971,4 +1971,30 @@ A aba Campeonatos só tinha o fluxo manual ("Importar competição", colar URL) 
 Implantado em produção via `Build VINISWIM Commercial App` (runs #120 e #121) → `pages build and deployment`.
 
 ---
+
+## Bug crítico: botão "Atualizar" parava de funcionar depois do 1º ciclo do keepWatching (regressão minha) (28/09/2026)
+
+**Status**: ✅ diagnosticado, corrigido manualmente em produção (alívio imediato) e corrigido no código (monitor-runner v79, implantado e **verificado byte-a-byte**). **Motivado por**: Henrique reportou "agora atualizar resultados nao acontece nada...boneco nao aparece" — bug real, e a causa fui eu mesmo, numa correção anterior desta mesma sessão.
+
+### O que quebrou
+
+A correção anterior do "keepWatching" (motor nunca morre, re-arma a cada 6h para `status='pending'` em vez de finalizar) tinha um efeito colateral que eu não previ: ela nunca limpava o `request_id` que o job carregava da última busca real de um usuário. A RPC `request_result_refresh()` (o que roda por trás do botão "Atualizar") tem uma proteção contra clique duplicado: antes de criar uma busca nova, ela olha se já existe um `monitor_jobs`/`historical_archive_jobs` `pending`/`running` amarrado ao MESMO `request_id` de uma busca ainda em andamento — se achar, só reaproveita e não faz nada (`{reused:true,queued:0}`). Como o job do keepWatching fica `pending` para sempre por design, e nunca mais trocava de `request_id`, a partir da primeira vez que uma busca real de verdade terminava (com sucesso OU com falha), TODO clique futuro em "Atualizar" via cair nessa proteção contra o `request_id` antigo já morto havia horas — silenciosamente, sem erro nenhum na tela, só nada acontecendo.
+
+Confirmado no banco: o job do SwimSystem do Vinícius (`2009cbef-...`) e o job do Masters do "master" (`deb8c694-...`) estavam os dois `status='pending'` (corretamente, pelo keepWatching) mas ainda citando `request_id`s de buscas já `finalized_at` havia horas/um dia — uma delas `terminal_status='failed'` (o próprio erro de certificado do domínio antigo, já corrigido e documentado numa entrada anterior).
+
+### Correção imediata (antes de qualquer deploy)
+
+Rodei `UPDATE monitor_jobs SET request_id=null WHERE id IN (...)` nos dois jobs presos, depois de confirmar por SELECT que as duas solicitações antigas estavam mesmo finalizadas (não apagando nada em andamento). Isso já destravou a conta do Henrique e a do master na hora, independente do deploy do código.
+
+### Correção definitiva no código
+
+Em `processJob` (branch `historical`), o update de `monitor_jobs` agora limpa `request_id` sempre que o backlog termina de esvaziar (`remaining===0`) — seja finalizando (`status='completed'`) ou re-armando pelo keepWatching (`status='pending'` de novo) — e só preserva o `request_id` enquanto o job ainda está genuinamente processando aquela busca (`remaining>0`). Assim o próximo clique em "Atualizar" sempre enxerga o job como livre depois que ele termina de verdade, mesmo que o keepWatching o mantenha vivo para sempre.
+
+**Verificação pós-deploy**: varri o banco inteiro (`monitor_jobs` e `historical_archive_jobs`, não só os dois atletas já corrigidos manualmente) procurando qualquer outro job `pending`/`running` ainda citando um `request_id` de busca já finalizada — **zero casos encontrados** além dos dois já sanados. Deploy `monitor-runner` v79 conferido byte a byte idêntico ao arquivo local (`get_edge_function` + diff).
+
+### Rollback
+
+Reverter o commit `1a0dafc` (só adiciona `const drained=...` e `...(drained?{request_id:null}:{})`; sem migração de schema, sem mudança em dados). O alívio manual (`request_id=null` nos dois jobs) não precisa de rollback — é o estado correto independente do código.
+
+---
 *Atualizado por Code em 28/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
