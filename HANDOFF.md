@@ -1864,4 +1864,33 @@ Reverter o commit desta entrada (é só um arquivo, `App.tsx`). No banco: `drop 
 Mesclado em `main` (fast-forward puro, sem divergência) junto com a entrada anterior (motor de descoberta SwimSystem). Workflow `Build VINISWIM Commercial App` (run #116) concluído com sucesso → bot commitou `cedf506` em `app/` (`index-CuLUqRcj.js`) → workflow `pages build and deployment` (run #551) publicou esse commit com sucesso. `app/index.html` confirmado servindo o bundle novo direto do GitHub. Recomendado que Henrique confirme visualmente o filtro (incluindo testar "Nenhuma") no próximo acesso.
 
 ---
+
+## Bug real encontrado pelo ceticismo do Henrique: o motor de descoberta morria depois de esvaziar a fila (28/09/2026)
+
+**Status**: ✅ corrigido, implantado (monitor-runner v76) e **verificado empiricamente em produção** (não só por leitura de código). **Motivado por**: Henrique perguntou como o filtro de competições se atualiza, eu expliquei que o motor da seção acima roda sozinho para sempre e uma prova de outubro apareceria "assim que publicada" — ele respondeu **"Eu duvido"**. Ele estava certo.
+
+### O que a dúvida revelou
+
+Fui conferir no banco antes de responder, em vez de reafirmar. O job `historical` do master (`monitor_jobs.id=deb8c694-...`) estava com `status='completed'` e `next_run_at=null` desde `28/09 10:43` — ou seja, **morto para sempre**. `claim_monitor_jobs` só reclama jobs com `status='pending'`, então um job `completed` nunca mais roda sozinho.
+
+**Causa raiz**: no ramo `historical` de `processJob`, ao esvaziar a fila de `historical_archive_jobs` pendentes (`remaining===0`), o código sempre finalizava o job para `completed`/`next_run_at=null` — sem distinguir entre "não há mais nada a processar agora" (correto para o motor antigo, que é uma busca web cacheada, um evento único) e "a listagem em si pode ganhar competições novas amanhã" (o caso do motor novo do SwimSystem.app, que é uma fonte viva). Na prática, isso significava que a descoberta automática de competições novas **parava de vez** assim que o backlog inicial acabava — contrariando exatamente o que eu tinha afirmado ("roda sozinho... sem nenhuma ação manual necessária").
+
+### Correção (v76)
+
+Quando a fonte é `swimsystem` (o motor novo) e a fila drenou, o job agora é re-armado para `status='pending'` com `next_run_at` = agora + 6 horas, em vez de finalizar para sempre. Isso faz o job voltar a ser reclamado pelo cron automaticamente, a cada ciclo de 6h, para sempre — sem precisar de nenhum clique em "Atualizar". O caminho antigo (`fdap`) manteve o comportamento original (finaliza ao drenar), porque ele de fato é uma busca pontual, não uma listagem para reconsultar.
+
+### Verificação (não só implantação — teste de ponta a ponta contra dado real)
+
+1. Deploy (v76) conferido byte a byte contra o arquivo local antes de confiar nele.
+2. Resetei manualmente o job travado do master (`status='pending', next_run_at=now()`) para forçar um novo ciclo de drenagem sob o código novo.
+3. O cron (roda a cada minuto) reclamou o job, processou (37 `historical_archive_jobs` já `completed`, 0 pendentes) e o deixou em **`status='pending'`, `next_run_at`=`last_run_at`+6h exatas** — confirmando que o novo ramo `keepWatching` disparou como projetado, em vez de finalizar para sempre.
+4. Repeti o mesmo teste para o job da conta pessoal do Vinícius (`2009cbef-...`), que tem 31 `historical_archive_jobs` concluídos + 6 falhados (ver pendência abaixo, os 6 falhados não contam como "pendente" e não impedem o re-armamento).
+
+**Nenhum dado de `results`/`meets` foi tocado neste trabalho** — é puramente uma correção de agendamento do job de fundo.
+
+### Pendência já conhecida, não corrigida agora
+
+6 dos `historical_archive_jobs` do Vinícius (todos do domínio antigo `swimsystem.swimtimebrasil.com`) estão em `status='failed'` com o mesmo erro: `invalid peer certificate: NotValidForName` — um problema de certificado TLS no próprio servidor antigo da federação (fora do controle do VINISWIM), não um bug nosso. São 6 competições reais e nomeadas (Troféu Ossami Fukuda 2024/2025, Torneio Regional 1ª Região Pré-Mirim/Sênior 2024, Campeonato Sulbrasileiro Mirim/Petiz 2024, Troféu Germano Bayer 2024, Campeonato Superparanaense 2024) que o motor já encontrou mas não consegue buscar. Não investigado a fundo ainda (por exemplo, tentar `http://` em vez de `https://` para esse domínio específico) — fica como próximo passo, se Henrique quiser priorizar.
+
+---
 *Atualizado por Code em 28/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
