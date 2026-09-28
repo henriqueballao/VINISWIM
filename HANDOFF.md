@@ -1859,5 +1859,9 @@ Reiniciei o processamento das 25 competições descobertas (agora com o código 
 
 Reverter o commit desta entrada (é só um arquivo, `App.tsx`). No banco: `drop function if exists public.set_athlete_result_filter(uuid,uuid[]); drop table if exists public.athlete_result_filters;` — reversível sem afetar `results`/`meets`/nenhuma tabela pré-existente.
 
+### Deploy em produção (28/09/2026, mesmo dia)
+
+Mesclado em `main` (fast-forward puro, sem divergência) junto com a entrada anterior (motor de descoberta SwimSystem). Workflow `Build VINISWIM Commercial App` (run #116) concluído com sucesso → bot commitou `cedf506` em `app/` (`index-CuLUqRcj.js`) → workflow `pages build and deployment` (run #551) publicou esse commit com sucesso. `app/index.html` confirmado servindo o bundle novo direto do GitHub. Recomendado que Henrique confirme visualmente o filtro (incluindo testar "Nenhuma") no próximo acesso.
+
 ---
 *Atualizado por Code em 28/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
