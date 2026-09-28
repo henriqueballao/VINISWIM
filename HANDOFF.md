@@ -2024,5 +2024,33 @@ Existem dois cadastros de atleta quase idênticos: "Vinícius Suzin Ballão" e "
 
 Reverter a migration (`drop trigger`/recriar a versão anterior da função e do gatilho, disponível no histórico do Supabase). Nenhuma mudança de dado real foi feita além do fechamento manual da solicitação do Vinícius, que é o estado correto e não precisa reverter.
 
+**Confirmado ao vivo, sem eu intervir**: minutos depois, uma nova busca real do Vinícius (`d1054397...`) terminou sozinha e fechou sozinha (`finalized_at` preenchido no instante exato em que o motor concluiu, sem precisar de nenhum update manual meu) — primeira prova em produção de que a correção pega.
+
+---
+
+## Bug nº 3, mesma manhã: "Última busca concluída" nunca atualizava + 10 competições mortas gerando falha eterna (28/09/2026)
+
+**Status**: ✅ ambos corrigidos. **Motivado por**: Henrique, ainda vendo o texto "Última busca concluída: 06:00:12" congelado mesmo depois dos dois fixes anteriores, perguntou se eu estava fazendo de propósito para irritá-lo.
+
+### Causa 1: filtro exigia sucesso 100%, mas isso nunca vai acontecer para quem tem competições nesse domínio morto
+
+O texto "Última busca concluída" (`App.tsx`, `loadAthlete()`) buscava a última linha de `v_refresh_request_status` com `terminal_status='completed'` — ou seja, só contava uma busca como "concluída" se **nenhum** dos jobs daquela busca tivesse falhado. Só que toda busca real do Vinícius sempre tem exatamente 6 falhas fixas (ver causa 2 abaixo), então esse texto nunca ia atualizar de novo, para sempre, mesmo com buscas novas terminando e trazendo resultados reais. Corrigido para considerar qualquer busca finalizada (`finalized_at` não nulo), com sucesso total ou parcial — que é o que "a busca terminou" realmente significa para quem está olhando a tela.
+
+### Causa 2: 10 competições no domínio antigo `swimsystem.swimtimebrasil.com`, cujo certificado TLS está quebrado, e que nunca trouxeram um resultado sequer
+
+Investiguei as 6 falhas que aparecem em toda busca do Vinícius: todas do provider `swimtime_progression`, todas no domínio `swimsystem.swimtimebrasil.com`, todas com o mesmo erro `invalid peer certificate: NotValidForName` — confirmado de novo agora, de forma independente (fetch direto via `pg_net` do próprio banco), que é um problema real e externo (o certificado desse domínio não bate com o hostname; provavelmente resquício de uma migração da SwimSystem para o domínio novo `www.swimsystem.app`, sem nada que possamos corrigir do nosso lado).
+
+Antes de desativar, chequei o histórico completo: **esse provider (`swimtime_progression`) nunca inseriu um único resultado, para nenhum atleta, em nenhuma tentativa** — 30 tentativas históricas no total (contando as 10 competições catalogadas nesse domínio, de vários atletas), `records_found`/`records_inserted` sempre zero, mesmo nas tentativas que retornaram "completed" sem erro (aparentemente o certificado só passou a falhar consistentemente depois; mesmo antes disso, nunca havia conteúdo aproveitável). Ou seja: desativar não tira nenhuma fonte que estivesse funcionando de verdade para ninguém.
+
+Marquei as 10 competições desse domínio como `active=false` em `historical_archives` (é um catálogo global, não por atleta). A função `enqueue_historical_archive_jobs()` já filtra por `h.active=true` ao montar a fila de uma nova busca — então elas simplesmente param de ser tentadas a partir de agora, em qualquer busca, de qualquer atleta. Isso também ajuda a causa 1: sem essas 6 falhas garantidas, buscas do Vinícius agora têm chance real de fechar com `terminal_status='completed'`.
+
+### Validação
+
+`npm run build` (`tsc -b` + `vite build`) sem erros. A correção do texto ainda não foi vista rodando ao vivo no navegador (mesma limitação de rede já documentada), mas a query em si é direta o suficiente (troca de um filtro por outro) para não ter ambiguidade. A desativação das 10 competições foi conferida com `SELECT` antes e depois — nenhum dado de `results`/`meets` foi tocado, só a flag `active` do catálogo.
+
+### Rollback
+
+Reverter o commit do `App.tsx` (só essa uma linha da query). Reativar as 10 competições com `UPDATE historical_archives SET active=true WHERE id IN (...)` se o domínio algum dia corrigir o certificado — a lista completa dos 10 ids está no histórico de comandos desta sessão.
+
 ---
 *Atualizado por Code em 28/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
