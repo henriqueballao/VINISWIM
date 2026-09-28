@@ -230,6 +230,39 @@ function parseEntries(html:string,i:any){
  });
  return out
 }
+function parseClubDetailResults(text:string,i:any,fallbackCourse:any,fallbackDate:string|null,url:string){
+ const headerRe=/\n\n([A-ZÀ-Ÿ][^\n,]{1,60}),\s*(\d{4})\s*\((\d{1,2})\s*Anos?\),\s*(Masculino|Feminino)/g;
+ const headers=[...text.matchAll(headerRe)];
+ const course=/\b25\s*m\b/i.test(text)?'SCM':/\b50\s*m\b/i.test(text)?'LCM':fallbackCourse;
+ const out:any[]=[];
+ for(let k=0;k<headers.length;k++){
+  const h=headers[k],athleteName=h[1].trim();
+  if(!names(i).some((nm:string)=>nm&&looseNameMatch(athleteName,nm)))continue;
+  const start=h.index!+h[0].length;
+  const end=k+1<headers.length?headers[k+1].index!:text.length;
+  const block=text.slice(start,end);
+  const eventRe=/(?<![x\d])(\d{1,4})m\s+(Livre|Costas|Peito|Borboleta|Medley)\s+Final\s+Direta\s+/gi;
+  const starts=[...block.matchAll(eventRe)];
+  for(let idx=0;idx<starts.length;idx++){
+   const cur=starts[idx];
+   const segEnd=idx+1<starts.length?starts[idx+1].index!:block.length;
+   const seg=block.slice(cur.index!+cur[0].length,segEnd).trim();
+   const firstToken=seg.split(/\s+/)[0]||'';
+   const st=resultStatus(firstToken);
+   let timeMs:number|null=null;
+   if(!st){
+    for(const tok of seg.split(/\s+/)){
+     if(/^\d+\.$/.test(tok))continue;
+     const v=parseTime(tok);
+     if(v!=null){timeMs=v;break}
+    }
+   }
+   if(timeMs==null&&!st)continue;
+   out.push({eventLabel:cur[1]+' '+cur[2],timeMs,status:st||'valid',sourceUrl:url,resultDate:fallbackDate,course})
+  }
+ }
+ return out
+}
 function parseResults(html:string,url:string,label:string,i:any,course:any,resultDate:any){
  const $=cheerio.load(html),eventLabel=eventFrom(label)||eventFrom($('h1,h2,h3').text())||'',out:any[]=[];
  $('tr').each((_,tr)=>{
@@ -435,7 +468,13 @@ async function processArchiveJob(aj:any){
  }
 }
 
-async function processLink(r:any){if(r.sources?.code!=='swimsystem')throw new Error('Fonte sem adaptador');const raw=r.current_meet_url;if(!raw)throw new Error('URL do campeonato atual não informada');const u=new URL(raw);if(!/(^|\.)swimsystem\.app$/i.test(u.hostname))throw new Error('URL fora do SwimSystem');const i={external_id:r.external_id,external_name:null,athletes:r.athletes};const html=await get(meetBase(raw)+'/athletes');if(!match(cheerio.load(html)('body').text(),i)){await db.from('source_link_requests').update({status:'rejected',message:'Registro/nome não encontrado',processed_at:new Date().toISOString()}).eq('id',r.id);return}const metadata={current_meet_url:raw};await db.from('athlete_identifiers').upsert({athlete_id:r.athlete_id,source_id:r.source_id,external_id:r.external_id,status:'active',verified:true,verified_at:new Date().toISOString(),active:true,metadata},{onConflict:'athlete_id,source_id'});await db.from('source_link_requests').update({status:'verified',message:'Vínculo validado',processed_at:new Date().toISOString()}).eq('id',r.id);await db.from('athletes').update({status:'active'}).eq('id',r.athlete_id);await db.from('monitor_jobs').upsert({athlete_id:r.athlete_id,source_id:r.source_id,job_type:'current_meet',status:'pending',priority:10,next_run_at:new Date().toISOString(),attempts:0},{onConflict:'athlete_id,source_id,job_type'})}
+async function processLink(r:any){if(r.sources?.code!=='swimsystem')throw new Error('Fonte sem adaptador');const raw=r.current_meet_url;if(!raw)throw new Error('URL do campeonato atual não informada');const u=new URL(raw);if(!/(^|\.)swimsystem\.app$/i.test(u.hostname))throw new Error('URL fora do SwimSystem');const i={external_id:r.external_id,external_name:null,athletes:r.athletes};const html=await get(meetBase(raw)+'/athletes');if(!match(cheerio.load(html)('body').text(),i)){await db.from('source_link_requests').update({status:'rejected',message:'Registro/nome não encontrado',processed_at:new Date().toISOString()}).eq('id',r.id);return}const metadata={current_meet_url:raw};await db.from('athlete_identifiers').upsert({athlete_id:r.athlete_id,source_id:r.source_id,external_id:r.external_id,status:'active',verified:true,verified_at:new Date().toISOString(),active:true,metadata},{onConflict:'athlete_id,source_id'});
+// processJob() reads the URL to scan from athlete_source_configs.source_url, not
+// from this metadata — without this update the current_meet job keeps scanning
+// whatever generic URL the athlete had before (e.g. the SwimSystem homepage)
+// and never actually looks at the linked competition.
+await db.from('athlete_source_configs').update({source_url:raw,updated_at:new Date().toISOString()}).eq('athlete_id',r.athlete_id).eq('source_id',r.source_id);
+await db.from('source_link_requests').update({status:'verified',message:'Vínculo validado',processed_at:new Date().toISOString()}).eq('id',r.id);await db.from('athletes').update({status:'active'}).eq('id',r.athlete_id);await db.from('monitor_jobs').upsert({athlete_id:r.athlete_id,source_id:r.source_id,job_type:'current_meet',status:'pending',priority:10,next_run_at:new Date().toISOString(),attempts:0},{onConflict:'athlete_id,source_id,job_type'})}
 
 function historicalMeetBases(urls:any[]){
  const out=new Set<string>();
@@ -561,9 +600,22 @@ async function processJob(j:any){
      await db.from('monitor_jobs').update({status:more?'pending':'completed',last_run_at:new Date().toISOString(),next_run_at:more?new Date().toISOString():null,locked_at:null,last_error:null,attempts:0,metadata:{...(j.metadata||{}),historical_cursor:(j as any).__historical_next_cursor||0}}).eq('id',j.id);
      return
    }else if(sourceCode==='swimsystem'){
+     // The live meet overview page is client-rendered (no per-event links in the
+     // server HTML), so per-event scraping via discover()/parseResults() rarely
+     // finds anything. The site does publish static PDF result reports for the
+     // meet (linked from the overview page) — those are the reliable source.
      const base=meetBase(url),html=await get(base);meet=parseMeet(html,base);
      try{entries=parseEntries(await get(base+'/athletes'),i)}catch{}
-     const pages=discover(html,base);for(const p of pages.slice(0,80)){try{results.push(...parseResults(await get(p.url),p.url,p.label,i,meet.course,meet.startDate))}catch{}}
+     const pages=discover(html,base);
+     for(const p of pages.slice(0,80)){try{results.push(...parseResults(await get(p.url),p.url,p.label,i,meet.course,meet.startDate))}catch{}}
+     const pdfLinks=[...new Set([...html.matchAll(/https?:\/\/[^"'\s]+\.pdf/gi)].map(m=>m[0]))];
+     for(const pdfUrl of pdfLinks){
+      try{
+       const txt=await quickReaderText(pdfUrl);
+       const fallbackDate=historicalMeetDate(txt)||meet.startDate;
+       results.push(...parseClubDetailResults(txt,i,meet.course,fallbackDate,pdfUrl));
+      }catch{}
+     }
    }else{
      const rootHtml=await get(url),$=cheerio.load(rootHtml),body=$('body').text().replace(/\s+/g,' ');
      meet={externalId:'search-'+sourceCode+'-'+j.athlete_id,name:j.sources?.name||cfg.display_name,startDate:dateFrom(body),course:/\b25\s*m\b/i.test(body)?'SCM':/\b50\s*m\b/i.test(body)?'LCM':null,officialUrl:url};
@@ -580,6 +632,22 @@ async function processJob(j:any){
      let q=db.from('results').select('id,is_official,origin').eq('athlete_id',j.athlete_id).eq('event_id',eid).eq('result_date',date).eq('course',course).eq('status',r.status);
      q=r.timeMs==null?q.is('time_ms',null):q.eq('time_ms',r.timeMs);
      const {data:old}=await q.maybeSingle();
+     if(!old){
+       // Our derived date is sometimes only an approximation (e.g. a multi-day
+       // meet summarized in one document, with no per-event date available).
+       // If an official result for this event/course/time/status already
+       // exists under a different date, that pre-existing date is more likely
+       // to be the accurate one — never overwrite it or move it to a
+       // different meet based on a guess. Just link the source and stop.
+       let cq=db.from('results').select('id,result_date,is_official').eq('athlete_id',j.athlete_id).eq('event_id',eid).eq('course',course).eq('status',r.status);
+       cq=r.timeMs==null?cq.is('time_ms',null):cq.eq('time_ms',r.timeMs);
+       const {data:candidates}=await cq.limit(5);
+       const stale=(candidates||[]).find((x:any)=>x.is_official&&x.result_date!==date);
+       if(stale){
+         await db.from('result_sources').upsert({result_id:stale.id,source_id:j.source_id,source_url:r.sourceUrl,retrieved_at:new Date().toISOString(),monitor_run_id:run.id},{onConflict:'result_id,source_id'});
+         continue
+       }
+     }
      if(old){
        if(!old.is_official){await db.from('results').update({meet_id:m.id,origin:'official',source_id:j.source_id,is_official:true,notes:'Confirmado por fonte oficial.',updated_at:new Date().toISOString()}).eq('id',old.id);await db.from('result_sources').upsert({result_id:old.id,source_id:j.source_id,source_url:r.sourceUrl,retrieved_at:new Date().toISOString(),monitor_run_id:run.id},{onConflict:'result_id,source_id'})}
        else dups++;
