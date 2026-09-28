@@ -1795,4 +1795,37 @@ Comparando o histórico completo de master (`f02e62f2...`) e da conta pessoal do
 - **A diferença de 13 (40 vs 27) que sobra agora é 100% real, não duplicata**: são exatamente 3 competições (22/03/2025, 04/07/2025, 15/08/2026) onde a conta pessoal do Vinícius nunca teve nenhum resultado importado — não tem como resolver isso com reorganização, só descobrindo essas competições de verdade (é exatamente o problema que o "motor de importação total" pedido por Henrique resolve, ver próxima seção).
 
 ---
+
+## Motor de descoberta automática de campeonatos no SwimSystem (parte 1 do pedido de Henrique) (28/09/2026)
+
+**Status**: ✅ implementado, testado contra dado real e implantado (v75). Rodando sozinho em produção via o agendador já existente — sem precisar de nenhuma ação manual daqui pra frente. **Proposto por**: Henrique — "Na aba campeonato, eu tenho que ter um motor que importe todos os campeonatos que o atleta participou dos links de configurações... tudo isto no supabase, nada no codigo" (respondendo à limpeza de duplicatas do histórico).
+
+### O que já existia (e por que não bastava)
+
+Já existe, desde antes desta sessão, um motor de descoberta automática de campeonatos (`ensureArchiveJobsForDiscovered`/`historical_archives`/`historical_archive_jobs`) que busca na web ("site:swimsystem.swimtimebrasil.com") por competições de cada atleta e as processa incrementalmente. **O problema**: esse motor só conhece o domínio antigo (`swimsystem.swimtimebrasil.com`), que a federação praticamente parou de alimentar — por isso só 2 competições tinham sido encontradas dessa forma, e nenhuma das competições recentes (já migradas para o novo `swimsystem.app`) nunca seriam achadas por ele.
+
+### O que foi construído
+
+Em vez de inventar um mecanismo novo do zero, estendi o motor já existente para também vasculhar o site novo — reaproveitando toda a fila/trava/retentativa/dedupe que já existia:
+
+- **`ensureSwimSystemAppArchives()`** (nova função): a cada vez que o job `historical` de qualquer atleta com fonte SwimSystem roda, essa função busca `swimsystem.app/meets` — a listagem pública e geral de competições do site (hoje ~50, cobrindo o Brasil todo) — e registra qualquer competição nova como uma linha em `historical_archives`, sem precisar saber de antemão se algum atleta do VINISWIM participou dela ou não (isso é decidido depois, por atleta, no passo seguinte — exatamente como o motor antigo já fazia para o domínio antigo). Descoberta de uma competição nova custa 1 busca extra (a própria página da competição, para pegar o nome) — limitado a 8 por execução, para nunca estourar o orçamento de tempo/CPU da Edge Function processando um catálogo grande de uma vez só.
+- **`processArchiveJob`, ramo novo (`provider==='swimsystem_v2'`)**: para cada competição nova, verifica se o atleta em questão aparece na lista de atletas dessa competição (mesma técnica já usada em "Importar competição"); se não aparece, marca como concluído sem nada a fazer; se aparece, busca os relatórios em PDF da competição e extrai os resultados do atleta (reaproveitando o `parseClubDetailResults` já validado no fix anterior desta sessão), com a mesma trava de segurança de nunca mover um resultado já oficial para uma data diferente por causa de uma data aproximada.
+- Nenhuma tabela nova — tudo em `historical_archives`/`historical_archive_jobs`, que já existiam para esse exato propósito.
+
+### Dois bugs pegos e corrigidos durante o próprio teste (nenhum dado real afetado)
+
+1. **Job travado sem erro nenhum**: a primeira versão tentava descobrir e registrar todas as ~50 competições numa única execução — na prática, isso ultrapassou o limite de tempo/CPU da Edge Function e a execução foi encerrada pela própria plataforma no meio do processo, sem chance de gravar um erro (ficou "em andamento" para sempre no banco). Corrigido limitando a 8 competições novas por execução; o motor já é agendado para rodar de novo sozinho, então o resto é descoberto nas execuções seguintes, sem travar nenhuma delas. O job travado foi destravado manualmente (só mudança de status, nenhum dado de resultado).
+2. **0 resultados encontrados mesmo em competição já confirmada**: testei o motor novo contra a competição de setembro/2026, que já sabíamos ter exatamente 5 resultados corretos do master — o motor novo retornou 0. Causa: o código buscava a página "/results" da competição diretamente, mas os links dos relatórios em PDF só existem na página raiz da competição (a página "/results" é renderizada no navegador, sem esses links no HTML entregue pelo servidor) — o caminho já existente ("Importar competição") já fazia essa distinção corretamente, o motor novo não. Corrigido para buscar a mesma página raiz. **Reteste após a correção**: 5 de 5 resultados encontrados, valores e datas exatamente iguais aos já confirmados, 0 inseridos (já existiam), 2 vínculos de fonte adicionados com segurança (2 resultados tinham a data aproximada do PDF diferente da data real já gravada — a trava de segurança impediu qualquer sobrescrita, exatamente como projetado).
+
+### Estado no momento deste registro
+
+Reiniciei o processamento das 25 competições descobertas (agora com o código corrigido) e ativei o mesmo motor para a conta pessoal do Vinícius. Isso está rodando sozinho, no ritmo do agendador automático já existente (a cada ~1 minuto), sem nenhuma ação manual necessária daqui pra frente — inclusive para qualquer atleta futuro que configure uma fonte SwimSystem, não só o Vinícius. Confirmado, no momento deste registro: nenhum resultado de `results` foi duplicado, movido ou teve data alterada durante todo o teste (contagem de master estável em 40, de Vinícius estável em 27, conferida antes/depois de cada passo).
+
+### Pendências
+
+- **Parte 2 do pedido de Henrique (filtro de competições na aba Resultados + Melhores Resultados + Gráficos reagindo ao filtro escolhido, com o filtro persistido no Supabase)** ainda não foi implementada — fica para o próximo passo, depois da parte 1 (motor) se estabilizar.
+- As 3 competições que já sabemos que faltam para o Vinícius (22/03/2025, 04/07/2025, 15/08/2026 — ver seção de dedupe acima) são todas competições **antigas**, do domínio antigo (`swimsystem.swimtimebrasil.com`), que o motor novo não cobre (ele só vasculha o site novo). Resolver essas 3 continua dependendo do motor antigo (busca na web), que hoje só encontra 2 competições de 10 possíveis — esse é um problema separado, não corrigido por este trabalho.
+- Os logs de diagnóstico (`last_error` com prefixo `DEBUG:` em execuções sem resultado) foram deixados no código — são inofensivos (só aparecem quando não há nada a inserir) e úteis para acompanhar o motor rodando; podem ser removidos depois que a parte 1 estiver considerada estável.
+
+---
 *Atualizado por Code em 28/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
