@@ -687,7 +687,21 @@ async function processJob(j:any){
      }
      const {count:remaining}=await db.from('historical_archive_jobs').select('id',{count:'exact',head:true}).eq('athlete_id',j.athlete_id).in('status',['pending','running']);
      await db.from('monitor_runs').update({status:'completed',finished_at:new Date().toISOString(),records_found:0,records_inserted:0,records_duplicated:0}).eq('id',run.id);
-     await db.from('monitor_jobs').update({status:(remaining||0)>0?'pending':'completed',last_run_at:new Date().toISOString(),next_run_at:(remaining||0)>0?new Date(Date.now()+60000).toISOString():null,locked_at:null,last_error:null,attempts:0}).eq('id',j.id).eq('status','running');
+     // A swimsystem athlete's discovery must keep watching for new meets forever
+     // (that's the whole point of the motor — no one should have to click
+     // Atualizar again just so a future competition gets noticed). Once the
+     // current backlog is drained, re-arm this job for a later check instead of
+     // finalizing to 'completed'/next_run_at=null, which would otherwise stop it
+     // from ever being claimed again until the user manually requests a refresh.
+     // The legacy fdap path is a one-off cached web search, not a live listing
+     // to re-poll, so it keeps its original finalize-when-drained behavior.
+     const keepWatching=sourceCode==='swimsystem'&&(remaining||0)===0
+     await db.from('monitor_jobs').update({
+       status:(remaining||0)>0||keepWatching?'pending':'completed',
+       last_run_at:new Date().toISOString(),
+       next_run_at:(remaining||0)>0?new Date(Date.now()+60000).toISOString():keepWatching?new Date(Date.now()+6*60*60*1000).toISOString():null,
+       locked_at:null,last_error:null,attempts:0
+     }).eq('id',j.id).eq('status','running');
      return
      const packs=await scanHistoricalCatalog(j,i);
      const ev=await eventMap();let inserted=0,dups=0,found=0;
