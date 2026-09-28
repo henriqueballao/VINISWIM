@@ -1828,4 +1828,36 @@ Reiniciei o processamento das 25 competições descobertas (agora com o código 
 - Os logs de diagnóstico (`last_error` com prefixo `DEBUG:` em execuções sem resultado) foram deixados no código — são inofensivos (só aparecem quando não há nada a inserir) e úteis para acompanhar o motor rodando; podem ser removidos depois que a parte 1 estiver considerada estável.
 
 ---
+
+## Filtro de competições na aba Resultados (parte 2 do pedido de Henrique) (28/09/2026)
+
+**Status**: ✅ implementado, validado (build + teste direto do RPC) e implantado. **Proposto por**: Henrique — "Na aba resultados eu escolho todas as competicoes ou a qual(is) eu quiser por filtro e dai atualiza conforme o filtro, se eu escolher nenhuma, apaga tudo...tudo isto no supabase, nada no codigo, e os melhores resultados e graficos refletem o que foi filtrado".
+
+### Decisões confirmadas com Henrique antes de implementar
+
+1. **"Apaga tudo" = só esconde da tela.** Nenhum resultado é apagado do banco em nenhuma hipótese — o filtro controla só o que a tela mostra. Confirmado explicitamente por ele ("Só esconde da tela (recomendado)").
+2. Indiretamente confirmado pelo próprio texto do pedido: "melhores resultados e gráficos" = a seção "Melhores marcas confirmadas" (hoje na aba Início) e a aba Evolução — não a aba Campeonatos nem os KPIs gerais da aba Início (esses continuam mostrando o total real, sem filtro, por não terem sido mencionados).
+
+### O que foi construído
+
+- **Tabela nova `athlete_result_filters`** (`athlete_id` chave primária, `selected_meet_ids uuid[]`, RLS igual ao padrão já usado em `refresh_requests`): `null` = todas as competições (padrão, quando o atleta nunca mexeu no filtro); array vazio `{}` = nenhuma; array preenchido = só essas. Nenhuma tabela de resultado é tocada por este mecanismo — é puramente uma preferência de exibição.
+- **RPC `set_athlete_result_filter(p_athlete_id, p_meet_ids)`**: mesmo padrão de validação de acesso das RPCs já existentes (`ATHLETE_ACCESS_DENIED`), grava a preferência. Testado diretamente contra o banco (com `auth.uid()` simulado) nos três estados (todas/algumas/nenhuma) e no caso de acesso negado, antes de tocar em qualquer conta real — nenhuma linha de `results` foi lida, criada ou alterada durante o teste.
+- **Frontend (`App.tsx`)**: novo controle "Competição" na aba Resultados, no mesmo estilo visual dos filtros que já existiam ali (Prova/Piscina/Categoria/Origem) — reaproveita o CSS já existente, nenhuma classe nova. A lista de competições vem direto dos próprios resultados do atleta (cada linha de `v_result_timeline` já carrega o nome da competição), não precisa de tabela nova nem de consulta extra.
+  - O filtro de competição é aplicado **antes** dos 4 filtros que já existiam (Prova/Piscina/Categoria/Origem), então ele restringe a base para todos eles.
+  - **Melhores marcas confirmadas** (aba Início): quando o filtro está em "todas" (o padrão), continua exatamente como sempre foi (usa a tabela `personal_bests`, sem nenhuma mudança de comportamento). Quando o usuário ativa um filtro de verdade, a melhor marca de cada prova passa a ser calculada em tempo real só com os resultados das competições marcadas — se uma competição com o melhor tempo de uma prova for desmarcada, a marca "cai" para a próxima melhor entre as competições visíveis, exatamente como pedido.
+  - **Evolução** (gráficos): passa a receber só os resultados das competições marcadas no filtro.
+  - Quando o filtro está em "Nenhuma competição", a lista de resultados na própria aba Resultados mostra um aviso explicando o estado (em vez de uma tabela vazia sem explicação), mas sem impedir o usuário de reabrir o filtro e marcar algo de novo.
+- A preferência é por atleta e persiste no Supabase (não no navegador) — abrir em outro aparelho/aba mostra o mesmo filtro já escolhido.
+
+### Validação feita
+
+- `npm run build` (`tsc -b && vite build`) sem erros.
+- RPC testado diretamente no Supabase nos 3 estados + caso de acesso negado, sempre com leitura de conferência depois de cada escrita, e sempre revertido para "todas" (o padrão) ao final do teste — nenhum atleta real ficou com um filtro de teste ativo.
+- **Não foi possível testar clicando de verdade no navegador** (mesma limitação de rede já documentada nesta sessão/neste arquivo — o ambiente onde o Code roda não alcança `*.supabase.co`) — a validação foi por leitura de código + build de produção + teste direto do RPC contra o banco real. Recomendado que Henrique confirme visualmente o comportamento do filtro (incluindo o estado "Nenhuma") no próximo acesso.
+
+### Rollback
+
+Reverter o commit desta entrada (é só um arquivo, `App.tsx`). No banco: `drop function if exists public.set_athlete_result_filter(uuid,uuid[]); drop table if exists public.athlete_result_filters;` — reversível sem afetar `results`/`meets`/nenhuma tabela pré-existente.
+
+---
 *Atualizado por Code em 28/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
