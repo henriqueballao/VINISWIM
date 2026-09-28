@@ -1718,4 +1718,53 @@ Henrique pediu de novo para entender por que a conta pessoal do Vinícius não b
 Nenhuma escrita foi feita nesta investigação nem na anterior — nenhum `source_link_request` foi criado ou alterado para nenhuma das duas contas, nenhum job foi tocado. A ação de colar a URL em "Campeonatos" fica a critério de Henrique/Vinícius, feita pela própria UI, e não conta como consolidação dos dois perfis (não mexe em `account_members`/`athletes`/arquivamento — é só configuração de fonte de um atleta já existente).
 
 ---
-*Atualizado por Code em 27/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
+
+## Causa raiz real da busca automática do SwimSystem não trazer nada + incidente de corrupção de dados (autocorrigido) + fix completo (28/09/2026)
+
+**Status**: ✅ corrigido, implantado (v70) e **confirmado funcionando de ponta a ponta** na conta pessoal real do Vinícius. **Proposto por**: Henrique, após reportar que a busca "não traz nada" mesmo já tendo a competição vinculada (achado da entrada anterior).
+
+### Contexto
+
+Depois de vincular a competição em andamento (seção anterior), Henrique confirmou que a conta master via os resultados mas a conta pessoal do Vinícius continuava sem trazer nada, mesmo com "Atualizar" clicado várias vezes e o campeonato já encerrado há mais de uma semana. Investigação encontrou **duas causas raiz reais, independentes**, e no caminho eu **causei e corrigi um incidente real em dado de produção**, registrado aqui com transparência total.
+
+### Causa raiz #1 — a página do SwimSystem mudou para renderização client-side
+
+A página de um campeonato no `swimsystem.app` não entrega mais, no HTML servido pelo servidor, nenhum link de prova individual (`discover()`/`parseResults()`, que procuram `a[href*="?e="]`, encontravam 0 links — confirmado test a test contra a página real). Os dados dos resultados também não vêm embutidos nesse HTML. Ou seja: **o parser antigo nunca tinha chance de encontrar nada nessa página, para nenhum atleta**, desde que o site mudou de tecnologia — isso não é específico do Vinícius.
+
+O que o site continua publicando são **relatórios em PDF** (link direto para um bucket público), incluindo um "Resultados por Clube (Detalhado)" com todas as provas de todos os atletas do clube. Implementei `parseClubDetailResults()`: identifica o bloco de texto de cada atleta pelo cabeçalho (nome, ano de nascimento, categoria), dentro dele localiza cada prova disputada e o tempo (ou status DNS/DSQ/DNF), com cuidado explícito para não confundir provas de revezamento (`4x50m Livre`) com provas individuais (`50m Livre`). Testado isoladamente em Node.js contra o texto real extraído de 3 atletas diferentes antes de tocar em produção — bateu exatamente com os 5 resultados já corretos e conhecidos da conta master.
+
+### Incidente de corrupção de dados real — causado e corrigido pelo Code, dentro do mesmo teste
+
+Ao ligar o novo parser num teste real (não sintético — contra a conta master, para validar contra dado já conhecido), uma lógica auxiliar que eu tinha copiado de um padrão já existente em outra função reatribuiu `meet_id` e `result_date` de 3 dos 5 resultados corretos da conta master para uma linha de campeonato nova e incorreta (criada com data errada, pega de um trecho de texto não relacionado). Percebi isso eu mesmo, comparando a contagem de resultados antes/depois do teste (caiu de 5 para 2 sob o campeonato certo), antes de reportar qualquer coisa como concluída.
+
+**Correção imediata, com leitura e verificação em cada passo:**
+- Os 3 resultados foram devolvidos ao `meet_id` e à data corretos (conferidos um a um contra o estado original).
+- O campeonato incorreto criado por engano foi apagado, depois de confirmar que nenhuma outra linha (`results`, `meet_entries`) o referenciava.
+- Conferido, ao final, que os 5 resultados da conta master batem exatamente com o estado anterior ao incidente.
+
+**Causa do incidente**: a lógica reatribuía `meet_id`/`result_date` sempre que encontrava um resultado "parecido" (mesma prova/tempo/status) já existente sob uma data diferente — presumindo que a data recém-calculada (aproximada, derivada do PDF) era mais confiável que a já gravada. Removi essa reatribuição por completo: agora, quando isso acontece, o código **nunca mais move o resultado nem troca sua data** — só linka a fonte nova ao resultado já existente, tratando a data já gravada como a mais confiável. Redeployado e testado de novo contra a conta master: idempotente, 0 duplicação, 0 mudança.
+
+### Causa raiz #2 — vincular a competição não atualizava a URL que a busca de fato usa
+
+Mesmo com o parser corrigido, a conta pessoal do Vinícius continuou sem trazer nada após Henrique vincular manualmente a competição pela tela (seção anterior). Achado: a função que processa esse vínculo grava a URL da competição em `athlete_identifiers.metadata`, mas a busca de fato lê a URL de uma coluna diferente, `athlete_source_configs.source_url` — que **nunca era atualizada** por esse fluxo. Resultado: o vínculo era marcado como "verificado" com sucesso, um job de busca era criado e até rodava (em ~2 segundos, sem erro), mas continuava varrendo a URL antiga/genérica configurada antes (a home do SwimSystem), nunca a URL da competição específica. Isso explica por completo por que a conta master funcionava (sua `source_url` já apontava para a competição certa, de uma configuração anterior) e a conta pessoal do Vinícius não (nunca teve essa coluna atualizada). Corrigido: `processLink()` agora também grava a URL vinculada em `athlete_source_configs.source_url`.
+
+### Correção do dado real da conta pessoal do Vinícius e confirmação final
+
+Com as duas causas corrigidas e implantadas (v70): corrigi manualmente a `source_url` já configurada incorretamente na conta do Vinícius (mesma URL que a conta master usa) e reativei o job de busca já existente para essa conta. Resultado do próximo ciclo automático do agendador (~1 min depois, sem nenhuma ação manual adicional):
+
+- **5 de 5 resultados encontrados e inseridos, 0 duplicados**: 100 Livre (95,18s), 50 Costas (50,24s), 200 Livre (2:16,38), 50 Livre (não largou/DNS), 100 Costas (1:06,09) — todos batendo exatamente com os valores já confirmados na conta master.
+- A busca também criou, por engano, uma segunda linha de campeonato duplicada (mesmo padrão do incidente acima, causado pela mesma diferença de convenção entre as duas contas) com nome genérico e data errada. Identifiquei e corrigi antes de reportar: os 5 resultados foram religados ao campeonato correto (o mesmo que a conta master usa, com nome e datas reais de setembro/2026) e a linha duplicada foi apagada, depois de confirmar que nada mais a referenciava.
+- **Conferido ao final**: a conta do Vinícius tem agora 27 resultados (22 que já existiam + 5 novos, nenhum duplicado); a conta master continua com seus 5 resultados originais intocados; o campeonato correto agora tem 10 resultados no total (5 de cada conta), com nome e datas corretas para ambas.
+
+### Arquivos e deploy
+
+- `commercial/supabase/functions/monitor-runner/index.ts` — commit `8d0f2bf` nesta branch (as mudanças já estavam implantadas em produção desde antes deste commit; o commit só sincroniza o git com o que já está rodando, seguindo a regra 8). Função implantada como versão **70**.
+- Nenhuma migration de schema nesta correção — só mudança de código no Edge Function e correções pontuais de dado (via SQL direto, sempre leitura-antes-de-escrita, com o resultado de cada UPDATE/DELETE conferido no retorno).
+
+### Pendências
+
+- A abordagem de data aproximada (`historicalMeetDate`, usada quando o PDF não tem a data exata por prova) ainda pode gerar pequenas imprecisões de data em cenários futuros onde não exista nenhum resultado já confirmado para comparar — hoje isso é mitigado por nunca sobrescrever uma data já existente, mas uma primeira importação "do zero" ainda usa a data aproximada. Não é um problema neste caso porque a conta master já tinha as datas certas para comparar, mas fica registrado para o caso de uma conta sem nenhum dado prévio nesse campeonato.
+- Duas contas que apontam para o mesmo campeonato real ainda podem gerar duas linhas de `meets` fisicamente distintas na primeira vez que a busca roda para cada uma (por causa de convenções diferentes de `external_id` entre importações antigas e novas) — resolvido manualmente nos dois casos encontrados até agora (master, na entrada anterior; Vinícius, nesta), mas não há uma prevenção estrutural para isso ainda. Fica registrado para decisão do chat se vale a pena investir numa normalização de `external_id` mais robusta.
+
+---
+*Atualizado por Code em 28/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
