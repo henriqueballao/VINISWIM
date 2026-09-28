@@ -1893,4 +1893,30 @@ Quando a fonte é `swimsystem` (o motor novo) e a fila drenou, o job agora é re
 6 dos `historical_archive_jobs` do Vinícius (todos do domínio antigo `swimsystem.swimtimebrasil.com`) estão em `status='failed'` com o mesmo erro: `invalid peer certificate: NotValidForName` — um problema de certificado TLS no próprio servidor antigo da federação (fora do controle do VINISWIM), não um bug nosso. São 6 competições reais e nomeadas (Troféu Ossami Fukuda 2024/2025, Torneio Regional 1ª Região Pré-Mirim/Sênior 2024, Campeonato Sulbrasileiro Mirim/Petiz 2024, Troféu Germano Bayer 2024, Campeonato Superparanaense 2024) que o motor já encontrou mas não consegue buscar. Não investigado a fundo ainda (por exemplo, tentar `http://` em vez de `https://` para esse domínio específico) — fica como próximo passo, se Henrique quiser priorizar.
 
 ---
+
+## Escopo real do motor de descoberta: só cobre SwimSystem, não as outras 2 federações cadastradas (28/09/2026)
+
+**Status**: investigação concluída, nenhum código alterado — resposta honesta a uma pergunta do Henrique ("E as demais federações? Motor de procura permanente?").
+
+Hoje existem 4 `sources` cadastradas: `fdap`, `fgda` (Federação Gaúcha), `masters_parana` (Masters Paraná) e `swimsystem`. **Só `swimsystem` tem o motor de descoberta permanente** (`ensureSwimSystemAppArchives` + o re-armamento de 6h corrigido nesta mesma data). `fdap` tem um motor, mas é uma busca web pontual e cacheada, não uma listagem viva. **`fgda` e `masters_parana` não têm nenhum motor de descoberta** — o único mecanismo disponível para elas é o fluxo antigo de `current_meet`: o usuário cola manualmente a URL de uma competição específica em Configurações/Campeonatos, e o monitor lê só aquela página. Não existe hoje, para essas duas federações, nenhuma forma de descobrir automaticamente competições novas ou antigas. Ambas estão configuradas para pelo menos um atleta real (4 configs ativas cada, no momento desta checagem). Se Henrique quiser o mesmo motor de descoberta permanente para `fgda`/`masters_parana`, é trabalho novo — não é coberto pelo que existe hoje.
+
+## Aba Campeonatos: o motor não importa a lista de provas de uma competição futura (28/09/2026)
+
+**Status**: investigação concluída, nenhum código alterado — resposta a "Irá aparecer as provas da próxima competição?".
+
+O motor de descoberta (`processArchiveJob`, ramo `swimsystem_v2`) só grava um resultado depois que existe um **relatório em PDF já publicado** com o resultado oficial — ou seja, ele só enxerga uma competição depois que ela aconteceu e o resultado saiu. Ele nunca grava em `meet_entries` (a lista de provas/balizamento/série/raia que a aba Campeonatos mostra antes da competição acontecer) — isso só é gravado pelo fluxo manual (`processLink`, disparado quando o usuário cola a URL da competição atual em "Importar competição" na própria aba Campeonatos), que lê a página de inscritos e grava o balizamento de cada prova. **Resposta direta**: não, as provas de uma competição futura não aparecem sozinhas na aba Campeonatos — só depois que o usuário colar a URL daquela competição manualmente ali. Automatizar isso (descobrir e importar o balizamento de uma competição futura antes dela acontecer, sem colar URL) é trabalho novo, não coberto pelo motor atual.
+
+---
+
+## Filtros da aba Resultados responsivos em 2 colunas no celular (28/09/2026)
+
+**Status**: ✅ corrigido e implantado. **Proposto por**: Henrique — "Em celular arrume para que os filtros fiquem responsivos em duas colunas na aba resultados".
+
+**Causa**: o grid `.result-filter-grid` já tinha uma regra de 2 colunas no breakpoint de tablet (≤900px), mas um breakpoint mais específico de celular (≤650px) sobrescrevia para 1 coluna só, empilhando os 5 filtros (Competição/Prova/Piscina/Categoria/Origem) verticalmente. **Correção**: removida essa sobrescrita, mantendo 2 colunas também no celular. Também corrigido o grid interno de cada botão de filtro (rótulo/valor/seta), que antes tinha o valor com largura mínima de conteúdo e podia estourar o card quando o botão fica mais estreito em 2 colunas (ex.: nome longo de competição) — agora o valor encolhe corretamente e usa reticências.
+
+**Validação**: `npm run build` sem erros; conferido visualmente com Playwright + Chromium (já disponíveis neste ambiente) renderizando o CSS compilado real a 375px de largura — 2 colunas, ícones e valores longos truncados corretamente, nada estourando o card. Não foi possível testar dentro do app de verdade (login não alcançável neste sandbox, mesma limitação de rede já documentada nas entradas anteriores).
+
+Implantado em produção: `Build VINISWIM Commercial App` (run #118) → bot commitou `daeb17a` em `app/` → `pages build and deployment` publicou o bundle novo.
+
+---
 *Atualizado por Code em 28/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
