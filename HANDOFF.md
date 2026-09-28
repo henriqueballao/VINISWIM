@@ -1919,4 +1919,36 @@ O motor de descoberta (`processArchiveJob`, ramo `swimsystem_v2`) só grava um r
 Implantado em produção: `Build VINISWIM Commercial App` (run #118) → bot commitou `daeb17a` em `app/` → `pages build and deployment` publicou o bundle novo.
 
 ---
+
+## Motor de descoberta para Masters Paraná + provas futuras migram para Competições (28/09/2026)
+
+**Status**: ✅ implementado, implantado (monitor-runner v78) e **verificado em produção contra dado real** para a parte que dava para testar sem um caso real disponível. **Proposto por**: Henrique — "Todas as federecoes devem ter o motor de descoberta automatica. Implante." + "competições futuras que o atleta cadastrado aparece, primeiro migra para competições, depois qdo encerra as provas e os resultados ficam oficiais, apaga da aba competicoes e migram para resultados".
+
+### Masters Paraná: motor novo, completo
+
+O site (`mastersparana.com.br`, WordPress comum, sem proteção anti-bot) publica uma página "MEETING MASTERS `<ano>`" por temporada, com uma seção por etapa (`h3` "Nª ETAPA `<cidade>`") contendo um PDF de resultados por etapa já realizada — texto extraível, organizado por prova e faixa etária, sem coluna fixa (formato Masters, com placar por faixa: "25+", "30+" etc.). Como o site não guarda nenhum identificador por atleta (nem para os nossos, nem em geral), o casamento é por nome completo, igual ao padrão já usado no resto do arquivo (`names()`/`looseNameMatch`).
+
+- `ensureMastersParanaArchives()`: busca a página da temporada atual via API REST do WordPress, localiza cada seção "Nª ETAPA" e extrai o link do PDF de resultados daquela seção — a fronteira de cada seção usa qualquer cabeçalho `h1/h2/h3` seguinte (não só o próximo "Nª ETAPA"), porque a página também tem uma seção de campeonato anual fora da numeração de etapas; sem essa correção, a última etapa "vazava" para dentro dela e pegava o PDF errado — pego e corrigido antes de entrar no arquivo real, comparando contra a página real.
+- `parseMastersParanaResults()`: localiza a prova pelo cabeçalho ("# Nª PROVA - `<distância>` METROS `<estilo>`"), ignora revezamentos (sem tempo individual), e dentro do bloco da prova procura o nome do atleta — igual à mesma técnica de "janela após o nome" já usada no resto do arquivo. Testado em Node.js contra o PDF real da 1ª etapa (Curitiba/2026) antes de entrar no arquivo: 5 nomes diferentes conferidos manualmente contra o texto bruto, incluindo um caso com anotação de clube entre parênteses logo após o nome — todos os tempos batem exatamente.
+- Reaproveita o mesmo agendamento "keepWatching" (re-arma a cada 6h em vez de morrer) já corrigido para o SwimSystem nesta mesma data.
+
+**Verificado em produção** (não só implantado): criei o job `historical` real para os 3 atletas reais com Masters Paraná configurado (master, Vinícius, Lorenzo — pulei o atleta "asdasd", que é lixo de teste). O motor descobriu corretamente as 4 etapas já realizadas de 2026 (Curitiba/Londrina/Maringá/Florianópolis, cada uma com o PDF certo) e **corretamente não descobriu** a 5ª etapa (Toledo, ainda sem resultado — só um formulário de inscrição em branco) nem o campeonato estadual anual (que não é uma "etapa" numerada). Rodou contra os 4 PDFs reais sem erro, encontrou 0 resultados para Vinícius (correto — ele não compete em Masters), e o job se re-armou para daqui a 6h em vez de morrer, confirmando o mesmo comportamento já validado para o SwimSystem. Nenhum dado de `results` foi alterado (contagem de Vinícius seguiu em 27).
+
+### fgda (Federação Gaúcha): **não foi possível automatizar**
+
+`fgda.org.br` está atrás de uma proteção anti-bot da Vercel ("Security Checkpoint", HTTP 429) que bloqueia qualquer requisição server-side — testado tanto por fetch direto quanto por um proxy de leitura diferente (r.jina.ai, IP diferente), os dois bloqueados igualmente. Isso não é um bug nosso nem algo contornável com cabeçalhos/User-Agent — precisaria de um navegador real atrás de IP residencial, fora do escopo de uma Edge Function. **Esta federação continua sem nenhum motor de descoberta**; o único caminho hoje é o fluxo manual de colar a URL de uma competição específica.
+
+### Provas futuras migram para Competições (SwimSystem)
+
+Quando o motor do SwimSystem confirma que o atleta está na lista de inscritos (`/athletes`) de uma competição descoberta mas ainda não existe nenhum PDF de resultado publicado — a assinatura exata de uma competição que ainda vai acontecer —, ele agora grava a competição como `status='scheduled'` junto com o balizamento (prova/série/raia) dessa mesma página de inscritos, em vez de só registrar um log de diagnóstico como antes. Quando o resultado sai depois (em um ciclo seguinte do mesmo motor), o mesmo registro é promovido para `status='completed'` com o resultado real — é o próprio `onConflict` em `source_id,external_id` que garante que é a mesma linha sendo atualizada, não uma nova.
+
+No frontend, a aba Campeonatos agora só lista competições com `status != 'completed'`; uma vez oficial, ela sai de lá e passa a aparecer só em Resultados — exatamente a migração pedida.
+
+**Não verificado contra um caso real** (diferente do resto desta entrada): no momento deste registro não há nenhuma competição futura real, com um dos nossos atletas já confirmado nela, ainda sem resultado — os únicos casos de "sem PDF" encontrados nos dados reais são competições onde o atleta simplesmente não participou (`DEBUG:no_athlete_match`). A lógica foi conferida por leitura de código e reaproveita, sem alteração, as mesmas funções (`parseEntries`, `match`, o upsert de `meets`/`meet_entries`) já usadas e comprovadas no fluxo manual "Importar competição" — mas fica pendente uma confirmação com dado real assim que uma competição futura aparecer para algum atleta.
+
+### Rollback
+
+Reverter o commit desta entrada (`monitor-runner/index.ts` + `App.tsx`). No banco: os `historical_archives` com `provider='masters_parana'` e os `historical_archive_jobs`/`monitor_jobs` correspondentes podem ser apagados sem afetar `results`/`meets` de nenhum atleta (nenhum resultado real veio de lá ainda).
+
+---
 *Atualizado por Code em 28/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
