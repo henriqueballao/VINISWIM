@@ -425,38 +425,32 @@ function CompetitionFilter({options,value,onChange}:{options:{id:string,label:st
 }
 
 function Evolution({results,events}:{results:any[],events:any[]}){
- const [event,setEvent]=useState(''),[course,setCourse]=useState(''),[category,setCategory]=useState('')
+ const [event,setEvent]=useState('__all'),[course,setCourse]=useState(''),[category,setCategory]=useState('')
  const categories=[...new Set(results.map(r=>r.category).filter(Boolean))].sort()
  const labels=new Map(events.map(e=>[e.id,e.label]))
- const validAll=results.filter(r=>r.status==='valid'&&r.time_ms)
- const eventCounts=new Map<string,number>()
- validAll.forEach(r=>eventCounts.set(r.event_id,(eventCounts.get(r.event_id)||0)+1))
- const autoEvent=(()=>{
-   if(!validAll.length)return ''
-   const maxDate=validAll.reduce((m,r)=>r.result_date>m?r.result_date:m,validAll[0].result_date)
-   const candidates=[...new Set(validAll.filter(r=>r.result_date===maxDate).map(r=>r.event_id))]
-   return candidates.sort((a,b)=>(eventCounts.get(b)||0)-(eventCounts.get(a)||0)||String(labels.get(a)||'').localeCompare(String(labels.get(b)||'')))[0]
- })()
- const effectiveEvent=event||autoEvent
+ const isAll=event==='__all'
  const valid=results
-  .filter(r=>r.status==='valid'&&r.time_ms&&r.event_id===effectiveEvent&&(!course||r.course===course)&&(!category||r.category===category))
+  .filter(r=>r.status==='valid'&&r.time_ms&&(isAll||r.event_id===event)&&(!course||r.course===course)&&(!category||r.category===category))
   .sort((a,b)=>a.result_date.localeCompare(b.result_date)||String(a.created_at||'').localeCompare(String(b.created_at||''))||String(a.id).localeCompare(String(b.id)))
  const courseMeta:Record<string,{label:string,color:string}>={SCM:{label:'25 m',color:'#159aa4'},LCM:{label:'50 m',color:'#3656bd'}}
+ const palette=['#159aa4','#3656bd','#14805e','#b27a15','#9b4aa2','#c75d45','#4d6fb6','#8b6a3d','#5d7b83','#a35f7d']
  const badColor='#c94747'
  const rows:any[]=valid.map(p=>({_id:p.id,date:d(p.result_date),_items:[] as any[]}))
  const rowById=new Map(rows.map(r=>[r._id,r]))
- const courses=[...new Set(valid.map(r=>r.course).filter(Boolean))]
- const groups=courses.map(c=>{
-   const pts=valid.filter(r=>r.course===c)
-   const pointKey='point_'+c
-   pts.forEach(p=>{const row=rowById.get(p.id);if(row){row[pointKey]=p.time_ms/1000;row._items.push({label:labels.get(effectiveEvent)||'Prova',time:p.time_ms,category:p.category,course:p.course})}})
+ const groupKeys=isAll?[...new Set(valid.map(r=>r.event_id))]:[...new Set(valid.map(r=>r.course).filter(Boolean))]
+ const groups=groupKeys.map((key,gi)=>{
+   const pts=valid.filter(r=>isAll?r.event_id===key:r.course===key)
+   const pointKey='point_'+gi
+   const label=isAll?(labels.get(key)||String(key)):(courseMeta[key]?.label||key)
+   const color=isAll?palette[gi%palette.length]:(courseMeta[key]?.color||'#5d7b83')
+   pts.forEach(p=>{const row=rowById.get(p.id);if(row){row[pointKey]=p.time_ms/1000;row._items.push({label:isAll?label:(labels.get(event)||'Prova'),time:p.time_ms,category:p.category,course:p.course})}})
    const segments=pts.slice(1).map((p,i)=>{
-     const a=pts[i],key='seg_'+c+'_'+i,from=rowById.get(a.id),to=rowById.get(p.id)
-     if(from)from[key]=a.time_ms/1000
-     if(to)to[key]=p.time_ms/1000
-     return{key,worse:p.time_ms>a.time_ms}
+     const a=pts[i],segKey='seg_'+gi+'_'+i,from=rowById.get(a.id),to=rowById.get(p.id)
+     if(from)from[segKey]=a.time_ms/1000
+     if(to)to[segKey]=p.time_ms/1000
+     return{key:segKey,worse:isAll?false:p.time_ms>a.time_ms}
    })
-   return{course:c,label:courseMeta[c]?.label||c,color:courseMeta[c]?.color||'#5d7b83',pts,pointKey,segments}
+   return{key,label,color,pts,pointKey,segments}
  })
  const times=valid.map(r=>r.time_ms/1000)
  let yMin:number|undefined,yMax:number|undefined
@@ -476,11 +470,13 @@ function Evolution({results,events}:{results:any[],events:any[]}){
  const stats=times.length?{n:times.length,best:Math.min(...times),first:valid[0]?.time_ms/1000,last:valid[valid.length-1]?.time_ms/1000}:null
  const worseExists=groups.some(g=>g.segments.some(s=>s.worse))
  const summary=stats
-   ? String(stats.n)+' resultado(s) comparável(is) · melhor '+formatSwimTime(Math.round(stats.best*1000))+' · evolução de '+formatSwimTime(Math.round(stats.first*1000))+' para '+formatSwimTime(Math.round(stats.last*1000))
+   ? isAll
+     ? String(stats.n)+' resultado(s) comparável(is) · '+String(groups.length)+' prova(s) no período'
+     : String(stats.n)+' resultado(s) comparável(is) · melhor '+formatSwimTime(Math.round(stats.best*1000))+' · evolução de '+formatSwimTime(Math.round(stats.first*1000))+' para '+formatSwimTime(Math.round(stats.last*1000))
    : 'Sem resultados comparáveis para os filtros selecionados.'
  return <section className="section">
   <div className="section-head"><h3>Evolução</h3><div className="filters">
-   <select value={effectiveEvent} onChange={e=>setEvent(e.target.value)}>{events.map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select>
+   <select value={event} onChange={e=>setEvent(e.target.value)}><option value="__all">Todos os estilos</option>{events.map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select>
    <select value={course} onChange={e=>setCourse(e.target.value)}><option value="">Todas as piscinas</option><option value="SCM">25 m</option><option value="LCM">50 m</option></select>
    <select value={category} onChange={e=>setCategory(e.target.value)}><option value="">Todas as categorias</option>{categories.map((x:any)=><option key={x} value={x}>{x}</option>)}</select>
   </div></div>
@@ -497,7 +493,7 @@ function Evolution({results,events}:{results:any[],events:any[]}){
     </LineChart>
    </ResponsiveContainer>
   </div>
-  <div className="chart-legend-custom">{groups.map(g=><span key={g.course}><i style={{background:g.color}}></i>{g.label}</span>)}{worseExists&&<span><i style={{background:badColor}}></i>Piora de tempo</span>}</div>
+  <div className="chart-legend-custom">{groups.map(g=><span key={g.key}><i style={{background:g.color}}></i>{g.label}</span>)}{worseExists&&<span><i style={{background:badColor}}></i>Piora de tempo</span>}</div>
   <div className="notice">{summary}</div>
  </section>
 }
