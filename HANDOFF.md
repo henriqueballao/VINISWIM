@@ -2053,4 +2053,30 @@ Marquei as 10 competições desse domínio como `active=false` em `historical_ar
 Reverter o commit do `App.tsx` (só essa uma linha da query). Reativar as 10 competições com `UPDATE historical_archives SET active=true WHERE id IN (...)` se o domínio algum dia corrigir o certificado — a lista completa dos 10 ids está no histórico de comandos desta sessão.
 
 ---
-*Atualizado por Code em 28/09/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*
+
+## Motor nunca extraía o local (venue) das competições descobertas — "local não bate entre as duas contas" (28/09–01/10/2026)
+
+**Status**: ✅ causa raiz encontrada e corrigida no motor (monitor-runner v80, verificado byte a byte). **Motivado por**: Henrique relatou que a conta master (henriqueballao@gmail.com, 40 resultados) e a conta do próprio Vinícius (viniciussuzinballao@gmail.com, 27 oficiais) mostram o mesmo atleta com local divergente nas mesmas competições, e pediu para corrigir pelo motor, não artificialmente.
+
+### Diagnóstico: duas contas, dois cadastros de atleta diferentes — não é bug de sincronização
+
+São dois cadastros de atleta DIFERENTES (`athletes.id` distintos), cada um na sua conta, cada um rodando o motor de forma independente — não há nada compartilhado entre eles hoje (o mecanismo de convite/multi-usuário existe no banco mas não foi usado para ligar essas duas contas ao mesmo atleta). **Não mexi nisso** — Henrique foi consultado sobre mesclar os dois cadastros e pediu para não mexer artificialmente, só diagnosticar e corrigir o motor.
+
+Comparando `meets` referenciados pelas duas contas: toda competição que as DUAS contas têm em comum aponta para a MESMA linha de `meets` (dedup global por `source_id+external_id`) — ou seja, o local nunca diverge entre as contas para uma mesma competição. A diferença real que o Henrique via era: a conta master tem competições extras vindas de uma migração/reparo manual de uma sessão anterior (`external_id` com prefixo `legacy-vini:`, local preenchido à mão na época), enquanto a conta do Vinícius só tem o que o motor automático descobriu sozinho — e **o motor nunca preencheu o campo `venue` (local) para nenhuma competição, de nenhum provider, desde sempre** (confirmado: a palavra "venue" não existia em lugar nenhum do arquivo inteiro do motor antes deste fix). Isso foi confirmado batendo os números reais: 0 de 4 competições descobertas pelo motor atual (`swimsystem_v2`) em todo o banco tinham local preenchido.
+
+### Correção no motor
+
+A página raiz de uma competição no swimsystem.app tem um bloco "Local da competição" com o nome do local e o endereço completo, nunca lido pelo parser (`parseMeet()`). Confirmado ao vivo via `pg_net` contra duas competições reais (`Clube Curitibano` / `Curitiba (Pr)`, ambos com endereço completo incluindo cidade/UF) — o parser agora extrai local e cidade desse bloco (`parseMeet` ganhou `venue`/`city`), testado em Node contra o HTML real de ambas antes de entrar no arquivo. Os três pontos que fazem `upsert` de `meets` a partir de `parseMeet` (a competição "agendada" e a "concluída" em `processArchiveJob`, e a de `processJob` para a competição em andamento) passaram a incluir esses campos — só quando a extração teve sucesso (`...(meetParsed.venue?{venue:...}:{})`), nunca sobrescrevendo um valor manual já correto com nulo se uma execução futura falhar em extrair.
+
+**Não corrigido/fora do escopo**: as 10 competições do domínio antigo `swimsystem.swimtimebrasil.com` (já desativadas numa entrada anterior por certificado quebrado) nunca tiveram esse campo extraído; como esse domínio está morto e nunca produziu resultado nenhum, não foi incluída extração de local para esse caminho legado.
+
+### Validação
+
+Testado o regex de extração em Node.js contra o HTML real de 2 competições diferentes (`net.http_get` via Supabase) — ambos os casos extraíram local e cidade corretamente, incluindo um caso em que o "local" é só um nome de cidade entre parênteses, não um clube. Deploy `monitor-runner` v80 conferido byte a byte idêntico ao arquivo local.
+
+### Rollback
+
+Reverter o commit (só adiciona `venue`/`city` em `parseMeet()` e nos 3 upserts de `meets`; sem migração de schema, sem mudança em dado existente — `venue`/`city` já existiam como colunas em `meets`, só nunca eram preenchidos pelo motor).
+
+---
+*Atualizado por Code em 01/10/2026. Toda entrada nova deve manter o formato acima (Status / Proposto por / O quê / Impacto / Próximo passo).*

@@ -73,12 +73,26 @@ function historicalMeetDate(text:string){
 function parseMeet(html:string,url:string){
  const $=cheerio.load(html),body=$('body').text().replace(/\s+/g,' ');
  const title=$('title').first().text().replace(/\s*-\s*SPLASH.*$/i,'').trim();
+ // The meet's root page has a "Local da competição" card right before the venue
+ // name + address — this is the only place swimsystem.app exposes it, and it was
+ // never wired up before (the motor had zero venue-extraction logic for any
+ // provider, confirmed by grepping the whole file for "venue"), so every meet
+ // discovered this way landed with venue=null regardless of athlete/account.
+ const locMatch=html.match(/Local da competição<\/span>[\s\S]{0,400}?<p[^>]*>([^<]+)<\/p>\s*<address[^>]*>([^<]+)<\/address>/i)
+ const venue=locMatch?locMatch[1].replace(/\s+/g,' ').trim()||null:null
+ let city:string|null=null
+ if(locMatch){
+  const addrParts=locMatch[2].replace(/\s+/g,' ').split('·').map(s=>s.trim())
+  const cityPart=addrParts.find(p=>/\/\s*[A-Z]{2}\b/.test(p))
+  city=cityPart?cityPart.split('/')[0].trim()||null:null
+ }
  return {
   externalId:meetBase(url).split('/').pop()||meetBase(url),
   name:title||$('h1').first().text().trim()||'Campeonato',
   startDate:dateFrom(body),
   course:/\b25\s*m\b/i.test(body)?'SCM':/\b50\s*m\b/i.test(body)?'LCM':null,
-  officialUrl:meetBase(url)
+  officialUrl:meetBase(url),
+  venue,city
  }
 }
 function athleteHistoricalEvents(text:string,i:any){
@@ -500,7 +514,8 @@ async function processArchiveJob(aj:any){
              const mq=await db.from('meets').upsert({
                source_id:archive.source_id,external_id:archive.event_key,name:archive.name||meetParsed.name,
                start_date:meetParsed.startDate||archive.start_date||null,end_date:archive.end_date||null,
-               course:meetParsed.course||archive.course,official_url:rootBase,status:'scheduled'
+               course:meetParsed.course||archive.course,official_url:rootBase,status:'scheduled',
+               ...(meetParsed.venue?{venue:meetParsed.venue}:{}),...(meetParsed.city?{city:meetParsed.city}:{})
              },{onConflict:'source_id,external_id'}).select('id').single();
              if(!mq.error){
                const ev=await eventMap();
@@ -519,7 +534,8 @@ async function processArchiveJob(aj:any){
      const mq=await db.from('meets').upsert({
        source_id:archive.source_id,external_id:archive.event_key,name:archive.name||meetParsed.name,
        start_date:results.find((r:any)=>r.resultDate)?.resultDate||meetParsed.startDate||archive.start_date,
-       end_date:archive.end_date||null,course:meetParsed.course||archive.course,official_url:meetBase(base),status:'completed'
+       end_date:archive.end_date||null,course:meetParsed.course||archive.course,official_url:meetBase(base),status:'completed',
+       ...(meetParsed.venue?{venue:meetParsed.venue}:{}),...(meetParsed.city?{city:meetParsed.city}:{})
      },{onConflict:'source_id,external_id'}).select('id,start_date,course').single();
      if(mq.error)throw new Error('Meet SwimSystem v2: '+mq.error.message);
      const m=mq.data;
@@ -966,7 +982,7 @@ async function processJob(j:any){
      for(const p of discoverGeneric(rootHtml,url)){if(/\.pdf(?:$|\?)/i.test(p.url))continue;try{results.push(...parseGeneric(await get(p.url),p.url,i))}catch{}}
    }
    if(!meet.startDate)throw new Error('Data da competição não encontrada na fonte oficial; resultado não pode ser registrado sem data confiável.');
-   const {data:m}=await db.from('meets').upsert({source_id:j.source_id,external_id:meet.externalId,name:meet.name,start_date:meet.startDate,course:meet.course,official_url:meet.officialUrl,status:'active'},{onConflict:'source_id,external_id'}).select('id,start_date,course').single();
+   const {data:m}=await db.from('meets').upsert({source_id:j.source_id,external_id:meet.externalId,name:meet.name,start_date:meet.startDate,course:meet.course,official_url:meet.officialUrl,status:'active',...(meet.venue?{venue:meet.venue}:{}),...(meet.city?{city:meet.city}:{})},{onConflict:'source_id,external_id'}).select('id,start_date,course').single();
    const ev=await eventMap();for(const e of entries){const eid=ev.get(n(e.eventLabel));if(eid)await db.from('meet_entries').upsert({meet_id:m.id,athlete_id:j.athlete_id,event_id:eid,seed_time_ms:e.seedTimeMs,heat:e.heat,lane:e.lane,entry_status:'seeded',source_id:j.source_id},{onConflict:'meet_id,athlete_id,event_id'})}
    let inserted=0,dups=0;const seen=new Set<string>();
    for(const r of results){
