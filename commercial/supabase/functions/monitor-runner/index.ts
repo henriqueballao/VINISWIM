@@ -256,22 +256,24 @@ function parseClubDetailResults(text:string,i:any,fallbackCourse:any,fallbackDat
   const start=h.index!+h[0].length;
   const end=k+1<headers.length?headers[k+1].index!:text.length;
   const block=text.slice(start,end);
-  const eventRe=/(?<![x\d])(\d{1,4})m\s+(Livre|Costas|Peito|Borboleta|Medley)\s+Final\s+Direta\s+/gi;
+  // ClubDetail/ProgressionDetails columns are:
+  // Prova | Etapa | Col. | Tempo | FINA | T. Inscrição | Data | % | RP.
+  // Therefore a valid result is the token immediately after Col. (N. or "-").
+  // Never scan the rest of the segment: it contains FINA points and seed time.
+  const eventRe=/(?<![x\d])(\d{1,4})m\s+(Livre|Costas|Peito|Borboleta|Medley)\s+(Final\s+Direta|Eliminat[oó]ria)\s+/gi;
   const starts=[...block.matchAll(eventRe)];
   for(let idx=0;idx<starts.length;idx++){
    const cur=starts[idx];
    const segEnd=idx+1<starts.length?starts[idx+1].index!:block.length;
    const seg=block.slice(cur.index!+cur[0].length,segEnd).trim();
-   const firstToken=seg.split(/\s+/)[0]||'';
-   const st=resultStatus(firstToken);
-   let timeMs:number|null=null;
-   if(!st){
-    for(const tok of seg.split(/\s+/)){
-     if(/^\d+\.$/.test(tok))continue;
-     const v=parseTime(tok);
-     if(v!=null){timeMs=v;break}
-    }
-   }
+   // Completed row: "3. 1:17.59 338 1:22.12 112%"
+   // Entry-only row: "- NT -" or "- 1:20.17 -" -> no official result.
+   // DSQ/DNS may replace the result token.
+   const m=seg.match(/^(?:\d{1,3}\.|-)\s+(DNS|DNF|DSQ|DQL|DQ|N\/C|\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2}|NT)\b/i);
+   if(!m)continue;
+   const token=m[1];
+   const st=resultStatus(token)||(/^(?:DQL|DQ|N\/C)$/i.test(token)?'dsq':null);
+   const timeMs=st||/^NT$/i.test(token)?null:parseTime(token);
    if(timeMs==null&&!st)continue;
    out.push({eventLabel:cur[1]+' '+cur[2],timeMs,status:st||'valid',sourceUrl:url,resultDate:fallbackDate,course})
   }
