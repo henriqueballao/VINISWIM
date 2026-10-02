@@ -309,12 +309,16 @@ function parseMastersParanaResults(text:string,i:any,fallbackDate:string|null,ur
   let namePos=-1,matched='';
   for(const x of nm){const idx=n(block).indexOf(x);if(idx>=0){namePos=idx;matched=x;break}}
   if(namePos<0)continue;
+  const before=block.slice(Math.max(0,namePos-24),namePos);
+  const statusBefore=(before.match(/(?:N\/C|DQL|DQ|DNS|DNF|DSQ)\s+\d{1,8}\s*$/i)||[])[0]||'';
   const after=block.slice(namePos+matched.length);
-  const nextMarker=after.match(/\s(?:N\/C|DQL|DQ|DNS)\s|\s\d{1,2}[ºª°]\s/);
-  const seg=nextMarker?after.slice(0,nextMarker.index):after.slice(0,200);
-  const tm=seg.match(/(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})/);
+  const nextMarker=after.match(/\s(?:N\/C|DQL|DQ|DNS|DNF|DSQ)\s+\d{1,8}\s|\s\d{1,3}[ºª°]\s+\d{1,8}\s/);
+  const seg=nextMarker?after.slice(0,nextMarker.index):after.slice(0,260);
+  const st=/N\/C|DQL|DQ|DSQ/i.test(statusBefore)?'dsq':/DNS/i.test(statusBefore)?'dns':/DNF/i.test(statusBefore)?'dnf':null;
+  // ABMN row shape after athlete/team: TEMPO + PTS (decimal comma) + IT.
+  // Do not accept an isolated time token: it may belong to a neighboring row.
+  const tm=st?null:seg.match(/(?:^|\s)(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})\s+\d{1,2},\d{2}\s+\d{1,4}(?:\s|$)/);
   const timeMs=tm?parseTime(tm[1]):null;
-  const st=timeMs==null&&/N\/C|DQL|DQ\b/.test(seg)?'dsq':null;
   if(timeMs==null&&!st)continue;
   out.push({eventLabel,timeMs,status:st||'valid',sourceUrl:url,resultDate:fallbackDate})
  }
