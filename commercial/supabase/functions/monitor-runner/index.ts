@@ -229,9 +229,10 @@ function parseGeneric(html:string,url:string,i:any){
  const $=cheerio.load(html),body=$('body').text().replace(/\s+/g,' '),course=/\b25\s*m\b/i.test(body)?'SCM':/\b50\s*m\b/i.test(body)?'LCM':null,pageDate=dateFrom(body),out:any[]=[];
  $('tr').each((_,tr)=>{
   const row=$(tr).text().replace(/\s+/g,' ').trim(); if(!row||!match(row,i))return;
-  const eventLabel=eventFrom(row); if(!eventLabel)return; const st=resultStatus(row),cells=$(tr).find('td').toArray().map(td=>$(td).text().replace(/\s+/g,' ').trim());
-  let timeMs=null; for(const cell of [...cells].reverse()){const v=parseTime(cell);if(v!=null){timeMs=v;break}}
-  if(timeMs==null&&!st)return; out.push({eventLabel,timeMs,status:st||'valid',sourceUrl:url,resultDate:dateFrom(row)||pageDate,course})
+  const eventLabel=eventFrom(row); if(!eventLabel)return;
+  const parsed=strictHtmlRowResult($,tr);
+  if(!parsed.identified||(parsed.timeMs==null&&!parsed.status))return;
+  out.push({eventLabel,timeMs:parsed.timeMs,status:parsed.status||'valid',sourceUrl:url,resultDate:dateFrom(row)||pageDate,course})
  });
  return out
 }
@@ -361,13 +362,37 @@ async function ensureMastersParanaArchives(){
   await db.from('historical_archives').insert({source_id:mp.id,provider:'masters_parana',event_key:eventKey,name:'Meeting Masters '+year+' - '+label,base_url:resultUrl,active:true,updated_at:new Date().toISOString()});
  }
 }
+function resultColumnIndex($:any,tr:any){
+ const table=$(tr).closest('table');
+ const headers=table.find('thead th').toArray().map((th:any)=>n($(th).text()));
+ let idx=headers.findIndex((h:string)=>/resultado|tempo final|marca/.test(h));
+ if(idx>=0)return idx;
+ // Some official pages omit <thead>; use the nearest preceding header row.
+ const prior=$(tr).prevAll('tr').toArray().find((r:any)=>$(r).find('th').length);
+ if(prior){
+  const hs=$(prior).find('th').toArray().map((th:any)=>n($(th).text()));
+  idx=hs.findIndex((h:string)=>/resultado|tempo final|marca/.test(h));
+ }
+ return idx
+}
+function strictHtmlRowResult($:any,tr:any){
+ const cells=$(tr).find('td').toArray().map((td:any)=>$(td).text().replace(/\s+/g,' ').trim());
+ const idx=resultColumnIndex($,tr);
+ if(idx<0||idx>=cells.length)return {timeMs:null,status:null,identified:false};
+ const cell=cells[idx]||'';
+ const st=resultStatus(cell);
+ const timeMs=st?null:parseTime(cell);
+ return {timeMs,status:st,identified:true}
+}
 function parseResults(html:string,url:string,label:string,i:any,course:any,resultDate:any){
  const $=cheerio.load(html),eventLabel=eventFrom(label)||eventFrom($('h1,h2,h3').text())||'',out:any[]=[];
  $('tr').each((_,tr)=>{
   const row=$(tr).text().replace(/\s+/g,' ').trim();if(!match(row,i))return;
-  const cells=$(tr).find('td').toArray().map(td=>$(td).text().replace(/\s+/g,' ').trim()),st=resultStatus(row);let timeMs=null;
-  for(const c of [...cells].reverse()){const v=parseTime(c);if(v!=null){timeMs=v;break}}
-  if(timeMs==null&&!st)return;out.push({eventLabel,timeMs,status:st||'valid',sourceUrl:url,resultDate,course})
+  const parsed=strictHtmlRowResult($,tr);
+  // Never guess from another numeric cell (seed/Inscrição, AQUA points, lane,
+  // ranking, etc.). If the result column cannot be identified, reject the row.
+  if(!parsed.identified||(parsed.timeMs==null&&!parsed.status))return;
+  out.push({eventLabel,timeMs:parsed.timeMs,status:parsed.status||'valid',sourceUrl:url,resultDate,course})
  });
  return out
 }
