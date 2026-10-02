@@ -38,8 +38,17 @@ function looseNameMatch(text:string,name:string){
  const hits=middle.filter(w=>set.has(w)||hay.some(h=>h.length===1&&h===w[0])).length;
  return hits>=Math.ceil(middle.length/2)
 }
+function hasStandaloneId(text:string,id:any){
+ const needle=String(id||'').trim();if(!needle)return false;
+ const hay=' '+String(text||'').replace(/\s+/g,' ').trim()+' ';
+ return hay.includes(' '+needle+' ')
+}
 function match(text:string,i:any){
- const x=n(text),id=n(i.external_id||''); if(id&&x.includes(id))return true;
+ // When a source gives us a stable athlete registration, it is authoritative.
+ // Never fall back to a fuzzy name after an ID mismatch: that can match a
+ // namesake or a neighboring athlete on broad pages.
+ const id=String(i.external_id||'').trim();
+ if(id)return hasStandaloneId(text,id);
  return names(i).some((y:string)=>y&&looseNameMatch(text,y))
 }
 function resultStatus(text:string){
@@ -65,8 +74,8 @@ function historicalMeetDate(text:string){
  if(range)return range[4]+'-'+String(range[3]).padStart(2,'0')+'-'+String(range[1]).padStart(2,'0');
  const slash=text.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
  if(slash)return slash[3]+'-'+String(slash[2]).padStart(2,'0')+'-'+String(slash[1]).padStart(2,'0');
- const pub=text.match(/Published Time:\s*\w+,\s*(\d{1,2})\s+(\w{3})\s+(\d{4})/i);
- if(pub){const mm:any={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};const m=mm[pub[2].toLowerCase()];if(m)return pub[3]+'-'+m+'-'+String(pub[1]).padStart(2,'0')}
+ // "Published Time" belongs to the file/reader metadata, not necessarily to
+ // the competition. It must never become a swimming result/meet date.
  return null
 }
 
