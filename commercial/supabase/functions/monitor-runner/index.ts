@@ -155,51 +155,53 @@ function historicalLinks(html:string,base:string,eventLabels:string[],categoryCo
  return [...new Map(out.map((x:any)=>[x.url,x])).values()]
 }
 function boundedAthleteSegment(raw:string,id:string){
- const s=String(raw||'').replace(/\s+/g,' ').trim();
- const p=s.indexOf(id);
- if(p<0)return null;
- const after=s.slice(p+id.length);
- const rowStart=/\s\d{1,3}\.\s+\d{1,2}\s*\/\s*\d{1,2}\s+[A-ZÀ-Ý]/;
- const m=after.match(rowStart);
- const end=m?m.index:Math.min(after.length,160);
- return after.slice(0,end)
+ const s=String(raw||'').replace(/\s+/g,' ').trim(),needle=String(id||'').trim();
+ if(!needle)return null;
+ // Registration must be a standalone field, not a substring of another number.
+ const m=s.match(new RegExp('(?:^|\\\\s)'+needle+'(?=\\\\s|$)'));
+ if(!m)return null;
+ const p=(m.index||0)+m[0].indexOf(needle),after=s.slice(p+needle.length);
+ // Legacy ResultList rows start with "Col. S/R". Stop before the next row,
+ // including N/C/DQ status rows, so no neighboring swimmer can donate a time.
+ const next=after.match(/\s(?:\d{1,3}\.|N\/C|DQL|DQ|DNS|DNF|DSQ)\s+\d{1,2}\s*\/\s*\d{1,2}\s+/i);
+ return after.slice(0,next?next.index:Math.min(after.length,220)).trim()
 }
 function extractOfficialRowTime(line:string,externalId:string){
- const raw=String(line||'').replace(/\s+/g,' ').trim();
- const id=String(externalId||'').trim();
- if(!id)return null;
- const seg=boundedAthleteSegment(raw,id);
+ const seg=boundedAthleteSegment(line,externalId);
  if(seg==null)return null;
+ // ResultList schema after Reg.: Nasc. | Entidade | Tempo | % | Pts. | AQUA.
+ // A result time is accepted only with a known suffix from the official
+ // columns. This rejects birth year, registration, seed-like values and times
+ // belonging to the next row.
  const patterns=[
-  /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*\d{2,3}%)/,
-  /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*--)/,
-  /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*-\s*-)/,
-  /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s+\d{1,2},\d{2})/
+  /(?:^|\s)(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s+\d{2,3}%\s+(?:\d{1,2}\.\d{2}|-)\s+\d{1,4}(?:\s|$))/,
+  /(?:^|\s)(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s+-\s+(?:\d{1,2}\.\d{2}|-)\s+\d{1,4}(?:\s|$))/,
+  /(?:^|\s)(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s+\d{1,2},\d{2}\s+\d{1,4}(?:\s|$))/
  ];
  for(const rx of patterns){
-  const m=seg.match(rx);
-  if(m){
-   const v=parseTime(m[1]);
-   if(v!=null&&v>5000&&v<1800000)return v
-  }
+  const m=seg.match(rx);if(!m)continue;
+  const v=parseTime(m[1]);if(v!=null&&v>5000&&v<1800000)return v
  }
  return null
 }
 function parseHistoricalResultText(text:string,url:string,i:any,expectedLabel:string,course:any){
  const body=String(text||'').replace(/\r/g,'');
- const eventDate=resultEventDate(body);
- const lines=body.split(/\n+/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
+ const eventDate=resultEventDate(body),date=eventDate||dateFrom(body);
  const id=String(i.external_id||'').trim();
- if(!id)return [];
+ // Historical FDAP/legacy SwimSystem must be anchored by registration AND have
+ // a reliable competition/result date. Never invent either.
+ if(!id||!date)return [];
+ const flat=body.replace(/\s+/g,' ').trim();
  const out:any[]=[];
- for(const line of lines){
-  if(!line.includes(id))continue;
-  const seg=boundedAthleteSegment(line,id);
-  if(seg==null)continue;
-  const st=resultStatus(seg);
-  const timeMs=extractOfficialRowTime(line,id);
+ let from=0;
+ while(from<flat.length){
+  const pos=flat.indexOf(id,from);if(pos<0)break;from=pos+id.length;
+  const left=pos===0?' ':flat[pos-1],right=flat[pos+id.length]||' ';
+  if(!/\s/.test(left)||!/\s/.test(right))continue;
+  const row=flat.slice(Math.max(0,pos-100),Math.min(flat.length,pos+id.length+260));
+  const seg=boundedAthleteSegment(row,id);if(seg==null)continue;
+  const st=resultStatus(seg),timeMs=extractOfficialRowTime(row,id);
   if(timeMs==null&&!st)continue;
-  const date=eventDate||dateFrom(body);
   out.push({eventLabel:expectedLabel,timeMs,status:st||'valid',sourceUrl:url,resultDate:date,course})
  }
  return out
