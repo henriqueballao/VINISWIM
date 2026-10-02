@@ -109,29 +109,45 @@ function extractFromJson(obj) {
   };
   visit(obj); return out;
 }
+function htmlText(fragment="") {
+  return String(fragment).replace(/<script\\b[\\s\\S]*?<\\/script>/gi," ").replace(/<style\\b[\\s\\S]*?<\\/style>/gi," ").replace(/<[^>]+>/g," ").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&#39;/g,"'").replace(/&quot;/gi,'"').replace(/\\s+/g," ").trim();
+}
 function extractFromHtml(html) {
-  // Dependency-free diagnostic parser: inspect table rows and preserve raw row
-  // text. Production monitor-runner continues to use Cheerio/PDF-specific parsers.
-  const rows=[...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map(m=>m[1].replace(/<[^>]+>/g," ").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/\s+/g," ").trim());
-  const pageDate=dateOf(html.replace(/<[^>]+>/g," "));
+  // Strict diagnostic rule: parse only the RESULT column, never the seed/
+  // "Inscrição" column. A row like "55.90 | —" must produce zero results.
+  const pageText=htmlText(html);
+  const pageDate=dateOf(pageText);
+  const pageCourse=/Piscina Curta|\\b25\\s*m\\b/i.test(pageText)?"SCM":/Piscina Longa|\\b50\\s*m\\b/i.test(pageText)?"LCM":null;
+  const pageEvent=eventOf(pageText);
   const out=[];
-  for(const row of rows){
+  const matches=[...html.matchAll(/<tr\\b[^>]*>([\\s\\S]*?)<\\/tr>/gi)];
+  let currentHeaders=[];
+  for(const rm of matches){
+    const raw=rm[1], row=htmlText(raw);
+    const th=[...raw.matchAll(/<th\\b[^>]*>([\\s\\S]*?)<\\/th>/gi)].map(m=>normalize(htmlText(m[1])));
+    if(th.length){ currentHeaders=th; continue; }
     if(!athleteMatches(row)) continue;
-    const event=eventOf(row), status=statusOf(row);
-    const tokens=row.match(/\b\d{1,2}:\d{2}[.,]\d{1,2}\b|\b\d{1,3}[.,]\d{2}\b/g)||[];
-    let parsed=null;
-    for(const t of tokens.reverse()){ const p=parseTime(t); if(p){parsed=p;break;} }
-    if(!event || (!parsed && status==="valid")) continue;
+    const cells=[...raw.matchAll(/<td\\b[^>]*>([\\s\\S]*?)<\\/td>/gi)].map(m=>htmlText(m[1]));
+    if(!cells.length) continue;
+    const event=eventOf(row)||pageEvent;
+    if(!event) continue;
+    let resultIndex=currentHeaders.findIndex(h=>/resultado|tempo final|marca/.test(h));
+    if(resultIndex<0) continue; // never guess a result column
+    const resultCell=cells[resultIndex]||"";
+    const status=statusOf(resultCell);
+    const parsed=status==="valid"?parseTime(resultCell):null;
+    if(!parsed && status==="valid") continue; // dash/blank/NT is not a result
     out.push({
       event_label:event,
       result_date:dateOf(row)||pageDate,
-      course:/\b25\s*m\b/i.test(row)?"SCM":/\b50\s*m\b/i.test(row)?"LCM":null,
+      course:/\\b25\\s*m\\b/i.test(row)?"SCM":/\\b50\\s*m\\b/i.test(row)?"LCM":pageCourse,
       status,
       time_text:parsed?.text ?? null,
       time_seconds:parsed?.seconds ?? null,
       time_ms:parsed ? Math.round(parsed.seconds*1000) : null,
       source_url:url,
-      raw_row:row
+      raw_row:row,
+      provenance:{result_column:resultIndex,result_cell:resultCell}
     });
   }
   return out;
