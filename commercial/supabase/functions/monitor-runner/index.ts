@@ -989,9 +989,22 @@ async function processJob(j:any){
      if(sourceCode==='masters_parana')await ensureMastersParanaArchives();
      const {data:archives}=await db.from('historical_archives').select('id').eq('active',true).eq('source_id',j.source_id);
      for(const a of archives||[]){
-       await db.from('historical_archive_jobs').upsert({
-         athlete_id:j.athlete_id,archive_id:a.id,status:'pending',updated_at:new Date().toISOString()
-       },{onConflict:'athlete_id,archive_id',ignoreDuplicates:true})
+       // A user-requested refresh must retry technical failures. Previously
+       // ignoreDuplicates left failed rows permanently failed, so fixes to an
+       // adapter could never be exercised by a later Atualizar click.
+       const {data:existing}=await db.from('historical_archive_jobs')
+         .select('id,status').eq('athlete_id',j.athlete_id).eq('archive_id',a.id).maybeSingle();
+       if(!existing){
+         await db.from('historical_archive_jobs').insert({
+           athlete_id:j.athlete_id,archive_id:a.id,status:'pending',updated_at:new Date().toISOString()
+         })
+       }else if(existing.status==='failed'){
+         await db.from('historical_archive_jobs').update({
+           status:'pending',cursor_index:0,cursor_payload:{},heartbeat_at:null,
+           finished_at:null,last_error:null,records_found:0,records_inserted:0,
+           records_promoted:0,updated_at:new Date().toISOString()
+         }).eq('id',existing.id).eq('status','failed')
+       }
      }
      const {count:remaining}=await db.from('historical_archive_jobs').select('id',{count:'exact',head:true}).eq('athlete_id',j.athlete_id).in('status',['pending','running']);
      await db.from('monitor_runs').update({status:'completed',finished_at:new Date().toISOString(),records_found:0,records_inserted:0,records_duplicated:0}).eq('id',run.id);
