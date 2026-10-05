@@ -61,49 +61,12 @@ function eventFrom(text:string){
  const m=text.match(/((?:\d+x)?\d{2,4})\s*m?\s+(Livre|Costas|Peito|Borboleta|Medley)/i);
  return m ? (m[1]+' '+m[2]) : null
 }
-function dateFrom(text:string){
- const m=text.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);
- return m ? (m[3]+'-'+m[2]+'-'+m[1]) : null
-}
-function resultEventDate(text:string){
- const m=text.match(/\b(\d{2})\/(\d{2})\/(\d{4})\s*-\s*\d{1,2}:\d{2}\s*Resultados\b/i);
- return m ? (m[3]+'-'+m[2]+'-'+m[1]) : null
-}
-function historicalMeetDate(text:string){
- const range=text.match(/\b(\d{1,2})\s*-\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
- if(range)return range[4]+'-'+String(range[3]).padStart(2,'0')+'-'+String(range[1]).padStart(2,'0');
- const slash=text.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
- if(slash)return slash[3]+'-'+String(slash[2]).padStart(2,'0')+'-'+String(slash[1]).padStart(2,'0');
- // "Published Time" belongs to the file/reader metadata, not necessarily to
- // the competition. It must never become a swimming result/meet date.
- return null
-}
-
-function parseMeet(html:string,url:string){
- const $=cheerio.load(html),body=$('body').text().replace(/\s+/g,' ');
- const title=$('title').first().text().replace(/\s*-\s*SPLASH.*$/i,'').trim();
- // The meet's root page has a "Local da competição" card right before the venue
- // name + address — this is the only place swimsystem.app exposes it, and it was
- // never wired up before (the motor had zero venue-extraction logic for any
- // provider, confirmed by grepping the whole file for "venue"), so every meet
- // discovered this way landed with venue=null regardless of athlete/account.
- const locMatch=html.match(/Local da competição<\/span>[\s\S]{0,400}?<p[^>]*>([^<]+)<\/p>\s*<address[^>]*>([^<]+)<\/address>/i)
- const venue=locMatch?locMatch[1].replace(/\s+/g,' ').trim()||null:null
- let city:string|null=null
- if(locMatch){
-  const addrParts=locMatch[2].replace(/\s+/g,' ').split('·').map(s=>s.trim())
-  const cityPart=addrParts.find(p=>/\/\s*[A-Z]{2}\b/.test(p))
-  city=cityPart?cityPart.split('/')[0].trim()||null:null
- }
- return {
-  externalId:meetBase(url).split('/').pop()||meetBase(url),
-  name:title||$('h1').first().text().trim()||'Campeonato',
-  startDate:dateFrom(body),
-  course:/\b25\s*m\b/i.test(body)?'SCM':/\b50\s*m\b/i.test(body)?'LCM':null,
-  officialUrl:meetBase(url),
-  venue,city
- }
-}
+function dateFrom(text:string){const m=text.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);return m?(m[3]+'-'+m[2]+'-'+m[1]):null}
+function resultEventDate(text:string){const m=text.match(/\b(\d{2})\/(\d{2})\/(\d{4})\s*-\s*\d{1,2}:\d{2}\s*Resultados\b/i);return m?(m[3]+'-'+m[2]+'-'+m[1]):null}
+function historicalMeetDate(text:string){const range=text.match(/\b(\d{1,2})\s*-\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);if(range)return range[4]+'-'+String(range[3]).padStart(2,'0')+'-'+String(range[1]).padStart(2,'0');const slash=text.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);return slash?slash[3]+'-'+String(slash[2]).padStart(2,'0')+'-'+String(slash[1]).padStart(2,'0'):null}
+function isoDate(d:string,m:string,y:string){return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
+function parseSwimSystemMeetEvidence(text:string){const raw=String(text||'').replace(/\s+/g,' ').trim();const h=raw.match(/\b([^,]{2,80})\s*\(([A-Z]{2})\),\s*(\d{1,2})(?:\s*-\s*(\d{1,2}))?\/(\d{1,2})\/(\d{4}),\s*(SCM|LCM)\s*\((25|50)m\)/i);if(!h)return null;return {city:h[1].trim(),startDate:isoDate(h[3],h[5],h[6]),endDate:isoDate(h[4]||h[3],h[5],h[6]),course:h[7].toUpperCase()}}
+function parseMeet(html:string,url:string){const $=cheerio.load(html);const title=$('title').first().text().replace(/\s*-\s*SPLASH.*$/i,'').trim();const locMatch=html.match(/Local da competição<\/span>[\s\S]{0,400}?<p[^>]*>([^<]+)<\/p>\s*<address[^>]*>([^<]+)<\/address>/i);const venue=locMatch?locMatch[1].replace(/\s+/g,' ').trim()||null:null;let city:string|null=null;if(locMatch){const parts=locMatch[2].replace(/\s+/g,' ').split('·').map(x=>x.trim()),cp=parts.find(x=>/\/\s*[A-Z]{2}\b/.test(x));city=cp?cp.split('/')[0].trim()||null:null}return {externalId:meetBase(url).split('/').pop()||meetBase(url),name:title||$('h1').first().text().trim()||'Campeonato',startDate:null,endDate:null,course:null,officialUrl:meetBase(url),venue,city}}
 function athleteHistoricalEvents(text:string,i:any){
  const lines=text.split(/\r?\n/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean),out:string[]=[];
  let active=false;
@@ -546,14 +509,16 @@ async function processArchiveJob(aj:any){
      const pdfLinks=[...new Set([...html.matchAll(/https?:\/\/[^"'\s]+\.pdf/gi)].map(m=>m[0]))];
      const results:any[]=[],scheduledEntries:any[]=[];
      const dbg:string[]=[];
+     let reportEvidence:any=null;
      let athleteSeen=athletesHtml?match(cheerio.load(athletesHtml)('body').text(),i):false;
      for(const pdfUrl of pdfLinks){
        try{
          const txt=await quickReaderText(pdfUrl);
+         const evd=parseSwimSystemMeetEvidence(txt);if(evd&&!reportEvidence)reportEvidence=evd;
          const startEntries=parseStartlistEntries(txt,i);
          if(startEntries.length){athleteSeen=true;scheduledEntries.push(...startEntries)}
-         const fallbackDate=historicalMeetDate(txt)||meetParsed.startDate||archive.start_date;
-         const parsed=parseClubDetailResults(txt,i,meetParsed.course||archive.course,fallbackDate,pdfUrl);
+         const fallbackDate=evd?.startDate||historicalMeetDate(txt)||null;
+         const parsed=parseClubDetailResults(txt,i,evd?.course||null,fallbackDate,pdfUrl);
          dbg.push(pdfUrl.split('/').pop()+':r'+parsed.length+'/e'+startEntries.length+'/'+txt.length);
          results.push(...parsed);
        }catch(e){dbg.push(pdfUrl.split('/').pop()+':ERR:'+String(e).slice(0,60))}
@@ -580,9 +545,9 @@ async function processArchiveJob(aj:any){
            if(entries.length){
              const mq=await db.from('meets').upsert({
                source_id:archive.source_id,external_id:archive.event_key,name:archive.name||meetParsed.name,
-               start_date:meetParsed.startDate||archive.start_date||null,end_date:archive.end_date||null,
-               course:meetParsed.course||archive.course,official_url:rootBase,status:'scheduled',
-               ...(meetParsed.venue?{venue:meetParsed.venue}:{}),...(meetParsed.city?{city:meetParsed.city}:{})
+               start_date:reportEvidence?.startDate||null,end_date:reportEvidence?.endDate||null,
+               course:reportEvidence?.course||null,official_url:rootBase,status:'scheduled',
+               ...(meetParsed.venue?{venue:meetParsed.venue}:{}),...(reportEvidence?.city?{city:reportEvidence.city}:meetParsed.city?{city:meetParsed.city}:{})
              },{onConflict:'source_id,external_id'}).select('id').single();
              if(!mq.error){
                const ev=await eventMap();
@@ -600,8 +565,8 @@ async function processArchiveJob(aj:any){
      const ev=await eventMap();
      const mq=await db.from('meets').upsert({
        source_id:archive.source_id,external_id:archive.event_key,name:archive.name||meetParsed.name,
-       start_date:results.find((r:any)=>r.resultDate)?.resultDate||meetParsed.startDate||archive.start_date,
-       end_date:archive.end_date||null,course:meetParsed.course||archive.course,official_url:meetBase(base),status:'completed',
+       start_date:reportEvidence?.startDate||results.find((r:any)=>r.resultDate)?.resultDate||null,
+       end_date:reportEvidence?.endDate||null,course:reportEvidence?.course||null,official_url:meetBase(base),status:'completed',
        ...(meetParsed.venue?{venue:meetParsed.venue}:{}),...(meetParsed.city?{city:meetParsed.city}:{})
      },{onConflict:'source_id,external_id'}).select('id,start_date,course').single();
      if(mq.error)throw new Error('Meet SwimSystem v2: '+mq.error.message);
