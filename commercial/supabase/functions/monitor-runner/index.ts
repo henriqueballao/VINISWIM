@@ -987,8 +987,17 @@ async function processJob(j:any){
      if(sourceCode==='fdap'||sourceCode==='swimsystem')await ensureArchiveJobsForDiscovered(j,i);
      if(sourceCode==='swimsystem')await ensureSwimSystemAppArchives();
      if(sourceCode==='masters_parana')await ensureMastersParanaArchives();
-     const {data:archives}=await db.from('historical_archives').select('id').eq('active',true).eq('source_id',j.source_id);
-     for(const a of archives||[]){
+     // Include inactive legacy archives when they already have a job for this
+     // athlete. Some old swimtime archives were disabled only because their
+     // HTML host has broken TLS; the ProgressionDetails adapter no longer needs
+     // that HTML host. Excluding active=false here made failed jobs impossible
+     // to retry after the adapter was fixed.
+     let archiveQuery=db.from('historical_archives').select('id,active,provider').eq('source_id',j.source_id);
+     const {data:allArchives}=await archiveQuery;
+     const {data:existingForAthlete}=await db.from('historical_archive_jobs').select('archive_id').eq('athlete_id',j.athlete_id);
+     const existingArchiveIds=new Set((existingForAthlete||[]).map((x:any)=>x.archive_id));
+     const archives=(allArchives||[]).filter((a:any)=>a.active||((a.provider==='swimtime_progression')&&existingArchiveIds.has(a.id)));
+     for(const a of archives){
        // A user-requested refresh must retry technical failures. Previously
        // ignoreDuplicates left failed rows permanently failed, so fixes to an
        // adapter could never be exercised by a later Atualizar click.
