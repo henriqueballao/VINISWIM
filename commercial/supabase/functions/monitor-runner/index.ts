@@ -244,7 +244,7 @@ function parseStartlistEntries(text:string,i:any){
 function parseClubDetailResults(text:string,i:any,fallbackCourse:any,fallbackDate:string|null,url:string){
  const headerRe=/\n\n([A-ZÀ-Ÿ][^\n,]{1,60}),\s*(\d{4})\s*\((\d{1,2})\s*Anos?\),\s*(Masculino|Feminino)/g;
  const headers=[...text.matchAll(headerRe)];
- const course=/\b25\s*m\b/i.test(text)?'SCM':/\b50\s*m\b/i.test(text)?'LCM':fallbackCourse;
+ const course=fallbackCourse||null;
  const out:any[]=[];
  for(let k=0;k<headers.length;k++){
   const h=headers[k],athleteName=h[1].trim();
@@ -917,10 +917,10 @@ async function processJob(j:any){
    if(j.job_type==='historical'&&(sourceCode==='fdap'||sourceCode==='swimsystem'||sourceCode==='masters_parana')){
      // Historical archive jobs are the incremental pipeline. The monitor job only
      // schedules/reconciles that queue; it must not rescan PDFs synchronously.
-     await ensureArchiveJobsForDiscovered(j,i);
+     if(sourceCode==='fdap'||sourceCode==='swimsystem')await ensureArchiveJobsForDiscovered(j,i);
      if(sourceCode==='swimsystem')await ensureSwimSystemAppArchives();
      if(sourceCode==='masters_parana')await ensureMastersParanaArchives();
-     const {data:archives}=await db.from('historical_archives').select('id').eq('active',true);
+     const {data:archives}=await db.from('historical_archives').select('id').eq('active',true).eq('source_id',j.source_id);
      for(const a of archives||[]){
        await db.from('historical_archive_jobs').upsert({
          athlete_id:j.athlete_id,archive_id:a.id,status:'pending',updated_at:new Date().toISOString()
@@ -957,39 +957,6 @@ async function processJob(j:any){
        ...(drained?{request_id:null}:{})
      }).eq('id',j.id).eq('status','running');
      return
-     const packs=await scanHistoricalCatalog(j,i);
-     const ev=await eventMap();let inserted=0,dups=0,found=0;
-     for(const pack of packs){
-       const pm=pack.meet;
-       const mq=await db.from('meets').upsert({source_id:j.source_id,external_id:pm.externalId,name:pm.name,start_date:pm.startDate||null,course:pm.course,official_url:pm.officialUrl,status:'completed'},{onConflict:'source_id,external_id'}).select('id,start_date,course').single();if(mq.error)throw new Error('Meet upsert: '+mq.error.message);const m=mq.data;
-       for(const r of pack.results){
-         found++;
-         const eid=ev.get(n(r.eventLabel));if(!eid)continue;const date=r.resultDate||m.start_date,course=r.course||m.course;if(!course||!date)continue;
-         let q=db.from('results').select('id,is_official,origin').eq('athlete_id',j.athlete_id).eq('event_id',eid).eq('result_date',date).eq('course',course).eq('status',r.status);
-         q=r.timeMs==null?q.is('time_ms',null):q.eq('time_ms',r.timeMs);
-         const {data:old}=await q.maybeSingle();
-         if(!old&&date){
-           let cq=db.from('results').select('id,result_date,status,is_official').eq('athlete_id',j.athlete_id).eq('event_id',eid).eq('course',course).eq('source_id',j.source_id);
-           cq=r.timeMs==null?cq.is('time_ms',null):cq.eq('time_ms',r.timeMs);
-           const {data:candidates}=await cq.limit(5);
-           const stale=(candidates||[]).find((x:any)=>x.is_official&&x.result_date!==date);
-           if(stale){
-             const fp2=[j.athlete_id,m.id,eid,date,course,r.timeMs,r.status].join('|');
-             await db.from('results').update({meet_id:m.id,result_date:date,status:r.status,result_fingerprint:fp2,category:categoryLabelFor(date,j.athletes?.birth_date,j.athletes?.category),updated_at:new Date().toISOString()}).eq('id',stale.id);
-             await db.from('result_sources').upsert({result_id:stale.id,source_id:j.source_id,source_url:r.sourceUrl,retrieved_at:new Date().toISOString(),monitor_run_id:run.id},{onConflict:'result_id,source_id'});
-             continue
-           }
-         }
-         if(old){if(!old.is_official){await db.from('results').update({meet_id:m.id,origin:'official',source_id:j.source_id,is_official:true,notes:'Confirmado por histórico oficial.',updated_at:new Date().toISOString()}).eq('id',old.id);await db.from('result_sources').upsert({result_id:old.id,source_id:j.source_id,source_url:r.sourceUrl,retrieved_at:new Date().toISOString(),monitor_run_id:run.id},{onConflict:'result_id,source_id'})}else dups++;continue}
-         const fp=[j.athlete_id,m.id,eid,date,course,r.timeMs,r.status].join('|');
-         const {data:nr}=await db.from('results').insert({athlete_id:j.athlete_id,meet_id:m.id,event_id:eid,result_date:date,course,time_ms:r.timeMs,status:r.status,origin:'official',source_id:j.source_id,is_official:true,result_fingerprint:fp}).select('id').single();
-         inserted++;await db.from('result_sources').insert({result_id:nr.id,source_id:j.source_id,source_url:r.sourceUrl,retrieved_at:new Date().toISOString(),monitor_run_id:run.id})
-       }
-     }
-     await db.from('monitor_runs').update({status:'completed',finished_at:new Date().toISOString(),records_found:found,records_inserted:inserted,records_duplicated:dups}).eq('id',run.id);
-     const more=Boolean((j as any).__historical_has_more);
-     await db.from('monitor_jobs').update({status:more?'pending':'completed',last_run_at:new Date().toISOString(),next_run_at:more?new Date().toISOString():null,locked_at:null,last_error:null,attempts:0,metadata:{...(j.metadata||{}),historical_cursor:(j as any).__historical_next_cursor||0}}).eq('id',j.id);
-     return
    }else if(sourceCode==='swimsystem'){
      // The live meet overview page is client-rendered (no per-event links in the
      // server HTML), so per-event scraping via discover()/parseResults() rarely
@@ -1000,13 +967,15 @@ async function processJob(j:any){
      const pages=discover(html,base);
      for(const p of pages.slice(0,80)){try{results.push(...parseResults(await get(p.url),p.url,p.label,i,meet.course,meet.startDate))}catch{}}
      const pdfLinks=[...new Set([...html.matchAll(/https?:\/\/[^"'\s]+\.pdf/gi)].map(m=>m[0]))];
+     let reportEvidence:any=null;
      for(const pdfUrl of pdfLinks){
       try{
-       const txt=await quickReaderText(pdfUrl);
-       const fallbackDate=historicalMeetDate(txt)||meet.startDate;
-       results.push(...parseClubDetailResults(txt,i,meet.course,fallbackDate,pdfUrl));
+       const txt=await quickReaderText(pdfUrl),evd=parseSwimSystemMeetEvidence(txt);
+       if(evd&&!reportEvidence)reportEvidence=evd;
+       results.push(...parseClubDetailResults(txt,i,evd?.course||null,evd?.startDate||null,pdfUrl));
       }catch{}
      }
+     if(reportEvidence)meet={...meet,startDate:reportEvidence.startDate,endDate:reportEvidence.endDate,course:reportEvidence.course,city:reportEvidence.city};
    }else{
      const rootHtml=await get(url),$=cheerio.load(rootHtml),body=$('body').text().replace(/\s+/g,' ');
      meet={externalId:'search-'+sourceCode+'-'+j.athlete_id,name:j.sources?.name||cfg.display_name,startDate:dateFrom(body),course:/\b25\s*m\b/i.test(body)?'SCM':/\b50\s*m\b/i.test(body)?'LCM':null,officialUrl:url};
