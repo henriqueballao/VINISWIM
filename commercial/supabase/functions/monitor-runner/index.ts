@@ -1102,8 +1102,10 @@ async function processJob(j:any){
  }
 }
 
-Deno.serve(async()=>{
+Deno.serve(async(req)=>{
  const invocationStart=Date.now();
+ let forceAthleteId='';
+ try{const body=await req.clone().json();forceAthleteId=typeof body?.force_athlete_id==='string'?body.force_athlete_id:''}catch{}
  // Free-plan wall-clock budget is 150s. Reserve a safety margin for the
  // links/monitor_jobs sections above and general jitter, and only start the
  // next archive job if there's still enough safe time for its worst case
@@ -1136,9 +1138,18 @@ Deno.serve(async()=>{
    }
   }
 
-  const {data:claimed,error:claimError}=await db.rpc('claim_monitor_jobs',{p_limit:1});
-  if(claimError)throw claimError;
-  const ids=(claimed||[]).map((x:any)=>x.id);
+  let ids:string[]=[];
+  if(forceAthleteId){
+   // Diagnostic execution: run the athlete's already-existing historical jobs
+   // now, without fabricating results or changing archive/result data by hand.
+   const {data:forced}=await db.from('monitor_jobs').select('id').eq('athlete_id',forceAthleteId).eq('job_type','historical').eq('status','pending');
+   ids=(forced||[]).map((x:any)=>x.id);
+   if(ids.length)await db.from('monitor_jobs').update({status:'running',locked_at:new Date().toISOString(),updated_at:new Date().toISOString()}).in('id',ids).eq('status','pending');
+  }else{
+   const {data:claimed,error:claimError}=await db.rpc('claim_monitor_jobs',{p_limit:1});
+   if(claimError)throw claimError;
+   ids=(claimed||[]).map((x:any)=>x.id);
+  }
   let jobs:any[]=[];
   if(ids.length){
    const q=await db.from('monitor_jobs').select('*,sources(code),athletes(full_name,preferred_name,birth_date,gender)').in('id',ids);
