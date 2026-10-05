@@ -528,6 +528,15 @@ async function processArchiveJob(aj:any){
        return
      }
      if(!results.length){
+       // A past archive with no official result for this athlete is not a
+       // scheduled competition. Only a meet whose canonical report header dates
+       // it today/future may create entries in Campeonatos.
+       const today=new Date().toISOString().slice(0,10);
+       const canSchedule=Boolean(reportEvidence?.startDate&&reportEvidence.startDate>=today);
+       if(!canSchedule){
+         await db.from('historical_archive_jobs').update({status:'completed',records_found:0,records_inserted:0,records_promoted:0,heartbeat_at:null,finished_at:now(),updated_at:now(),last_error:'DEBUG:no_results_not_future ['+dbg.join(' | ').slice(0,800)+']'}).eq('id',aj.id).eq('status','running');
+         return
+       }
        // No PDF result report exists yet for this meet at all (as opposed to one
        // existing but not mentioning this athlete) — that's the signature of a
        // meet that hasn't happened yet, not one this athlete skipped. Since the
