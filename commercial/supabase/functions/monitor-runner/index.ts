@@ -517,7 +517,7 @@ async function processArchiveJob(aj:any){
          const evd=parseSwimSystemMeetEvidence(txt);if(evd&&!reportEvidence)reportEvidence=evd;
          const startEntries=parseStartlistEntries(txt,i);
          if(startEntries.length){athleteSeen=true;scheduledEntries.push(...startEntries)}
-         const fallbackDate=evd?.startDate||historicalMeetDate(txt)||null;
+         const fallbackDate=evd?.startDate||null;
          const parsed=parseClubDetailResults(txt,i,evd?.course||null,fallbackDate,pdfUrl);
          dbg.push(pdfUrl.split('/').pop()+':r'+parsed.length+'/e'+startEntries.length+'/'+txt.length);
          results.push(...parsed);
@@ -589,16 +589,6 @@ async function processArchiveJob(aj:any){
        let q=db.from('results').select('id,is_official,origin').eq('athlete_id',aj.athlete_id).eq('event_id',eid).eq('result_date',date).eq('course',course).eq('status',r.status);
        q=r.timeMs==null?q.is('time_ms',null):q.eq('time_ms',r.timeMs);
        const {data:old}=await q.maybeSingle();
-       if(!old){
-         let cq=db.from('results').select('id,result_date,is_official').eq('athlete_id',aj.athlete_id).eq('event_id',eid).eq('course',course).eq('status',r.status);
-         cq=r.timeMs==null?cq.is('time_ms',null):cq.eq('time_ms',r.timeMs);
-         const {data:candidates}=await cq.limit(5);
-         const stale=(candidates||[]).find((x:any)=>x.is_official&&x.result_date!==date);
-         if(stale){
-           await db.from('result_sources').upsert({result_id:stale.id,source_id:archive.source_id,source_url:r.sourceUrl,retrieved_at:now(),metadata:{historical_archive:archive.event_key}},{onConflict:'result_id,source_id'});
-           promotedAdd++;continue
-         }
-       }
        if(old){
          if(!old.is_official){
            await db.from('results').update({meet_id:m.id,origin:'official',source_id:archive.source_id,is_official:true,notes:'Confirmado por arquivo histórico oficial.',updated_at:now()}).eq('id',old.id);
@@ -663,16 +653,6 @@ async function processArchiveJob(aj:any){
        let q=db.from('results').select('id,is_official,origin').eq('athlete_id',aj.athlete_id).eq('event_id',eid).eq('result_date',date).eq('course',course).eq('status',r.status);
        q=r.timeMs==null?q.is('time_ms',null):q.eq('time_ms',r.timeMs);
        const {data:old}=await q.maybeSingle();
-       if(!old){
-         let cq=db.from('results').select('id,result_date,is_official').eq('athlete_id',aj.athlete_id).eq('event_id',eid).eq('course',course).eq('status',r.status);
-         cq=r.timeMs==null?cq.is('time_ms',null):cq.eq('time_ms',r.timeMs);
-         const {data:candidates}=await cq.limit(5);
-         const stale=(candidates||[]).find((x:any)=>x.is_official&&x.result_date!==date);
-         if(stale){
-           await db.from('result_sources').upsert({result_id:stale.id,source_id:archive.source_id,source_url:r.sourceUrl,retrieved_at:now(),metadata:{historical_archive:archive.event_key}},{onConflict:'result_id,source_id'});
-           promotedAdd++;continue
-         }
-       }
        if(old){
          if(!old.is_official){
            await db.from('results').update({meet_id:m.id,origin:'official',source_id:archive.source_id,is_official:true,notes:'Confirmado por arquivo histórico oficial.',updated_at:now()}).eq('id',old.id);
@@ -776,18 +756,6 @@ async function processArchiveJob(aj:any){
        let q=db.from('results').select('id,is_official,origin').eq('athlete_id',aj.athlete_id).eq('event_id',eid).eq('result_date',date).eq('course',course).eq('status',r.status);
        q=r.timeMs==null?q.is('time_ms',null):q.eq('time_ms',r.timeMs);
        const {data:old}=await q.maybeSingle();
-       if(!old){
-         let cq=db.from('results').select('id,result_date,status,is_official').eq('athlete_id',aj.athlete_id).eq('event_id',eid).eq('course',course);
-         cq=r.timeMs==null?cq.is('time_ms',null):cq.eq('time_ms',r.timeMs);
-         const {data:candidates}=await cq.limit(5);
-         const stale=(candidates||[]).find((x:any)=>x.is_official&&x.result_date!==date);
-         if(stale){
-           const fp2=[aj.athlete_id,m.id,eid,date,course,r.timeMs,r.status].join('|');
-           await db.from('results').update({meet_id:m.id,result_date:date,status:r.status,source_id:archive.source_id,category:categoryLabelFor(date,athlete?.birth_date,athlete?.category),result_fingerprint:fp2,updated_at:now()}).eq('id',stale.id);
-           await db.from('result_sources').upsert({result_id:stale.id,source_id:archive.source_id,source_url:r.sourceUrl,retrieved_at:now(),metadata:{historical_archive:archive.event_key}},{onConflict:'result_id,source_id'});
-           promotedAdd++;continue
-         }
-       }
        if(old){
          if(!old.is_official){
            await db.from('results').update({
@@ -1001,22 +969,6 @@ async function processJob(j:any){
      let q=db.from('results').select('id,is_official,origin').eq('athlete_id',j.athlete_id).eq('event_id',eid).eq('result_date',date).eq('course',course).eq('status',r.status);
      q=r.timeMs==null?q.is('time_ms',null):q.eq('time_ms',r.timeMs);
      const {data:old}=await q.maybeSingle();
-     if(!old){
-       // Our derived date is sometimes only an approximation (e.g. a multi-day
-       // meet summarized in one document, with no per-event date available).
-       // If an official result for this event/course/time/status already
-       // exists under a different date, that pre-existing date is more likely
-       // to be the accurate one — never overwrite it or move it to a
-       // different meet based on a guess. Just link the source and stop.
-       let cq=db.from('results').select('id,result_date,is_official').eq('athlete_id',j.athlete_id).eq('event_id',eid).eq('course',course).eq('status',r.status);
-       cq=r.timeMs==null?cq.is('time_ms',null):cq.eq('time_ms',r.timeMs);
-       const {data:candidates}=await cq.limit(5);
-       const stale=(candidates||[]).find((x:any)=>x.is_official&&x.result_date!==date);
-       if(stale){
-         await db.from('result_sources').upsert({result_id:stale.id,source_id:j.source_id,source_url:r.sourceUrl,retrieved_at:new Date().toISOString(),monitor_run_id:run.id},{onConflict:'result_id,source_id'});
-         continue
-       }
-     }
      if(old){
        if(!old.is_official){await db.from('results').update({meet_id:m.id,origin:'official',source_id:j.source_id,is_official:true,notes:'Confirmado por fonte oficial.',updated_at:new Date().toISOString()}).eq('id',old.id);await db.from('result_sources').upsert({result_id:old.id,source_id:j.source_id,source_url:r.sourceUrl,retrieved_at:new Date().toISOString(),monitor_run_id:run.id},{onConflict:'result_id,source_id'})}
        else dups++;
