@@ -265,7 +265,11 @@ function parseClubDetailResults(text:string,i:any,fallbackCourse:any,fallbackDat
    // Completed row: "3. 1:17.59 338 1:22.12 112%"
    // Entry-only row: "- NT -" or "- 1:20.17 -" -> no official result.
    // DSQ/DNS may replace the result token.
-   const m=seg.match(/^(?:\d{1,3}\.|-)\s+(DNS|DNF|DSQ|DQL|DQ|N\/C|\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2}|NT)\b/i);
+   // Jina's PDF text extraction often removes the visual whitespace between
+   // the placement column and result time (e.g. "29.1:52.82", "28.56.73").
+   // Accept that exact compact form as well as the spaced form; the parser is
+   // still anchored at the beginning of the athlete's own event row.
+   const m=seg.match(/^(?:\d{1,3}\.|-)\s*(DNS|DNF|DSQ|DQL|DQ|N\/C|\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2}|NT)\b/i);
    if(!m)continue;
    const token=m[1];
    const st=resultStatus(token)||(/^(?:DQL|DQ|N\/C)$/i.test(token)?'dsq':null);
