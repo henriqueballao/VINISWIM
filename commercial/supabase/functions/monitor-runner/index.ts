@@ -881,6 +881,28 @@ async function scanHistoricalCatalog(j:any,i:any){
  return packs
 }
 
+async function discoverCurrentSwimSystemMeet(j:any,i:any){
+ const listing=await get('https://www.swimsystem.app/meets');
+ const ids=[...new Set([...listing.matchAll(/\/meets\/sw\/([0-9a-f-]{36})/g)].map(m=>m[1]))].slice(0,20);
+ const today=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
+ let found=0;
+ for(const id of ids){
+  const base='https://www.swimsystem.app/meets/sw/'+id;
+  let html='';try{html=await get(base)}catch{continue}
+  const parsed=parseMeet(html,base);
+  const pdfLinks=[...new Set([...html.matchAll(/https?:\/\/[^"'\s]+\.pdf/gi)].map(m=>m[0]))];
+  let evidence:any=null,entries:any[]=[];
+  for(const pdfUrl of pdfLinks){try{const txt=await quickReaderText(pdfUrl),evd=parseSwimSystemMeetEvidence(txt);if(evd&&!evidence)evidence=evd;if(evd)entries.push(...parseStartlistEntries(txt,i))}catch{}}
+  if(!evidence?.startDate||evidence.startDate<today||!entries.length)continue;
+  entries=entries.filter((e:any,idx:number,a:any[])=>a.findIndex((x:any)=>n(x.eventLabel)===n(e.eventLabel))===idx);
+  const mq=await db.from('meets').upsert({source_id:j.source_id,external_id:id,name:parsed.name||('SwimSystem '+id),start_date:evidence.startDate,end_date:evidence.endDate||null,course:evidence.course,official_url:base,status:'scheduled',...(parsed.venue?{venue:parsed.venue}:{}),...(evidence.city?{city:evidence.city}:parsed.city?{city:parsed.city}:{})},{onConflict:'source_id,external_id'}).select('id').single();
+  if(mq.error)throw new Error('Meet atual SwimSystem: '+mq.error.message);
+  const ev=await eventMap();
+  for(const e of entries){const eid=ev.get(n(e.eventLabel));if(eid)await db.from('meet_entries').upsert({meet_id:mq.data.id,athlete_id:j.athlete_id,event_id:eid,seed_time_ms:e.seedTimeMs,heat:e.heat,lane:e.lane,entry_status:'seeded',source_id:j.source_id},{onConflict:'meet_id,athlete_id,event_id'})}
+  found+=entries.length
+ }
+ return found
+}
 async function processJob(j:any){
  const {data:idn}=await db.from('athlete_identifiers').select('*').eq('athlete_id',j.athlete_id).eq('source_id',j.source_id).eq('active',true).single();
  const {data:cfg}=await db.from('athlete_source_configs').select('*').eq('athlete_id',j.athlete_id).eq('source_id',j.source_id).eq('active',true).single();
@@ -891,6 +913,12 @@ async function processJob(j:any){
  const {data:run}=await db.from('monitor_runs').insert({job_id:j.id,status:'running'}).select('id').single();
  try{
    let meet:any,entries:any[]=[],results:any[]=[];
+   if(j.job_type==='current_meet'&&sourceCode==='swimsystem'){
+     const found=await discoverCurrentSwimSystemMeet(j,i);
+     await db.from('monitor_runs').update({status:'completed',finished_at:new Date().toISOString(),records_found:found,records_inserted:0,records_duplicated:0}).eq('id',run.id);
+     await db.from('monitor_jobs').update({status:'completed',last_run_at:new Date().toISOString(),next_run_at:null,locked_at:null,last_error:null,attempts:0,request_id:null}).eq('id',j.id).eq('status','running');
+     return
+   }
    if(j.job_type==='historical'&&(sourceCode==='fdap'||sourceCode==='swimsystem'||sourceCode==='masters_parana')){
      // Historical archive jobs are the incremental pipeline. The monitor job only
      // schedules/reconciles that queue; it must not rescan PDFs synchronously.
