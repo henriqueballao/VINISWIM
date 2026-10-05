@@ -256,6 +256,28 @@ function parseEntries(html:string,i:any){
  });
  return out
 }
+function parseStartlistEntries(text:string,i:any){
+ const id=String(i.external_id||'').trim();if(!id)return [];
+ const body=String(text||'').replace(/\r/g,'');
+ const eventRe=/Prova\s+\d+\s*-\s*(?:Final\s+Direta|Eliminat[oó]ria)[^,\n]*,\s*(\d{1,4})m\s+(Livre|Costas|Peito|Borboleta|Medley)[^\n]*/gi;
+ const starts=[...body.matchAll(eventRe)],out:any[]=[];
+ for(let k=0;k<starts.length;k++){
+  const h=starts[k],end=k+1<starts.length?starts[k+1].index!:body.length;
+  const block=body.slice(h.index!+h[0].length,end).replace(/\s+/g,' ').trim();
+  const pos=(' '+block+' ').indexOf(' '+id+' ');if(pos<0)continue;
+  const after=block.slice(Math.max(0,pos-1)+id.length);
+  // Startlist row: Reg. | Nasc. | UF | Entidade | T. Inscrição.
+  // The seed is the final time/NT before the next numbered athlete row.
+  const next=after.search(/\s\d{1,3}\s+[A-ZÀ-Ÿ][A-Za-zÀ-ÿ .'-]{2,80}\s+\d{4,8}\s+(?:19|20)\d{2}\s/);
+  const row=(next>=0?after.slice(0,next):after.slice(0,180)).trim();
+  const tokens=row.match(/(?:\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2}|\bNT\b)/gi)||[];
+  const seed=tokens.length?tokens[tokens.length-1]:null;
+  const seedTimeMs=seed&&!/^NT$/i.test(seed)?parseTime(seed):null;
+  const eventLabel=h[1]+' '+h[2];
+  if(!out.some((e:any)=>n(e.eventLabel)===n(eventLabel)))out.push({eventLabel,seedTimeMs,heat:null,lane:null})
+ }
+ return out
+}
 function parseClubDetailResults(text:string,i:any,fallbackCourse:any,fallbackDate:string|null,url:string){
  const headerRe=/\n\n([A-ZÀ-Ÿ][^\n,]{1,60}),\s*(\d{4})\s*\((\d{1,2})\s*Anos?\),\s*(Masculino|Feminino)/g;
  const headers=[...text.matchAll(headerRe)];
@@ -473,9 +495,9 @@ async function ensureSwimSystemAppArchives(){
  // for as long as any athlete still has one pending.
  for(const id of missing.slice(0,8)){
   try{
-   const base='https://www.swimsystem.app/meets/sw/'+id+'/results';
+   const base='https://www.swimsystem.app/meets/sw/'+id;
    const parsed=parseMeet(await get(base),base);
-   await db.from('historical_archives').insert({source_id:ss.id,provider:'swimsystem_v2',event_key:id,name:parsed.name||('SwimSystem '+id),base_url:base,active:true,updated_at:new Date().toISOString()});
+   await db.from('historical_archives').insert({source_id:ss.id,provider:'swimsystem_v2',event_key:id,name:parsed.name||('SwimSystem '+id),base_url:base,start_date:parsed.startDate||null,course:parsed.course||null,active:true,updated_at:new Date().toISOString()});
   }catch(e){console.error('SWIMSYSTEM_APP_ARCHIVE_DISCOVERY',id,String(e))}
  }
 }
@@ -510,12 +532,8 @@ async function processArchiveJob(aj:any){
      // needed, so this always finishes in a single pass, unlike the legacy
      // cursor/links flow below.
      const base=archive.base_url;
-     let athletesHtml:string;
-     try{athletesHtml=await get(meetBase(base)+'/athletes')}catch(e){throw new Error('SwimSystem atletas: '+String(e))}
-     if(!match(cheerio.load(athletesHtml)('body').text(),i)){
-       await db.from('historical_archive_jobs').update({status:'completed',records_found:0,records_inserted:0,records_promoted:0,heartbeat_at:null,finished_at:now(),updated_at:now(),last_error:'DEBUG:no_athlete_match len='+athletesHtml.length}).eq('id',aj.id).eq('status','running');
-       return
-     }
+     let athletesHtml='';
+     try{athletesHtml=await get(meetBase(base)+'/athletes')}catch{}
      await beat();
      // The PDF report links live in the meet's root page HTML, not the
      // /results sub-route (which is much more heavily client-rendered and
@@ -526,16 +544,23 @@ async function processArchiveJob(aj:any){
      const rootBase=meetBase(base);
      const html=await get(rootBase),meetParsed=parseMeet(html,rootBase);
      const pdfLinks=[...new Set([...html.matchAll(/https?:\/\/[^"'\s]+\.pdf/gi)].map(m=>m[0]))];
-     const results:any[]=[];
+     const results:any[]=[],scheduledEntries:any[]=[];
      const dbg:string[]=[];
+     let athleteSeen=athletesHtml?match(cheerio.load(athletesHtml)('body').text(),i):false;
      for(const pdfUrl of pdfLinks){
        try{
          const txt=await quickReaderText(pdfUrl);
+         const startEntries=parseStartlistEntries(txt,i);
+         if(startEntries.length){athleteSeen=true;scheduledEntries.push(...startEntries)}
          const fallbackDate=historicalMeetDate(txt)||meetParsed.startDate||archive.start_date;
          const parsed=parseClubDetailResults(txt,i,meetParsed.course||archive.course,fallbackDate,pdfUrl);
-         dbg.push(pdfUrl.split('/').pop()+':'+parsed.length+'/'+txt.length);
+         dbg.push(pdfUrl.split('/').pop()+':r'+parsed.length+'/e'+startEntries.length+'/'+txt.length);
          results.push(...parsed);
        }catch(e){dbg.push(pdfUrl.split('/').pop()+':ERR:'+String(e).slice(0,60))}
+     }
+     if(!athleteSeen){
+       await db.from('historical_archive_jobs').update({status:'completed',records_found:0,records_inserted:0,records_promoted:0,heartbeat_at:null,finished_at:now(),updated_at:now(),last_error:'DEBUG:no_athlete_match html='+athletesHtml.length+' pdfs='+pdfLinks.length}).eq('id',aj.id).eq('status','running');
+       return
      }
      if(!results.length){
        // No PDF result report exists yet for this meet at all (as opposed to one
@@ -549,9 +574,9 @@ async function processArchiveJob(aj:any){
        // (matched by source_id+external_id) to 'completed' with real results —
        // that status flip is what the Campeonatos tab uses to stop showing it
        // there, since by then it belongs in Resultados instead.
-       if(pdfLinks.length===0){
+       {
          try{
-           const entries=parseEntries(athletesHtml,i);
+           const entries=[...scheduledEntries,...parseEntries(athletesHtml,i)].filter((e:any,idx:number,arr:any[])=>arr.findIndex((x:any)=>n(x.eventLabel)===n(e.eventLabel))===idx);
            if(entries.length){
              const mq=await db.from('meets').upsert({
                source_id:archive.source_id,external_id:archive.event_key,name:archive.name||meetParsed.name,
