@@ -105,7 +105,11 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
   cursor.discovery_done=true;cursor.archive_index=0;cursor.pdf_cursor=0;
  }
  const aq=await db.from("historical_archives").select("*").eq("source_id",job.source_id).order("created_at",{ascending:true});
- if(aq.error)throw aq.error;const archives=aq.data||[];
+ if(aq.error)throw aq.error;
+ const maxq=await db.from("results").select("result_date").eq("athlete_id",job.athlete_id).eq("source_id",job.source_id).eq("is_official",true).order("result_date",{ascending:false}).limit(1).maybeSingle();
+ const maxDate=maxq.data?.result_date||null;
+ const cutoff=maxDate?new Date(new Date(maxDate+"T00:00:00Z").getTime()-45*86400000).toISOString().slice(0,10):null;
+ const archives=(aq.data||[]).filter((x:any)=>!cutoff||!x.start_date||x.start_date>=cutoff);
  const ai=Number(cursor.archive_index||0);
  if(ai>=archives.length)return {done:true,cursor,found:0,inserted:0,duplicated:0};
  const a=archives[ai],retrievedAt=new Date().toISOString(),docs:any[]=[];
@@ -168,14 +172,17 @@ Deno.serve(async()=>{
  try{
   const claim=await db.rpc("claim_import_v2_jobs",{p_limit:1});if(claim.error)throw claim.error;
   const jobs=claim.data||[];if(!jobs.length)return json({ok:true,processed:0});
-  const job=jobs[0];
+  const job=jobs[0],started=Date.now();let state={...job},found=0,inserted=0,duplicated=0,done=false;
   try{
-   const r=await process(job);
+   while(Date.now()-started<70000&&!done){
+    const r=await process(state);found+=r.found;inserted+=r.inserted;duplicated+=r.duplicated;done=r.done;
+    state={...state,cursor:r.cursor,records_found:Number(state.records_found||0)+r.found,records_inserted:Number(state.records_inserted||0)+r.inserted,records_duplicated:Number(state.records_duplicated||0)+r.duplicated};
+   }
    await db.from("import_v2_jobs").update({
-    status:r.done?"completed":"pending",cursor:r.done?{}:r.cursor,locked_at:null,next_run_at:r.done?null:new Date(Date.now()+5000).toISOString(),
-    last_error:null,failure_code:null,records_found:Number(job.records_found||0)+r.found,records_inserted:Number(job.records_inserted||0)+r.inserted,records_duplicated:Number(job.records_duplicated||0)+r.duplicated
+    status:done?"completed":"pending",cursor:done?{}:state.cursor,locked_at:null,next_run_at:done?null:new Date(Date.now()+5000).toISOString(),
+    last_error:null,failure_code:null,records_found:state.records_found,records_inserted:state.records_inserted,records_duplicated:state.records_duplicated
    }).eq("id",job.id).eq("status","running");
-   return json({ok:true,processed:1,job_id:job.id,done:r.done,found:r.found,inserted:r.inserted,duplicated:r.duplicated});
+   return json({ok:true,processed:1,job_id:job.id,done,found,inserted,duplicated});
   }catch(e:any){
    const f=classifyImportFailure({error:e,message:e?.message,httpStatus:e?.httpStatus,parserMatched:e?.parserMatched});
    const retry=f.retryable&&Number(job.attempts||0)<3;
