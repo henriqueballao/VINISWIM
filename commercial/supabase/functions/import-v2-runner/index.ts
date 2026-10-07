@@ -124,7 +124,7 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
   const next=pi+batch.length;
   if(next<links.length){
    const pack=historicalDryRun({identity,archives:[{externalMeetId:String(a.event_key),sourceCode:source.code,course:a.course,provider:a.provider,startDate:a.start_date,endDate:a.end_date,name:a.name}],documents:docs,retrievedAt});
-   if(docs.length&&pack.accepted.length===0){const e:any=new Error("parser no match");e.parserMatched=false;throw e}
+   if(docs.length&&pack.accepted.length===0&&a.provider!=="masters_parana"){const e:any=new Error("parser no match");e.parserMatched=false;throw e}
    const p=await persistCandidates(job,a,pack.accepted,athlete);
    return {done:false,cursor:{...cursor,archive_index:ai,pdf_cursor:next},found:pack.accepted.length,inserted:p.inserted,duplicated:p.duplicated};
   }
@@ -162,9 +162,18 @@ async function process(job:any){
  const aq=await db.from("athletes").select("id,full_name,preferred_name,birth_date,category").eq("id",job.athlete_id).single();if(aq.error)throw aq.error;
  const cq=await db.from("athlete_source_configs").select("external_id,external_name").eq("athlete_id",job.athlete_id).eq("source_id",job.source_id).eq("active",true).maybeSingle();if(cq.error)throw cq.error;
  const iq=await db.from("athlete_identifiers").select("external_id,external_name").eq("athlete_id",job.athlete_id).eq("source_id",job.source_id).eq("active",true).maybeSingle();
- const externalId=String(cq.data?.external_id||iq.data?.external_id||"").trim();
+ let externalId=String(cq.data?.external_id||iq.data?.external_id||"").trim();
+ if(!externalId&&sq.data.code==="fdap"){
+  const ss=await db.from("sources").select("id").eq("code","swimsystem").maybeSingle();
+  if(ss.data?.id){
+   const sc=await db.from("athlete_source_configs").select("external_id").eq("athlete_id",job.athlete_id).eq("source_id",ss.data.id).eq("active",true).maybeSingle();
+   const si=await db.from("athlete_identifiers").select("external_id").eq("athlete_id",job.athlete_id).eq("source_id",ss.data.id).eq("active",true).maybeSingle();
+   externalId=String(sc.data?.external_id||si.data?.external_id||"").trim();
+  }
+ }
  const canonicalName=cq.data?.external_name||iq.data?.external_name||aq.data.full_name;
- if(!externalId&&job.job_type!=="historical"){const e:any=new Error("parser no match: missing external identity");e.parserMatched=false;throw e}
+ if(!externalId&&job.job_type==="current_meet"){const e:any=new Error("parser no match: missing external identity");e.parserMatched=false;throw e}
+ if(!externalId&&job.job_type==="historical"&&sq.data.code!=="masters_parana")return {done:true,cursor:{},found:0,inserted:0,duplicated:0};
  const identity={externalId,canonicalName,aliases:[aq.data.full_name,aq.data.preferred_name,cq.data?.external_name,iq.data?.external_name].filter(Boolean)};
  return job.job_type==="current_meet"?await processCurrent(job,identity):await processHistorical(job,sq.data,identity,aq.data);
 }
