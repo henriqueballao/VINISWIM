@@ -6,7 +6,7 @@ const src=fs.readFileSync("../../supabase/functions/import-v2-runner/index.ts","
 
 test("V2 historical scan is full, not capped by existing max result date",()=>{
  assert.equal(src.includes("const cutoff=maxDate"),false);
- assert.equal(src.includes('filter((x:any)=>x.active!==false)'),true);
+ assert.equal(src.includes("const archives=aq.data||[];"),true);
 });
 
 test("V2 may promote only a same-competition legacy row backed by official candidate",()=>{
