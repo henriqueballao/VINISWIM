@@ -174,7 +174,7 @@ function parseHistoricalResultText(text:string,url:string,i:any,expectedLabel:st
   const seg=boundedAthleteSegment(row,id);if(seg==null)continue;
   const st=resultStatus(seg),timeMs=extractOfficialRowTime(row,id);
   if(timeMs==null&&!st)continue;
-  out.push({eventLabel:expectedLabel,timeMs,status:st||'valid',sourceUrl:url,resultDate:date,course})
+  out.push({eventLabel:eventFrom(body)||expectedLabel,timeMs,status:st||'valid',sourceUrl:url,resultDate:date,course})
  }
  return out
 }
@@ -619,64 +619,50 @@ async function processArchiveJob(aj:any){
    }
 
    if(archive.provider==='swimtime_progression'){
-     // Legacy swimtimebrasil.com has a broken TLS certificate on its HTML host.
-     // Never fetch the meet root directly here. ProgressionDetails.pdf is the
-     // canonical athlete summary and quickReaderText() reaches it through the
-     // reader/cache path, so the import remains automatic and does not depend
-     // on accepting an invalid certificate.
+     // Legacy host TLS is broken. Use the already collected official ResultList
+     // documents from the document cache. Each ResultList carries its own event
+     // date, event and athlete registration, so multi-day meets are not collapsed
+     // onto archive.start_date and no athlete-specific fallback is needed.
      await beat();
-     const progressionUrl=new URL('ProgressionDetails.pdf',archive.base_url).toString();
-     const txt=await quickReaderText(progressionUrl);
-     const resultDate=archive.start_date||historicalMeetDate(txt)||null;
+     const prefix=String(archive.base_url||'').replace(/\/$/,'')+'/ResultList_';
+     const {data:docs,error:docsError}=await db.from('historical_document_text_cache')
+       .select('url,text_content,fetch_status').like('url',prefix+'%.pdf').eq('fetch_status','ok');
+     if(docsError)throw new Error('Cache ResultList: '+docsError.message);
      const course=archive.course||null;
-     if(!resultDate||!course)throw new Error('Arquivo legado sem data/piscina canônica');
-     const results=parseClubDetailResults(txt,i,course,resultDate,progressionUrl);
+     if(!course)throw new Error('Arquivo legado sem piscina canônica');
+     const results:any[]=[];
+     for(const d of docs||[]){
+       const parsed=parseHistoricalResultText(String(d.text_content||''),String(d.url),i,eventFrom(String(d.text_content||''))||'',course);
+       results.push(...parsed)
+     }
      if(!results.length){
-       await db.from('historical_archive_jobs').update({
-         status:'completed',records_found:0,records_inserted:0,records_promoted:0,
-         heartbeat_at:null,finished_at:now(),updated_at:now(),last_error:null
-       }).eq('id',aj.id).eq('status','running');
+       await db.from('historical_archive_jobs').update({status:'completed',records_found:0,records_inserted:0,records_promoted:0,heartbeat_at:null,finished_at:now(),updated_at:now(),last_error:null}).eq('id',aj.id).eq('status','running');
        return
      }
      const ev=await eventMap();
+     const firstDate=results.map((r:any)=>r.resultDate).filter(Boolean).sort()[0]||archive.start_date||null;
      const mq=await db.from('meets').upsert({
        source_id:archive.source_id,external_id:archive.event_key,name:archive.name,
-       start_date:resultDate,end_date:archive.end_date||null,course,
-       city:historicalCity(txt)||null,official_url:archive.base_url,status:'completed'
+       start_date:firstDate,end_date:archive.end_date||null,course,
+       official_url:archive.base_url,status:'completed'
      },{onConflict:'source_id,external_id'}).select('id,start_date,course').single();
-     if(mq.error)throw new Error('Meet legado ProgressionDetails: '+mq.error.message);
-     const m=mq.data;
-     let foundAdd=0,insertedAdd=0,promotedAdd=0;const seen=new Set<string>();
+     if(mq.error)throw new Error('Meet legado ResultList: '+mq.error.message);
+     const m=mq.data;let foundAdd=0,insertedAdd=0,promotedAdd=0;const seen=new Set<string>();
      for(const r of results){
        const eid=ev.get(n(r.eventLabel));if(!eid)continue;
-       const date=r.resultDate||m.start_date,rcourse=r.course||m.course;
-       if(!date||!rcourse)continue;
+       const date=r.resultDate,rcourse=r.course||m.course;if(!date||!rcourse)continue;
        const key=[eid,date,rcourse,r.timeMs,r.status].join('|');if(seen.has(key))continue;seen.add(key);foundAdd++;
        let q=db.from('results').select('id,is_official,origin').eq('athlete_id',aj.athlete_id).eq('event_id',eid).eq('result_date',date).eq('course',rcourse).eq('status',r.status);
        q=r.timeMs==null?q.is('time_ms',null):q.eq('time_ms',r.timeMs);
        const {data:old}=await q.maybeSingle();
-       if(old){
-         if(!old.is_official){
-           await db.from('results').update({meet_id:m.id,origin:'official',source_id:archive.source_id,is_official:true,notes:'Confirmado por ProgressionDetails oficial.',updated_at:now()}).eq('id',old.id);
-           await db.from('result_sources').upsert({result_id:old.id,source_id:archive.source_id,source_url:progressionUrl,retrieved_at:now(),metadata:{historical_archive:archive.event_key,document:'ProgressionDetails.pdf'}},{onConflict:'result_id,source_id'});
-           promotedAdd++
-         }
-         continue
-       }
+       if(old){if(!old.is_official){await db.from('results').update({meet_id:m.id,origin:'official',source_id:archive.source_id,is_official:true,notes:'Confirmado por ResultList oficial.',updated_at:now()}).eq('id',old.id);promotedAdd++}
+         await db.from('result_sources').upsert({result_id:old.id,source_id:archive.source_id,source_url:r.sourceUrl,retrieved_at:now(),metadata:{historical_archive:archive.event_key,document:'ResultList'}},{onConflict:'result_id,source_id'});continue}
        const fp=[aj.athlete_id,m.id,eid,date,rcourse,r.timeMs,r.status].join('|');
-       const ins=await db.from('results').insert({
-         athlete_id:aj.athlete_id,meet_id:m.id,event_id:eid,result_date:date,course:rcourse,
-         time_ms:r.timeMs,status:r.status,origin:'official',source_id:archive.source_id,is_official:true,
-         category:categoryLabelFor(date,athlete?.birth_date,athlete?.category),result_fingerprint:fp
-       }).select('id').single();
-       if(ins.error)throw new Error('Resultado legado ProgressionDetails: '+ins.error.message);
-       insertedAdd++;
-       await db.from('result_sources').insert({result_id:ins.data.id,source_id:archive.source_id,source_url:progressionUrl,retrieved_at:now(),metadata:{historical_archive:archive.event_key,document:'ProgressionDetails.pdf'}})
+       const ins=await db.from('results').insert({athlete_id:aj.athlete_id,meet_id:m.id,event_id:eid,result_date:date,course:rcourse,time_ms:r.timeMs,status:r.status,origin:'official',source_id:archive.source_id,is_official:true,category:categoryLabelFor(date,athlete?.birth_date,athlete?.category),result_fingerprint:fp}).select('id').single();
+       if(ins.error)throw new Error('Resultado legado ResultList: '+ins.error.message);
+       insertedAdd++;await db.from('result_sources').insert({result_id:ins.data.id,source_id:archive.source_id,source_url:r.sourceUrl,retrieved_at:now(),metadata:{historical_archive:archive.event_key,document:'ResultList'}})
      }
-     await db.from('historical_archive_jobs').update({
-       status:'completed',records_found:foundAdd,records_inserted:insertedAdd,records_promoted:promotedAdd,
-       heartbeat_at:null,finished_at:now(),updated_at:now(),last_error:null
-     }).eq('id',aj.id).eq('status','running');
+     await db.from('historical_archive_jobs').update({status:'completed',records_found:foundAdd,records_inserted:insertedAdd,records_promoted:promotedAdd,heartbeat_at:null,finished_at:now(),updated_at:now(),last_error:null}).eq('id',aj.id).eq('status','running');
      return
    }
 
@@ -815,7 +801,7 @@ async function processArchiveJob(aj:any){
      const seen=new Set<string>();
      for(const r of parsed){
        const eid=ev.get(n(r.eventLabel));if(!eid)continue;
-       const date=m.start_date,course=r.course||m.course;
+       const date=r.resultDate||m.start_date,course=r.course||m.course;
        if(!date||!course)continue;
        const key=[eid,date,course,r.timeMs,r.status].join('|');
        if(seen.has(key))continue;seen.add(key);foundAdd++;
