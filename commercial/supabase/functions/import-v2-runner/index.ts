@@ -11,10 +11,78 @@ const n=(v:any)=>String(v||"").normalize("NFD").replace(/\p{Diacritic}/gu,"").to
 function canonicalMeetName(v:any){
  return String(v||"").replace(/^\s*(?:Resultados|Provas|Atletas|Clubes|Inscrições|Informações)\s*[·:|-]\s*/i,"").replace(/\s+/g," ").trim();
 }
-async function meetEvidence(sourceId:string,externalId:string){
- const q=await db.from("meet_metadata_evidence").select("canonical_name,venue,city,evidence_url").eq("source_id",sourceId).eq("external_id",externalId).maybeSingle();
+function decodeHtml(v:any){
+ return String(v||"").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">");
+}
+function stripHtml(v:any){
+ return decodeHtml(String(v||"").replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," ")).replace(/\s+/g," ").trim();
+}
+function parseOfficialMeetPage(html:string){
+ const name=canonicalMeetName(decodeHtml((String(html||"").match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)||[])[1]||"").replace(/<[^>]+>/g," "));
+ const text=stripHtml(html);
+ const venueMatch=text.match(/Local da competição\s+(.+?)(?=\s+(?:Google Maps|Pedir corrida|Adicionar à agenda|Programação|Documentos|Detalhes)\b)/i);
+ const cityMatch=text.match(/\b([A-Za-zÀ-ÿ' -]{2,80})\s*\/\s*([A-Z]{2})\s+(?:Piscina Curta|Piscina Longa|Mar)\b/i);
+ const courseMatch=text.match(/\b(Piscina Curta|Piscina Longa)\s*[·-]\s*(25|50)m\b/i);
+ return {
+  canonical_name:name||null,
+  venue:venueMatch?venueMatch[1].trim():null,
+  city:cityMatch?cityMatch[1].trim():null,
+  course:courseMatch?(courseMatch[2]==="50"?"LCM":"SCM"):null
+ };
+}
+function tokenScore(a:any,b:any){
+ const aa=new Set(n(a).split(" ").filter((x:string)=>x.length>3&&!["campeonato","torneio","trofeu","regiao","mirim","petiz","senior","semestre"].includes(x)));
+ const bb=new Set(n(b).split(" ").filter((x:string)=>x.length>3&&!["campeonato","torneio","trofeu","regiao","mirim","petiz","senior","semestre"].includes(x)));
+ if(!aa.size||!bb.size)return 0;
+ let hit=0;for(const x of aa)if(bb.has(x))hit++;
+ return hit/Math.max(aa.size,bb.size);
+}
+function parseCachedDocHeader(text:any){
+ const flat=stripHtml(String(text||"").slice(0,2200));
+ const date=flat.match(/(?:\b|,\s*)(\d{1,2})(?:\s*-\s*(\d{1,2}))?\/(\d{1,2})\/(\d{4})\b/);
+ const course=flat.match(/\b(SCM|LCM)\s*\((25|50)m\)/i);
+ const md=flat.match(/Markdown Content:\s*(?:#+\s*)?(.+?)(?=\s+(?:Federação|Federacao|Curitiba|Colombo|Maringa|Maringá|Londrina|Toledo|Foz|Aracaju)\b)/i);
+ return {
+  start_date:date?String(date[4])+"-"+String(date[3]).padStart(2,"0")+"-"+String(date[1]).padStart(2,"0"):null,
+  course:course?course[1].toUpperCase():null,
+  name:canonicalMeetName(md?.[1]||flat.slice(0,180))
+ };
+}
+async function discoverModernMirror(archive:any){
+ const start=String(archive.start_date||"");
+ const year=start.slice(0,4);
+ if(!year)return null;
+ const q=await db.from("historical_document_text_cache").select("url,text_content").eq("fetch_status","ok").like("url","%/meet-documents/%").ilike("text_content","%"+year+"%").limit(1200);
  if(q.error)throw q.error;
- return q.data||null;
+ const best=new Map<string,{score:number,url:string}>();
+ for(const d of q.data||[]){
+  const m=String(d.url||"").match(/\/meet-documents\/([0-9a-f-]{36})\//i);if(!m)continue;
+  const meta=parseCachedDocHeader(d.text_content);
+  if(meta.start_date!==start)continue;
+  if(archive.course&&meta.course&&String(archive.course)!==meta.course)continue;
+  const score=tokenScore(archive.name,meta.name);
+  const prev=best.get(m[1]);if(!prev||score>prev.score)best.set(m[1],{score,url:d.url});
+ }
+ const ranked=[...best.entries()].sort((a,b)=>b[1].score-a[1].score);
+ if(!ranked.length||ranked[0][1].score<0.34)return null;
+ if(ranked[1]&&Math.abs(ranked[0][1].score-ranked[1][1].score)<0.08)return null;
+ return ranked[0][0];
+}
+async function meetEvidence(sourceId:string,externalId:string,archive?:any){
+ const cached=await db.from("meet_metadata_evidence").select("canonical_name,venue,city,evidence_url,evidence_kind").eq("source_id",sourceId).eq("external_id",externalId).maybeSingle();
+ if(cached.error)throw cached.error;
+ if(cached.data?.evidence_kind==="auto_official_page"&&cached.data.venue)return cached.data;
+ let officialId=/^[0-9a-f-]{36}$/i.test(externalId)?externalId:null;
+ if(!officialId&&archive)officialId=await discoverModernMirror(archive);
+ if(!officialId)return null;
+ const url="https://www.swimsystem.app/meets/sw/"+officialId;
+ let html="";try{html=await fetchText(url,18000)}catch{return null}
+ const meta=parseOfficialMeetPage(html);
+ if(!meta.canonical_name&&!meta.venue)return null;
+ const row={source_id:sourceId,external_id:externalId,canonical_name:meta.canonical_name||canonicalMeetName(archive?.name||""),venue:meta.venue,city:meta.city,evidence_url:url,evidence_kind:"auto_official_page",verified_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+ const up=await db.from("meet_metadata_evidence").upsert(row,{onConflict:"source_id,external_id"});
+ if(up.error)throw up.error;
+ return row;
 }
 
 async function fetchText(url:string,ms=15000){
@@ -52,7 +120,7 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
   const eid=ev.get(n(c.event));if(!eid)continue;
   const start=c.meetStartDate||archive.start_date||c.resultDate;
   if(!start||!c.resultDate||!c.course)continue;
-  const evidence=await meetEvidence(job.source_id,String(archive.event_key));
+  const evidence=await meetEvidence(job.source_id,String(archive.event_key),archive);
   const meetUp=await db.from("meets").upsert({
    source_id:job.source_id,external_id:String(archive.event_key),
    name:canonicalMeetName(evidence?.canonical_name||archive.name||("Competição "+archive.event_key)),
@@ -229,7 +297,7 @@ async function processCurrent(job:any,identity:any){
  const next=pi+batch.length;
  if(next<links.length)return {done:false,cursor:{meet_index:mi,meet_id:id,pdf_cursor:next,evidence,entries},found:0,inserted:0,duplicated:0};
  if(evidence?.startDate&&entries.length){
-  const meta=await meetEvidence(job.source_id,id);
+  const meta=await meetEvidence(job.source_id,id,{event_key:id,name:evidence?.name||("SwimSystem "+id),start_date:evidence.startDate,course:evidence.course});
   const mq=await db.from("meets").upsert({
    source_id:job.source_id,external_id:id,
    name:canonicalMeetName(meta?.canonical_name||("SwimSystem "+id)),
