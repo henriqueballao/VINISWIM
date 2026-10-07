@@ -505,6 +505,7 @@ async function processArchiveJob(aj:any){
      // meetBase(url) instead. Match that exactly.
      const rootBase=meetBase(base);
      const html=await get(rootBase),meetParsed=parseMeet(html,rootBase);
+     const canonicalName=(archive.name&&!/^SwimSystem [0-9a-f-]{36}$/i.test(archive.name))?archive.name:(meetParsed.name||archive.name);
      const pdfLinks=[...new Set([...html.matchAll(/https?:\/\/[^"'\s]+\.pdf/gi)].map(m=>m[0]))];
      const results:any[]=[],scheduledEntries:any[]=[];
      const dbg:string[]=[];
@@ -552,7 +553,7 @@ async function processArchiveJob(aj:any){
            const entries=[...scheduledEntries,...parseEntries(athletesHtml,i)].filter((e:any,idx:number,arr:any[])=>arr.findIndex((x:any)=>n(x.eventLabel)===n(e.eventLabel))===idx);
            if(entries.length){
              const mq=await db.from('meets').upsert({
-               source_id:archive.source_id,external_id:archive.event_key,name:archive.name||meetParsed.name,
+               source_id:archive.source_id,external_id:archive.event_key,name:canonicalName,
                start_date:reportEvidence?.startDate||null,end_date:reportEvidence?.endDate||null,
                course:reportEvidence?.course||null,official_url:rootBase,status:'scheduled',
                ...(meetParsed.venue?{venue:meetParsed.venue}:{}),...(reportEvidence?.city?{city:reportEvidence.city}:meetParsed.city?{city:meetParsed.city}:{})
@@ -572,7 +573,7 @@ async function processArchiveJob(aj:any){
      }
      const ev=await eventMap();
      const mq=await db.from('meets').upsert({
-       source_id:archive.source_id,external_id:archive.event_key,name:archive.name||meetParsed.name,
+       source_id:archive.source_id,external_id:archive.event_key,name:canonicalName,
        start_date:reportEvidence?.startDate||results.find((r:any)=>r.resultDate)?.resultDate||null,
        end_date:reportEvidence?.endDate||null,course:reportEvidence?.course||null,official_url:meetBase(base),status:'completed',
        ...(meetParsed.venue?{venue:meetParsed.venue}:{}),...(meetParsed.city?{city:meetParsed.city}:{})
