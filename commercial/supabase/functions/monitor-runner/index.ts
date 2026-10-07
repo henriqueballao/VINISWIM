@@ -1120,18 +1120,9 @@ Deno.serve(async(req)=>{
    }
   }
 
-  let ids:string[]=[];
-  if(forceAthleteId){
-   // Diagnostic execution: run the athlete's already-existing historical jobs
-   // now, without fabricating results or changing archive/result data by hand.
-   const {data:forced}=await db.from('monitor_jobs').select('id').eq('athlete_id',forceAthleteId).eq('job_type','historical').eq('status','pending');
-   ids=(forced||[]).map((x:any)=>x.id);
-   if(ids.length)await db.from('monitor_jobs').update({status:'running',locked_at:new Date().toISOString(),updated_at:new Date().toISOString()}).in('id',ids).eq('status','pending');
-  }else{
-   const {data:claimed,error:claimError}=await db.rpc('claim_monitor_jobs',{p_limit:1});
-   if(claimError)throw claimError;
-   ids=(claimed||[]).map((x:any)=>x.id);
-  }
+  const {data:claimed,error:claimError}=await db.rpc('claim_monitor_jobs',{p_limit:1});
+  if(claimError)throw claimError;
+  const ids:string[]=(claimed||[]).map((x:any)=>x.id);
   let jobs:any[]=[];
   if(ids.length){
    const q=await db.from('monitor_jobs').select('*,sources(code),athletes(full_name,preferred_name,birth_date,gender)').in('id',ids);
