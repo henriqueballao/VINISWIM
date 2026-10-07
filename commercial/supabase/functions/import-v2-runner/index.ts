@@ -12,7 +12,7 @@ function canonicalMeetName(v:any){
  return String(v||"").replace(/^\s*(?:Resultados|Provas|Atletas|Clubes|Inscrições|Informações)\s*[·:|-]\s*/i,"").replace(/\s+/g," ").trim();
 }
 function decodeHtml(v:any){
- return String(v||"").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">");
+ return String(v||"").replace(/\\u([0-9a-f]{4})/gi,(_:string,h:string)=>String.fromCharCode(parseInt(h,16))).replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">");
 }
 function stripHtml(v:any){
  return decodeHtml(String(v||"").replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," ")).replace(/\s+/g," ").trim();
