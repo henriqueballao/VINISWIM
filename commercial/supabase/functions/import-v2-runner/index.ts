@@ -67,7 +67,6 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
     else throw ins.error;
    }else{rid=ins.data.id;inserted++}
   }else duplicated++;
-  if(rid&&semanticOld)duplicated++;
   if(rid)await db.from("result_sources").upsert({
    result_id:rid,source_id:job.source_id,source_url:c.sourceUrl,external_id:c.sourceUrl,retrieved_at:c.retrievedAt,
    raw_hash:null,metadata:{engine:"v2",parser_version:c.parserVersion,source_block:c.sourceBlock}
