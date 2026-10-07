@@ -18,7 +18,7 @@ function rowStatus(prefix){
 function officialTime(after){
  const payload=String(after||"").replace(/^\s*\d{4}/,"").trim();
  const patterns=[
-  /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*\d{2,3}%\s*-?\s*\d{1,4}(?:\s|$))/,
+  /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*\d{2,3}%\s*(?:\d{1,2}[.,]\d{2}|-)\s*\d{1,4}(?:\s|$))/,
   /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*-{1,2}\s*\d{1,4}(?:\s|$))/,
   /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*\d{1,2},\d{2}\s*\d{1,4}(?:\s|$))/
  ];
@@ -35,7 +35,7 @@ export function parseResultList({text,identity,meet,sourceUrl,retrievedAt}){
   const row=athleteRow(flat,id,pos);if(!row)continue;
   const status=rowStatus(row.prefix),timeMs=status?null:officialTime(row.after);
   if(timeMs==null&&!status)continue;
-  out.push({sourceCode:meet.sourceCode,externalMeetId:meet.externalMeetId,event:h[1]+" "+h[2],resultDate:iso(h[3],h[4],h[5]),course:meet.course,timeMs,status:status||"valid",sourceUrl,sourceBlock:row.text.slice(0,220),parserVersion:"resultlist-v2.6",retrievedAt,athleteExternalId:id})
+  out.push({sourceCode:meet.sourceCode,externalMeetId:meet.externalMeetId,event:h[1]+" "+h[2],resultDate:iso(h[3],h[4],h[5]),course:meet.course,timeMs,status:status||"valid",sourceUrl,sourceBlock:row.text.slice(0,220),parserVersion:"resultlist-v2.7",retrievedAt,athleteExternalId:id})
  }
  return out;
 }
