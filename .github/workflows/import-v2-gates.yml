@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'commercial/packages/import-v2/**'
+      - 'commercial/supabase/functions/monitor-runner/**'
       - 'refactor/**'
   pull_request:
     paths:
