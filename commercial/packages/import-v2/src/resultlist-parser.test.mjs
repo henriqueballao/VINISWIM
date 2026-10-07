@@ -26,3 +26,9 @@ test("compact N/C immediately followed by series number remains athlete status",
  const r=parseResultList({identity:{externalId:"700001"},meet:{sourceCode:"fdap",externalMeetId:"legacy-nc-tight",course:"SCM"},retrievedAt:"2026-10-07T00:00:00Z",text,sourceUrl:"fixture://legacy-nc-tight.pdf"});
  assert.equal(r.length,1);assert.equal(r[0].status,"dsq");assert.equal(r[0].timeMs,null);
 });
+
+test("legacy spaced dash suffix keeps official time",()=>{
+ const text="Prova 32 Masculino, 50m Peito Mirim 6/4/25 - 10:56 Resultados 23. 2 / 1 Atleta Teste 700001 2015 Clube 1:15.22 - - 36 N/C 2 / 8 Vizinho 700002 2015 Clube - -";
+ const r=parseResultList({identity:{externalId:"700001"},meet:{sourceCode:"fdap",externalMeetId:"legacy-spaced-dash",course:"SCM"},retrievedAt:"2026-10-07T00:00:00Z",text,sourceUrl:"fixture://legacy-spaced-dash.pdf"});
+ assert.equal(r.length,1);assert.equal(r[0].resultDate,"2025-04-06");assert.equal(r[0].timeMs,75220);assert.equal(r[0].status,"valid");
+});
