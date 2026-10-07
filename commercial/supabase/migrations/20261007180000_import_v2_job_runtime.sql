@@ -21,9 +21,12 @@ create table if not exists public.import_v2_jobs (
   unique(request_id,source_id,job_type)
 );
 alter table public.import_v2_jobs enable row level security;
+create index if not exists import_v2_jobs_athlete_idx on public.import_v2_jobs(athlete_id);
+create index if not exists import_v2_jobs_source_idx on public.import_v2_jobs(source_id);
+create index if not exists import_v2_jobs_claim_idx on public.import_v2_jobs(status,next_run_at,priority,created_at);
 drop policy if exists import_v2_jobs_select_members on public.import_v2_jobs;
 create policy import_v2_jobs_select_members on public.import_v2_jobs for select to authenticated
-using (exists(select 1 from public.athletes a join public.account_members am on am.account_id=a.account_id where a.id=import_v2_jobs.athlete_id and am.user_id=auth.uid() and am.status='active'));
+using (exists(select 1 from public.athletes a join public.account_members am on am.account_id=a.account_id where a.id=import_v2_jobs.athlete_id and am.user_id=(select auth.uid()) and am.status='active'));
 drop trigger if exists import_v2_jobs_set_updated_at on public.import_v2_jobs;
 create trigger import_v2_jobs_set_updated_at before update on public.import_v2_jobs for each row execute function app.set_updated_at();
 
