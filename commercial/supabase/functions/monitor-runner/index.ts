@@ -71,7 +71,7 @@ function athleteHistoricalEvents(text:string,i:any){
  const lines=text.split(/\r?\n/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean),out:string[]=[];
  let active=false;
  for(const line of lines){
-  if(/\b(19|20)\d{2}\s*\(\d+\s*Anos?\)/i.test(line)){active=names(i).some((nm:string)=>looseNameMatch(line,nm));continue}
+  if(/\b(19|20)\d{2}\s*\(\d+\s*Anos?\)/i.test(line)){active=names(i).some((nm:string)=>n(line).startsWith(nm+',')||n(line)===nm);continue}
   if(!active)continue;
   const rx=/((?:\d+x)?\d{2,4})m\s+(Livre|Costas|Peito|Borboleta|Medley)\b/gi; let m;
   while((m=rx.exec(line))){
@@ -248,7 +248,7 @@ function parseClubDetailResults(text:string,i:any,fallbackCourse:any,fallbackDat
  const out:any[]=[];
  for(let k=0;k<headers.length;k++){
   const h=headers[k],athleteName=h[1].trim();
-  if(!names(i).some((nm:string)=>nm&&looseNameMatch(athleteName,nm)))continue;
+  if(!names(i).some((nm:string)=>nm&&n(athleteName)===nm))continue;
   const start=h.index!+h[0].length;
   const end=k+1<headers.length?headers[k+1].index!:text.length;
   const block=text.slice(start,end);
