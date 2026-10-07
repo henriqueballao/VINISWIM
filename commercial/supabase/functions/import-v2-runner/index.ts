@@ -50,19 +50,32 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
   },{onConflict:"source_id,external_id"}).select("id").single();
   if(meetUp.error)throw meetUp.error;
   const fp=[job.athlete_id,meetUp.data.id,eid,c.resultDate,c.course,c.timeMs??"",c.status].join("|");
-  let semantic=db.from("results").select("id").eq("athlete_id",job.athlete_id).eq("event_id",eid).eq("result_date",c.resultDate).eq("course",c.course).eq("status",c.status);
+  let semantic=db.from("results").select("id,meet_id,meets!inner(external_id)").eq("athlete_id",job.athlete_id).eq("event_id",eid).eq("result_date",c.resultDate).eq("course",c.course).eq("status",c.status);
   semantic=c.timeMs==null?semantic.is("time_ms",null):semantic.eq("time_ms",c.timeMs);
   const {data:semanticRows}=await semantic.limit(1);
   const semanticOld=semanticRows?.[0]||null;
   const {data:fingerprintOld}=await db.from("results").select("id").eq("result_fingerprint",fp).maybeSingle();
   let rid=semanticOld?.id||fingerprintOld?.id;
   let promotedCandidate=false;
+  const archiveKey=String(archive.event_key);
+  if(semanticOld){
+   const semanticExternal=String((semanticOld as any).meets?.external_id||"");
+   const verifiedLegacy=semanticExternal.startsWith("legacy-")&&(semanticExternal===archiveKey||semanticExternal.endsWith(":sw-"+archiveKey));
+   if(verifiedLegacy){
+    const up=await db.from("results").update({
+     meet_id:meetUp.data.id,result_date:c.resultDate,course:c.course,time_ms:c.timeMs,status:c.status,
+     origin:"official",source_id:job.source_id,is_official:true,result_fingerprint:fp,
+     category:categoryFor(c.resultDate,athlete.birth_date,athlete.category)
+    }).eq("id",semanticOld.id).select("id").single();
+    if(up.error)throw up.error;
+    rid=up.data.id;promoted++;promotedCandidate=true;
+   }
+  }
   if(!rid){
    let legacy=db.from("results").select("id,meet_id,meets!inner(external_id)").eq("athlete_id",job.athlete_id).eq("event_id",eid).eq("course",c.course).eq("status",c.status);
    legacy=c.timeMs==null?legacy.is("time_ms",null):legacy.eq("time_ms",c.timeMs);
    const {data:legacyRows,error:legacyError}=await legacy.limit(20);
    if(legacyError)throw legacyError;
-   const archiveKey=String(archive.event_key);
    const legacyMatch=(legacyRows||[]).find((x:any)=>{
     const external=String(x.meets?.external_id||"");
     return x.meet_id===meetUp.data.id||external===archiveKey||external.endsWith(":sw-"+archiveKey)
