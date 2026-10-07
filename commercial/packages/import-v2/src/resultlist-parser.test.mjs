@@ -9,3 +9,14 @@ const cases=[
 ];
 test("ResultList anchors exact event date and athlete id",()=>{for(const [text,event,date,time] of cases){const r=parseResultList({...base,text,sourceUrl:"fixture://result.pdf"});assert.equal(r.length,1);assert.equal(r[0].event,event);assert.equal(r[0].resultDate,date);assert.equal(r[0].timeMs,time);assert.equal(validateResultCandidate(r[0]).accepted,true)}});
 test("wrong registration cannot donate neighboring result",()=>{const r=parseResultList({...base,text:cases[0][0].replace("422692","999999"),sourceUrl:"fixture://result.pdf"});assert.equal(r.length,0)});
+
+test("legacy ResultList without clock time is parsed",()=>{
+ const text="Prova 23 Masculino, 100m Peito Mirim/Sênior 07/12/2024 Resultados\n1. 5 / 4 Atleta Teste 700001 2015 Clube 1:41.08 20,00 163";
+ const r=parseResultList({identity:{externalId:"700001"},meet:{sourceCode:"fdap",externalMeetId:"legacy-no-clock",course:"SCM"},retrievedAt:"2026-10-07T00:00:00Z",text,sourceUrl:"fixture://legacy-no-clock.pdf"});
+ assert.equal(r.length,1);assert.equal(r[0].event,"100 Peito");assert.equal(r[0].resultDate,"2024-12-07");assert.equal(r[0].timeMs,101080);
+});
+test("compact N/C row is mapped to dsq without borrowing a neighboring time",()=>{
+ const text="Prova 26Masculino, 100m BorboletaMirim/Sênior 07/12/2024Resultados\n6.2 / 2 Outro 7000022015Clube2:10.12-49 N/C2 / 6Atleta Teste7000012015Clube- N/C1 / 4Vizinho7000032015Clube1:20.00-100";
+ const r=parseResultList({identity:{externalId:"700001"},meet:{sourceCode:"fdap",externalMeetId:"legacy-nc",course:"SCM"},retrievedAt:"2026-10-07T00:00:00Z",text,sourceUrl:"fixture://legacy-nc.pdf"});
+ assert.equal(r.length,1);assert.equal(r[0].status,"dsq");assert.equal(r[0].timeMs,null);assert.equal(validateResultCandidate(r[0]).accepted,true);
+});
