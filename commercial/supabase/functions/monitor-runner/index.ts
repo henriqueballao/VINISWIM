@@ -856,11 +856,7 @@ async function processArchiveJob(aj:any){
 }
 
 async function processLink(r:any){if(r.sources?.code!=='swimsystem')throw new Error('Fonte sem adaptador');const raw=r.current_meet_url;if(!raw)throw new Error('URL do campeonato atual não informada');const u=new URL(raw);if(!/(^|\.)swimsystem\.app$/i.test(u.hostname))throw new Error('URL fora do SwimSystem');const i={external_id:r.external_id,external_name:null,athletes:r.athletes};const html=await get(meetBase(raw)+'/athletes');if(!match(cheerio.load(html)('body').text(),i)){await db.from('source_link_requests').update({status:'rejected',message:'Registro/nome não encontrado',processed_at:new Date().toISOString()}).eq('id',r.id);return}const metadata={current_meet_url:raw};await db.from('athlete_identifiers').upsert({athlete_id:r.athlete_id,source_id:r.source_id,external_id:r.external_id,status:'active',verified:true,verified_at:new Date().toISOString(),active:true,metadata},{onConflict:'athlete_id,source_id'});
-// processJob() reads the URL to scan from athlete_source_configs.source_url, not
-// from this metadata — without this update the current_meet job keeps scanning
-// whatever generic URL the athlete had before (e.g. the SwimSystem homepage)
-// and never actually looks at the linked competition.
-await db.from('athlete_source_configs').update({source_url:raw,updated_at:new Date().toISOString()}).eq('athlete_id',r.athlete_id).eq('source_id',r.source_id);
+// SwimSystem discovery is identity-driven; do not bind the athlete source to one meet URL.
 await db.from('source_link_requests').update({status:'verified',message:'Vínculo validado',processed_at:new Date().toISOString()}).eq('id',r.id);await db.from('athletes').update({status:'active'}).eq('id',r.athlete_id);await db.from('monitor_jobs').upsert({athlete_id:r.athlete_id,source_id:r.source_id,job_type:'current_meet',status:'pending',priority:10,next_run_at:new Date().toISOString(),attempts:0},{onConflict:'athlete_id,source_id,job_type'})}
 
 function historicalMeetBases(urls:any[]){
