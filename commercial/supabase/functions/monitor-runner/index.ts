@@ -453,20 +453,15 @@ async function ensureSwimSystemAppArchives(){
  const {data:existing}=await db.from('historical_archives').select('event_key').eq('provider','swimsystem_v2').in('event_key',ids);
  const known=new Set((existing||[]).map((x:any)=>x.event_key));
  const missing=ids.filter(id=>!known.has(id));
- // Registering a brand-new meet needs one extra page fetch (its base HTML, for
- // a name) on top of the /meets listing above. Cap how many happen per
- // invocation so a large first-time backlog can't blow the function's
- // wall-clock/CPU budget and get killed mid-loop (leaving no trace, since a
- // hard platform kill never reaches a catch block) — the rest are picked up
- // on the next invocation, since this reruns on every 'historical' job tick
- // for as long as any athlete still has one pending.
- for(const id of missing.slice(0,8)){
-  try{
-   const base='https://www.swimsystem.app/meets/sw/'+id;
-   const parsed=parseMeet(await get(base),base);
-   await db.from('historical_archives').insert({source_id:ss.id,provider:'swimsystem_v2',event_key:id,name:parsed.name||('SwimSystem '+id),base_url:base,start_date:parsed.startDate||null,course:parsed.course||null,active:true,updated_at:new Date().toISOString()});
-  }catch(e){console.error('SWIMSYSTEM_APP_ARCHIVE_DISCOVERY',id,String(e))}
+ // Register every discovered meet immediately. Do not hide the catalog behind
+ // an arbitrary per-invocation cap. Detailed metadata is fetched only when an
+ // athlete job actually needs that meet.
+ if(missing.length){
+  const rows=missing.map(id=>({source_id:ss.id,provider:'swimsystem_v2',event_key:id,name:'SwimSystem '+id,base_url:'https://www.swimsystem.app/meets/sw/'+id,start_date:null,course:null,active:true,updated_at:new Date().toISOString()}));
+  const {error}=await db.from('historical_archives').upsert(rows,{onConflict:'source_id,event_key',ignoreDuplicates:true});
+  if(error)console.error('SWIMSYSTEM_APP_ARCHIVE_DISCOVERY',error.message)
  }
+
 }
 async function processArchiveJob(aj:any){
  const now=()=>new Date().toISOString();
@@ -935,7 +930,7 @@ async function scanHistoricalCatalog(j:any,i:any){
 
 async function discoverCurrentSwimSystemMeet(j:any,i:any){
  const listing=await get('https://www.swimsystem.app/meets');
- const ids=[...new Set([...listing.matchAll(/\/meets\/sw\/([0-9a-f-]{36})/g)].map(m=>m[1]))].slice(0,20);
+ const ids=[...new Set([...listing.matchAll(/\/meets\/sw\/([0-9a-f-]{36})/g)].map(m=>m[1]))];
  const today=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
  let found=0;
  for(const id of ids){
