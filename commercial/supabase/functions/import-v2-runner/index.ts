@@ -18,14 +18,23 @@ function stripHtml(v:any){
  return decodeHtml(String(v||"").replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," ")).replace(/\s+/g," ").trim();
 }
 function parseOfficialMeetPage(html:string){
- const name=canonicalMeetName(decodeHtml((String(html||"").match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)||[])[1]||"").replace(/<[^>]+>/g," "));
- const text=stripHtml(html);
- const venueMatch=text.match(/Local da competição\s+(.+?)(?=\s+(?:Google Maps|Pedir corrida|Adicionar à agenda|Programação|Documentos|Detalhes)\b)/i);
+ const raw=String(html||"");
+ const name=canonicalMeetName(decodeHtml((raw.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)||[])[1]||"").replace(/<[^>]+>/g," "));
+ const text=stripHtml(raw);
+ const marker=/Local da competição/i.exec(raw);
+ let venue=null;
+ if(marker){
+  const tail=raw.slice(marker.index+marker[0].length,marker.index+marker[0].length+2200);
+  const chunks=[...tail.matchAll(/>([^<>]+)</g)]
+    .map((m:any)=>decodeHtml(m[1]).replace(/\s+/g," ").trim())
+    .filter((x:string)=>x&&!/^(?:Google Maps|Pedir corrida|Adicionar à agenda|Local da competição)$/i.test(x));
+  venue=chunks[0]||null;
+ }
  const cityMatch=text.match(/\b([A-Za-zÀ-ÿ' -]{2,80})\s*\/\s*([A-Z]{2})\s+(?:Piscina Curta|Piscina Longa|Mar)\b/i);
  const courseMatch=text.match(/\b(Piscina Curta|Piscina Longa)\s*[·-]\s*(25|50)m\b/i);
  return {
   canonical_name:name||null,
-  venue:venueMatch?venueMatch[1].trim():null,
+  venue,
   city:cityMatch?cityMatch[1].trim():null,
   course:courseMatch?(courseMatch[2]==="50"?"LCM":"SCM"):null
  };
@@ -38,14 +47,13 @@ function tokenScore(a:any,b:any){
  return hit/Math.max(aa.size,bb.size);
 }
 function parseCachedDocHeader(text:any){
- const flat=stripHtml(String(text||"").slice(0,2200));
- const date=flat.match(/(?:\b|,\s*)(\d{1,2})(?:\s*-\s*(\d{1,2}))?\/(\d{1,2})\/(\d{4})\b/);
- const course=flat.match(/\b(SCM|LCM)\s*\((25|50)m\)/i);
- const md=flat.match(/Markdown Content:\s*(?:#+\s*)?(.+?)(?=\s+(?:Federação|Federacao|Curitiba|Colombo|Maringa|Maringá|Londrina|Toledo|Foz|Aracaju)\b)/i);
+ const flat=stripHtml(String(text||"").slice(0,3500));
+ const header=flat.match(/([A-Za-zÀ-ÿ' .-]{2,80}),\s*(\d{1,2})(?:\s*-\s*(\d{1,2}))?\/(\d{1,2})\/(\d{4}),\s*(SCM|LCM)\s*\((25|50)m\)/i);
+ const named=flat.match(/(?:Federação de Desportos Aquáticos do Paraná|Federacao de Desportos Aquaticos do Parana)\s+(.+?)\s+[A-Za-zÀ-ÿ' .-]{2,80},\s*\d{1,2}(?:\s*-\s*\d{1,2})?\/\d{1,2}\/\d{4},\s*(?:SCM|LCM)/i);
  return {
-  start_date:date?String(date[4])+"-"+String(date[3]).padStart(2,"0")+"-"+String(date[1]).padStart(2,"0"):null,
-  course:course?course[1].toUpperCase():null,
-  name:canonicalMeetName(md?.[1]||flat.slice(0,180))
+  start_date:header?String(header[5])+"-"+String(header[4]).padStart(2,"0")+"-"+String(header[2]).padStart(2,"0"):null,
+  course:header?header[6].toUpperCase():null,
+  name:canonicalMeetName(named?.[1]||flat.slice(0,220))
  };
 }
 async function discoverModernMirror(archive:any){
