@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import {fetchSwimSystemCalendar} from "./fetch-readonly.mjs";
+test("read-only calendar adapter performs GET and returns text",async()=>{let called="";const fetchImpl=async u=>{called=u;return {ok:true,status:200,url:u,text:async()=>'<a href="/meets/sw/11111111-1111-1111-1111-111111111111">Meet</a>'}};const r=await fetchSwimSystemCalendar({fetchImpl});assert.equal(called,"https://www.swimsystem.app/meets");assert.match(r.text,/meets\/sw/);});
