@@ -1,0 +1,31 @@
+name: Import V2 Gates
+on:
+  push:
+    paths:
+      - 'commercial/packages/import-v2/**'
+      - 'refactor/**'
+  pull_request:
+    paths:
+      - 'commercial/packages/import-v2/**'
+      - 'refactor/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  parser-and-contract-gates:
+    name: Test Auditor — Gates 0/1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run isolated V2 tests
+        working-directory: commercial/packages/import-v2
+        run: npm test
+      - name: Reject athlete-specific production branches
+        run: |
+          ! grep -RniE 'vinicius|vini|422692|andre|lorenzo' commercial/packages/import-v2/src --exclude='*.test.mjs'
+      - name: Reject persistence dependencies in dry-run core
+        run: |
+          ! grep -RniE 'from\(["'"'"'](results|meets|meet_entries|result_sources)["'"'"']\)|insert\(|update\(|upsert\(|delete\(' commercial/packages/import-v2/src
