@@ -1,18 +1,22 @@
 # Status — Import V2
 
-## 2026-10-07
-- Canônicos/agentes publicados.
-- Pacote isolado import-v2 criado; sem Supabase e sem escrita.
-- ProgressionDetails: parser puro; whitespace compacto coberto.
-- ResultList: parser puro por registro, prova e data oficial do próprio documento.
-- Corrigido o defeito estrutural de data multi-dia: ProgressionDetails não fabrica data; ResultList fornece a data exata.
-- Fixture 39523 cobre 5 resultados documentais: 100 Livre 04/07, 50 Borboleta 04/07, 50 Costas 05/07, 100 Medley 05/07, 200 Livre 06/07.
-- SwimSystem atual: parser de cabeçalho/startlist estrito.
-- Discovery V2 retorna todos os UUIDs encontrados; removido do desenho V2 o corte arbitrário de 20 competições.
-- Dry-run/validator bloqueiam candidato incompleto.
+## 2026-10-07 — Gate 7 concluído
+- Gates 0/1: suíte isolada V2 aprovada.
+- Gate 2: descoberta live read-only aprovada.
+- Gates 3/4: dry-run documental e idempotência aprovados.
+- Gate 5: falhas distintas e recuperáveis implementadas e testadas.
+- Gate 6: lifecycle de request inclui jobs descendentes V2 e terminalidade correta.
+- Gate 7: Vini, André e Lorenzo validados documentalmente sem regra individual.
+- Piloto sintético de escrita aprovado e resíduos removidos.
+- E2E final real do Vini concluído com 4/4 jobs, zero falhas e zero novas inserções no retry final.
+- Parser ResultList endurecido por fronteira da própria linha do atleta; sem empréstimo de tempo/status vizinho.
+- Integridade pós-E2E: zero grupos de duplicidade semântica e zero tempos suspeitos abaixo de 10 s.
+- Frontend cortado para `request_result_refresh_v2`.
+- Runner V2 e cron V2 ativos.
+- Cron legado de importação removido.
+- Função temporária de auditoria desativada.
 
-## Próximo gate
-1. Rodar a suíte do pacote import-v2 fora da produção.
-2. Criar fetch adapters read-only para documentos atuais e históricos.
-3. Executar dry-run real do Vini e comparar com gabarito.
-4. Implementar orquestrador V2 somente após Gates 0-3.
+Evidência integral: `refactor/evidence/2026-10-07-gate7.md`.
+
+## Estado
+**PODE BUSCAR AGORA.**
