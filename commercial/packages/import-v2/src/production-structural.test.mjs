@@ -8,5 +8,6 @@ test("production importer contains no Vini-specific branch",()=>{assert.equal(/l
 
 test("current discovery is resumable across the full catalog",()=>{assert.equal(src.includes("current_discovery_cursor"),true);assert.equal(src.includes("nextCursor>=ids.length"),true)});
 test("SwimSystem identity is not rebound to a single meet URL",()=>{assert.equal(src.includes("source_url:raw"),false)});
-test("current discovery batch is bounded",()=>{assert.equal(src.includes("ids.slice(cursor,cursor+2)"),true)});
+test("current discovery batch is bounded",()=>{assert.equal(src.includes("ids.slice(cursor,cursor+1)"),true)});
+test("current discovery bounds official document fetches",()=>{assert.equal(src.includes("].slice(0,12)"),true)});
 // Production cutover structural gate.
