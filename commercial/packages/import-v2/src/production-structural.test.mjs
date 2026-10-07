@@ -7,4 +7,5 @@ test("legacy ResultList cache is canonical historical input",()=>{assert.equal(s
 test("production importer contains no Vini-specific branch",()=>{assert.equal(/legacy-vini|vinicius|422692/i.test(src),false)});
 
 test("current discovery is resumable across the full catalog",()=>{assert.equal(src.includes("current_discovery_cursor"),true);assert.equal(src.includes("nextCursor>=ids.length"),true)});
+test("SwimSystem identity is not rebound to a single meet URL",()=>{assert.equal(src.includes("update({source_url:raw"),false)});
 // Production cutover structural gate.
