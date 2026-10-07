@@ -936,7 +936,7 @@ async function discoverCurrentSwimSystemMeet(j:any,i:any){
   const base='https://www.swimsystem.app/meets/sw/'+id;
   let html='';try{html=await get(base)}catch{continue}
   const parsed=parseMeet(html,base);
-  const pdfLinks=[...new Set([...html.matchAll(/https?:\/\/[^"'\s]+\.pdf/gi)].map(m=>m[0]))];
+  const pdfLinks=[...new Set([...html.matchAll(/https?:\/\/[^"'\\s]+\.pdf/gi)].map(m=>m[0]))];
   let evidence:any=null,entries:any[]=[];
   for(const pdfUrl of pdfLinks){try{const txt=await quickReaderText(pdfUrl),evd=parseSwimSystemMeetEvidence(txt);if(evd&&!evidence)evidence=evd;if(evd)entries.push(...parseStartlistEntries(txt,i))}catch{}}
   if(!evidence?.startDate||evidence.startDate<today||!entries.length)continue;
