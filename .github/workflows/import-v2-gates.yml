@@ -4,6 +4,7 @@ on:
     paths:
       - 'commercial/packages/import-v2/**'
       - 'commercial/supabase/functions/monitor-runner/**'
+      - '.github/workflows/import-v2-gates.yml'
       - 'refactor/**'
   pull_request:
     paths:
