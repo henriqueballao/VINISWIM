@@ -32,3 +32,15 @@ Correções aplicadas:
 
 ## Estado
 **PODE BUSCAR AGORA.**
+
+
+## Venue e nome canônicos — automático
+- Removida a semeadura manual de metadados de competição do banco e da migration.
+- O V2 consulta o catálogo oficial do SwimSystem, casa legado por data + piscina + similaridade de nome e abre a página oficial correspondente.
+- `meets.name` passa pelo nome canônico da página oficial; prefixos de navegação como `Resultados ·` são descartados.
+- `meets.venue` vem de `Local da competição`; cidade permanece metadado separado e não substitui Local.
+- Evidência persistida somente como `auto_official_page`.
+- Prova real após zerar a tabela de evidências: 9/9 competições rediscoverertas automaticamente.
+- Timeline real: 37 resultados, 0 locais vazios e 0 nomes contaminados.
+- Request FDAP final: `de1c62c6-90b4-41d3-a59d-b70285556e7d` -> 1/1 completed, 0 failed.
+- Runner produção: v22.
