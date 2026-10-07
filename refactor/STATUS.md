@@ -2,12 +2,17 @@
 
 ## 2026-10-07
 - Canônicos e agentes publicados.
-- Criado pacote isolado commercial/packages/import-v2.
-- Primeiro parser puro: ProgressionDetails legado.
-- Corrigida estruturalmente a regra de data: resumo de competição multi-dia NÃO pode atribuir start_date a todas as provas.
-- Fixture de regressão cobre PDF compactado sem whitespace.
-- Validador rejeita resultado sem data exata.
-- Dry-run não possui dependência de Supabase e não contém operação de escrita.
+- Pacote isolado commercial/packages/import-v2 criado.
+- Parser puro ProgressionDetails e validador criados.
+- Resumo multi-dia NÃO atribui start_date a todas as provas.
+- Fixture cobre PDF compactado sem whitespace.
+- Dry-run não possui Supabase nem escrita.
+- Parser puro SwimSystem atual criado.
+- Cabeçalho oficial é obrigatório para data/piscina; sem fallback de data atual.
+- Startlist exige external_id autônomo.
 
 ## Próximo gate
-Implementar documentos de evento/ResultList para fornecer data oficial por prova e implementar descoberta SwimSystem atual no V2.
+1. ResultList por prova para data oficial histórica.
+2. Discovery SwimSystem sem limite arbitrário de 20 meets.
+3. Executar suíte isolada e registrar Gates 0/1/2.
+4. Só então criar orquestrador V2 read-only.
