@@ -1,0 +1,5 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {historicalDryRun} from "./historical-dryrun.mjs";
+const row=(id,n,event,date,time,reg)=>({externalMeetId:id,url:"fixture://"+id+"/"+n,text:"Prova "+n+" Masculino, "+event+" Mirim\n"+date+" - 9:00 Resultados\n1. 1 / 1 Atleta Teste "+reg+" 2015 Clube "+time+" 100% - 100"});
+test("generic multi-meet history",()=>{const r=historicalDryRun({identity:{externalId:"700001"},archives:[{externalMeetId:"a",course:"SCM"},{externalMeetId:"b",course:"LCM"}],documents:[row("a","1","50m Livre","01/01/2026","40.00","700001"),row("b","2","100m Costas","02/02/2026","1:30.00","700001"),row("b","3","50m Livre","02/02/2026","39.00","700002")],retrievedAt:"2026-10-07T00:00:00Z"});assert.equal(r.writes,0);assert.equal(r.accepted.length,2);assert.equal(r.rejected.length,0);});
