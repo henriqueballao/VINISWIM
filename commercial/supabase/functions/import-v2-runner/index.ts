@@ -49,47 +49,51 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
    start_date:start,end_date:c.meetEndDate||archive.end_date||null,course:c.course,official_url:archive.base_url,status:"completed"
   },{onConflict:"source_id,external_id"}).select("id").single();
   if(meetUp.error)throw meetUp.error;
-  const fp=[job.athlete_id,meetUp.data.id,eid,c.resultDate,c.course,c.timeMs??"",c.status].join("|");
-  let semantic=db.from("results").select("id,meet_id,meets!inner(external_id)").eq("athlete_id",job.athlete_id).eq("event_id",eid).eq("result_date",c.resultDate).eq("course",c.course).eq("status",c.status);
-  semantic=c.timeMs==null?semantic.is("time_ms",null):semantic.eq("time_ms",c.timeMs);
-  const {data:semanticRows}=await semantic.limit(1);
-  const semanticOld=semanticRows?.[0]||null;
-  const {data:fingerprintOld}=await db.from("results").select("id").eq("result_fingerprint",fp).maybeSingle();
-  let rid=semanticOld?.id||fingerprintOld?.id;
-  let promotedCandidate=false;
+
   const archiveKey=String(archive.event_key);
-  if(semanticOld){
-   const semanticExternal=String((semanticOld as any).meets?.external_id||"");
-   const verifiedLegacy=semanticExternal.startsWith("legacy-")&&(semanticExternal===archiveKey||semanticExternal.endsWith(":sw-"+archiveKey));
-   if(verifiedLegacy){
-    const up=await db.from("results").update({
-     meet_id:meetUp.data.id,result_date:c.resultDate,course:c.course,time_ms:c.timeMs,status:c.status,
-     origin:"official",source_id:job.source_id,is_official:true,result_fingerprint:fp,
-     category:categoryFor(c.resultDate,athlete.birth_date,athlete.category)
-    }).eq("id",semanticOld.id).select("id").single();
-    if(up.error)throw up.error;
-    rid=up.data.id;promoted++;promotedCandidate=true;
-   }
+  const fp=[job.athlete_id,meetUp.data.id,eid,c.resultDate,c.course,c.timeMs??"",c.status].join("|");
+
+  let semantic=db.from("results").select("id,meet_id,meets!inner(external_id,official_url)").eq("athlete_id",job.athlete_id).eq("event_id",eid).eq("result_date",c.resultDate).eq("course",c.course).eq("status",c.status);
+  semantic=c.timeMs==null?semantic.is("time_ms",null):semantic.eq("time_ms",c.timeMs);
+  const {data:semanticRows,error:semanticError}=await semantic.limit(20);
+  if(semanticError)throw semanticError;
+
+  const {data:fingerprintOld,error:fingerprintError}=await db.from("results").select("id,meet_id").eq("result_fingerprint",fp).maybeSingle();
+  if(fingerprintError)throw fingerprintError;
+
+  let legacy=db.from("results").select("id,meet_id,meets!inner(external_id,official_url)").eq("athlete_id",job.athlete_id).eq("event_id",eid).eq("course",c.course).eq("status",c.status);
+  legacy=c.timeMs==null?legacy.is("time_ms",null):legacy.eq("time_ms",c.timeMs);
+  const {data:legacyRows,error:legacyError}=await legacy.limit(30);
+  if(legacyError)throw legacyError;
+  const verifiedLegacy=(legacyRows||[]).filter((x:any)=>{
+   const external=String(x.meets?.external_id||"");
+   const official=String(x.meets?.official_url||"");
+   return external.startsWith("legacy-")&&(
+    external===archiveKey||
+    external.endsWith(":sw-"+archiveKey)||
+    official.includes("/meets/sw/"+archiveKey)
+   )
+  });
+
+  const canonicalSemantic=(semanticRows||[]).find((x:any)=>{
+   const external=String(x.meets?.external_id||"");
+   return x.meet_id===meetUp.data.id||external===archiveKey
+  })||null;
+
+  let rid=fingerprintOld?.id||canonicalSemantic?.id||null;
+  let promotedCandidate=false;
+
+  if(!rid&&verifiedLegacy.length){
+   const legacyMatch=verifiedLegacy[0];
+   const up=await db.from("results").update({
+    meet_id:meetUp.data.id,result_date:c.resultDate,course:c.course,time_ms:c.timeMs,status:c.status,
+    origin:"official",source_id:job.source_id,is_official:true,result_fingerprint:fp,
+    category:categoryFor(c.resultDate,athlete.birth_date,athlete.category)
+   }).eq("id",legacyMatch.id).select("id").single();
+   if(up.error)throw up.error;
+   rid=up.data.id;promoted++;promotedCandidate=true;
   }
-  if(!rid){
-   let legacy=db.from("results").select("id,meet_id,meets!inner(external_id)").eq("athlete_id",job.athlete_id).eq("event_id",eid).eq("course",c.course).eq("status",c.status);
-   legacy=c.timeMs==null?legacy.is("time_ms",null):legacy.eq("time_ms",c.timeMs);
-   const {data:legacyRows,error:legacyError}=await legacy.limit(20);
-   if(legacyError)throw legacyError;
-   const legacyMatch=(legacyRows||[]).find((x:any)=>{
-    const external=String(x.meets?.external_id||"");
-    return x.meet_id===meetUp.data.id||external===archiveKey||external.endsWith(":sw-"+archiveKey)
-   });
-   if(legacyMatch){
-    const up=await db.from("results").update({
-     meet_id:meetUp.data.id,result_date:c.resultDate,course:c.course,time_ms:c.timeMs,status:c.status,
-     origin:"official",source_id:job.source_id,is_official:true,result_fingerprint:fp,
-     category:categoryFor(c.resultDate,athlete.birth_date,athlete.category)
-    }).eq("id",legacyMatch.id).select("id").single();
-    if(up.error)throw up.error;
-    rid=up.data.id;promoted++;promotedCandidate=true;
-   }
-  }
+
   if(!rid){
    const ins=await db.from("results").insert({
     athlete_id:job.athlete_id,meet_id:meetUp.data.id,event_id:eid,result_date:c.resultDate,course:c.course,
@@ -97,14 +101,35 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
     result_fingerprint:fp,category:categoryFor(c.resultDate,athlete.birth_date,athlete.category)
    }).select("id").single();
    if(ins.error){
-    if((ins.error as any).code==="23505"){duplicated++;const q=await db.from("results").select("id").eq("result_fingerprint",fp).maybeSingle();rid=q.data?.id}
-    else throw ins.error;
+    if((ins.error as any).code==="23505"){
+     const q=await db.from("results").select("id").eq("result_fingerprint",fp).maybeSingle();
+     if(q.error)throw q.error;rid=q.data?.id||null;duplicated++;
+    }else throw ins.error;
    }else{rid=ins.data.id;inserted++}
   }else if(!promotedCandidate)duplicated++;
-  if(rid)await db.from("result_sources").upsert({
-   result_id:rid,source_id:job.source_id,source_url:c.sourceUrl,external_id:c.sourceUrl,retrieved_at:c.retrievedAt,
-   raw_hash:null,metadata:{engine:"v2",parser_version:c.parserVersion,source_block:c.sourceBlock}
-  },{onConflict:"result_id,source_id,external_id"});
+
+  if(rid){
+   for(const old of verifiedLegacy.filter((x:any)=>x.id!==rid)){
+    const sq=await db.from("result_sources").select("source_id,source_url,external_id,retrieved_at,raw_hash,metadata").eq("result_id",old.id);
+    if(sq.error)throw sq.error;
+    for(const src of sq.data||[]){
+     const moved=await db.from("result_sources").upsert({
+      result_id:rid,source_id:src.source_id,source_url:src.source_url,
+      external_id:src.external_id||src.source_url,retrieved_at:src.retrieved_at,
+      raw_hash:src.raw_hash,metadata:{...(src.metadata||{}),reconciled_by:"import-v2"}
+     },{onConflict:"result_id,source_id,external_id"});
+     if(moved.error)throw moved.error;
+    }
+    const del=await db.from("results").delete().eq("id",old.id);
+    if(del.error)throw del.error;
+    promoted++;
+   }
+   const prov=await db.from("result_sources").upsert({
+    result_id:rid,source_id:job.source_id,source_url:c.sourceUrl,external_id:c.sourceUrl,retrieved_at:c.retrievedAt,
+    raw_hash:null,metadata:{engine:"v2",parser_version:c.parserVersion,source_block:c.sourceBlock}
+   },{onConflict:"result_id,source_id,external_id"});
+   if(prov.error)throw prov.error;
+  }
  }
  return {inserted,duplicated,promoted};
 }
