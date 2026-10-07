@@ -1,9 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-import { historicalDryRun } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/065acbd336ca86904db72cb0efc80a667ad4dd86/commercial/packages/import-v2/src/historical-dryrun.mjs";
-import { discoverSwimSystemMeetIds } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/065acbd336ca86904db72cb0efc80a667ad4dd86/commercial/packages/import-v2/src/discovery.mjs";
-import { parseMeetEvidence,parseStartlist } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/065acbd336ca86904db72cb0efc80a667ad4dd86/commercial/packages/import-v2/src/swimsystem-current.mjs";
-import { classifyImportFailure } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/065acbd336ca86904db72cb0efc80a667ad4dd86/commercial/packages/import-v2/src/failure-states.mjs";
+import { historicalDryRun } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/5c916496c8f2ef6f22f222f5b1cb87bff7eac188/commercial/packages/import-v2/src/historical-dryrun.mjs";
+import { discoverSwimSystemMeetIds } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/5c916496c8f2ef6f22f222f5b1cb87bff7eac188/commercial/packages/import-v2/src/discovery.mjs";
+import { parseMeetEvidence,parseStartlist } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/5c916496c8f2ef6f22f222f5b1cb87bff7eac188/commercial/packages/import-v2/src/swimsystem-current.mjs";
+import { classifyImportFailure } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/5c916496c8f2ef6f22f222f5b1cb87bff7eac188/commercial/packages/import-v2/src/failure-states.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false}});
 const json=(v:any,s=200)=>new Response(JSON.stringify(v),{status:s,headers:{"content-type":"application/json"}});
