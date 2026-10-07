@@ -927,7 +927,8 @@ async function scanHistoricalCatalog(j:any,i:any){
 
 async function discoverCurrentSwimSystemMeet(j:any,i:any){
  const listing=await get('https://www.swimsystem.app/meets');
- const ids=[...new Set([...listing.matchAll(/\/meets\/sw\/([0-9a-f-]{36})/g)].map(m=>m[1]))];
+ const upcomingListing=listing.split(/Competições anteriores/i)[0];
+ const ids=[...new Set([...upcomingListing.matchAll(/\/meets\/sw\/([0-9a-f-]{36})/g)].map(m=>m[1]))];
  const today=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
  const cursor=Number(j.metadata?.current_discovery_cursor||0);
  const id=ids[cursor];
