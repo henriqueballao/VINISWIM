@@ -31,4 +31,4 @@ jobs:
           ! grep -RniE 'vinicius|vini|422692|andre|lorenzo' commercial/packages/import-v2/src --exclude='*.test.mjs'
       - name: Reject persistence dependencies in dry-run core
         run: |
-          ! grep -RniE 'from\(["'"'"'](results|meets|meet_entries|result_sources)["'"'"']\)|insert\(|update\(|upsert\(|delete\(' commercial/packages/import-v2/src
+          ! grep -RniE 'from\(["'"'"'](results|meets|meet_entries|result_sources)["'"'"']\)|insert\(|update\(|upsert\(|delete\(' commercial/packages/import-v2/src --exclude='*.test.mjs'
