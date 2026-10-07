@@ -933,8 +933,10 @@ async function discoverCurrentSwimSystemMeet(j:any,i:any){
  const listing=await get('https://www.swimsystem.app/meets');
  const ids=[...new Set([...listing.matchAll(/\/meets\/sw\/([0-9a-f-]{36})/g)].map(m=>m[1]))];
  const today=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
+ const cursor=Number(j.metadata?.current_discovery_cursor||0);
+ const batch=ids.slice(cursor,cursor+8);
  let found=0;
- for(const id of ids){
+ for(const id of batch){
   const base='https://www.swimsystem.app/meets/sw/'+id;
   let html='';try{html=await get(base)}catch{continue}
   const parsed=parseMeet(html,base);
@@ -949,7 +951,8 @@ async function discoverCurrentSwimSystemMeet(j:any,i:any){
   for(const e of entries){const eid=ev.get(n(e.eventLabel));if(eid)await db.from('meet_entries').upsert({meet_id:mq.data.id,athlete_id:j.athlete_id,event_id:eid,seed_time_ms:e.seedTimeMs,heat:e.heat,lane:e.lane,entry_status:'seeded',source_id:j.source_id},{onConflict:'meet_id,athlete_id,event_id'})}
   found+=entries.length
  }
- return found
+ const nextCursor=cursor+batch.length;
+ return {found,done:nextCursor>=ids.length,nextCursor:nextCursor>=ids.length?0:nextCursor,total:ids.length}
 }
 async function processJob(j:any){
  const {data:idn}=await db.from('athlete_identifiers').select('*').eq('athlete_id',j.athlete_id).eq('source_id',j.source_id).eq('active',true).single();
@@ -962,9 +965,14 @@ async function processJob(j:any){
  try{
    let meet:any,entries:any[]=[],results:any[]=[];
    if(j.job_type==='current_meet'&&sourceCode==='swimsystem'){
-     const found=await discoverCurrentSwimSystemMeet(j,i);
-     await db.from('monitor_runs').update({status:'completed',finished_at:new Date().toISOString(),records_found:found,records_inserted:0,records_duplicated:0}).eq('id',run.id);
-     await db.from('monitor_jobs').update({status:'completed',last_run_at:new Date().toISOString(),next_run_at:null,locked_at:null,last_error:null,attempts:0,request_id:null}).eq('id',j.id).eq('status','running');
+     const scan=await discoverCurrentSwimSystemMeet(j,i);
+     await db.from('monitor_runs').update({status:'completed',finished_at:new Date().toISOString(),records_found:scan.found,records_inserted:0,records_duplicated:0}).eq('id',run.id);
+     const metadata={...(j.metadata||{}),current_discovery_cursor:scan.nextCursor};
+     await db.from('monitor_jobs').update({
+       status:scan.done?'completed':'pending',metadata,last_run_at:new Date().toISOString(),
+       next_run_at:scan.done?null:new Date(Date.now()+60000).toISOString(),locked_at:null,last_error:null,attempts:0,
+       ...(scan.done?{request_id:null}:{})
+     }).eq('id',j.id).eq('status','running');
      return
    }
    if(j.job_type==='historical'&&(sourceCode==='fdap'||sourceCode==='swimsystem'||sourceCode==='masters_parana')){
