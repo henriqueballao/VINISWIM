@@ -61,10 +61,15 @@ async function loadLiveMeetCatalog(){
  if(liveMeetCatalogCache)return liveMeetCatalogCache;
  const html=await fetchText("https://www.swimsystem.app/meets",20000);
  const normalized=String(html||"").replace(/\\\"/g,'"');
+ const marks=[...normalized.matchAll(/"id":"([0-9a-f-]{36})"/gi)];
  const out:any[]=[];
- const re=/"id":"([0-9a-f-]{36})"[\s\S]{0,240}?"name":"([^"]+)"[\s\S]{0,180}?"start_date":"(\d{4}-\d{2}-\d{2})"[\s\S]{0,180}?"end_date":"(\d{4}-\d{2}-\d{2})"[\s\S]{0,500}?"course":(?:"(SCM|LCM)"|null)/gi;
- for(const m of normalized.matchAll(re)){
-  out.push({id:m[1],name:decodeHtml(m[2]),start_date:m[3],end_date:m[4],course:m[5]||null});
+ for(let i=0;i<marks.length;i++){
+  const block=normalized.slice(marks[i].index||0,i+1<marks.length?(marks[i+1].index||normalized.length):Math.min(normalized.length,(marks[i].index||0)+4200));
+  const name=(block.match(/"name":"([^"]+)"/i)||[])[1]||null;
+  const start=(block.match(/"start_date":"(\d{4}-\d{2}-\d{2})"/i)||[])[1]||null;
+  const end=(block.match(/"end_date":"(\d{4}-\d{2}-\d{2})"/i)||[])[1]||null;
+  const course=(block.match(/"course":"(SCM|LCM)"/i)||[])[1]||null;
+  if(name&&start)out.push({id:marks[i][1],name:decodeHtml(name),start_date:start,end_date:end,course});
  }
  liveMeetCatalogCache=[...new Map(out.map((x:any)=>[x.id,x])).values()];
  return liveMeetCatalogCache;
