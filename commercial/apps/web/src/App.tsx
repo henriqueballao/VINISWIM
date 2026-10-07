@@ -299,7 +299,7 @@ export default function App(){
  }
  async function refresh(){
   setRefreshMsg('')
-  const {error}=await supabase.rpc('request_result_refresh',{p_athlete_id:athleteId,p_source_codes:searchSources})
+  const {error}=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athleteId,p_source_codes:searchSources})
   if(error){setRefreshMsg('Falha ao solicitar atualização: '+error.message);return}
   await loadAthlete()
  }
