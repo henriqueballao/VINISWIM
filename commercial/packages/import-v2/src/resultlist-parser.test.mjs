@@ -20,3 +20,9 @@ test("compact N/C row is mapped to dsq without borrowing a neighboring time",()=
  const r=parseResultList({identity:{externalId:"700001"},meet:{sourceCode:"fdap",externalMeetId:"legacy-nc",course:"SCM"},retrievedAt:"2026-10-07T00:00:00Z",text,sourceUrl:"fixture://legacy-nc.pdf"});
  assert.equal(r.length,1);assert.equal(r[0].status,"dsq");assert.equal(r[0].timeMs,null);assert.equal(validateResultCandidate(r[0]).accepted,true);
 });
+
+test("compact N/C immediately followed by series number remains athlete status",()=>{
+ const text="Prova 26Masculino, 100m BorboletaMirim/Sênior 07/12/2024Resultados N/C2 / 6Atleta Teste7000012015Clube- N/C1 / 4Vizinho7000032015Clube1:20.00-100";
+ const r=parseResultList({identity:{externalId:"700001"},meet:{sourceCode:"fdap",externalMeetId:"legacy-nc-tight",course:"SCM"},retrievedAt:"2026-10-07T00:00:00Z",text,sourceUrl:"fixture://legacy-nc-tight.pdf"});
+ assert.equal(r.length,1);assert.equal(r[0].status,"dsq");assert.equal(r[0].timeMs,null);
+});
