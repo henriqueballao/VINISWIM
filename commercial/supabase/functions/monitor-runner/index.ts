@@ -61,8 +61,8 @@ function eventFrom(text:string){
  const m=text.match(/((?:\d+x)?\d{2,4})\s*m?\s+(Livre|Costas|Peito|Borboleta|Medley)/i);
  return m ? (m[1]+' '+m[2]) : null
 }
-function dateFrom(text:string){const m=text.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);return m?(m[3]+'-'+m[2]+'-'+m[1]):null}
-function resultEventDate(text:string){const m=text.match(/\b(\d{2})\/(\d{2})\/(\d{4})\s*-\s*\d{1,2}:\d{2}\s*Resultados\b/i);return m?(m[3]+'-'+m[2]+'-'+m[1]):null}
+function dateFrom(text:string){const m=text.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\b/);if(!m)return null;const y=m[3].length===2?String(2000+Number(m[3])):m[3];return y+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0')}
+function resultEventDate(text:string){const m=text.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\s*-\s*\d{1,2}:\d{2}\s*Resultados\b/i);if(!m)return null;const y=m[3].length===2?String(2000+Number(m[3])):m[3];return y+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0')}
 function historicalMeetDate(text:string){const range=text.match(/\b(\d{1,2})\s*-\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);if(range)return range[4]+'-'+String(range[3]).padStart(2,'0')+'-'+String(range[1]).padStart(2,'0');const slash=text.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);return slash?slash[3]+'-'+String(slash[2]).padStart(2,'0')+'-'+String(slash[1]).padStart(2,'0'):null}
 function isoDate(d:string,m:string,y:string){return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
 function parseSwimSystemMeetEvidence(text:string){const raw=String(text||'').replace(/\s+/g,' ').trim();const h=raw.match(/\b([^,]{2,80})\s*\(([A-Z]{2})\),\s*(\d{1,2})(?:\s*-\s*(\d{1,2}))?\/(\d{1,2})\/(\d{4}),\s*(SCM|LCM)\s*\((25|50)m\)/i);if(!h)return null;return {city:h[1].trim(),startDate:isoDate(h[3],h[5],h[6]),endDate:isoDate(h[4]||h[3],h[5],h[6]),course:h[7].toUpperCase()}}
