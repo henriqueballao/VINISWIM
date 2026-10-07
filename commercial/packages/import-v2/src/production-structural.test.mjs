@@ -6,4 +6,4 @@ test("legacy persistence honors document result date",()=>{assert.equal(src.incl
 test("legacy ResultList cache is canonical historical input",()=>{assert.equal(src.includes("historical_document_text_cache"),true);assert.equal(src.includes("document:'ResultList'"),true)});
 test("production importer contains no Vini-specific branch",()=>{assert.equal(/legacy-vini|vinicius|422692/i.test(src),false)});
 
-// Production cutover structural gate.
+test("current discovery is resumable across the full catalog",()=>{assert.equal(src.includes("current_discovery_cursor"),true);assert.equal(src.includes("nextCursor>=ids.length"),true)});\n// Production cutover structural gate.
