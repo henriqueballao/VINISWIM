@@ -930,25 +930,43 @@ async function discoverCurrentSwimSystemMeet(j:any,i:any){
  const ids=[...new Set([...listing.matchAll(/\/meets\/sw\/([0-9a-f-]{36})/g)].map(m=>m[1]))];
  const today=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
  const cursor=Number(j.metadata?.current_discovery_cursor||0);
- const batch=ids.slice(cursor,cursor+1);
- let found=0;
- for(const id of batch){
-  const base='https://www.swimsystem.app/meets/sw/'+id;
-  let html='';try{html=await get(base)}catch{continue}
-  const parsed=parseMeet(html,base);
-  const pdfLinks=[...new Set([...html.matchAll(/https?:\/\/[^"'\\s]+\.pdf/gi)].map(m=>m[0]))].slice(0,12);
-  let evidence:any=null,entries:any[]=[];
-  for(const pdfUrl of pdfLinks){try{const txt=await quickReaderText(pdfUrl),evd=parseSwimSystemMeetEvidence(txt);if(evd&&!evidence)evidence=evd;if(evd)entries.push(...parseStartlistEntries(txt,i))}catch{}}
-  if(!evidence?.startDate||evidence.startDate<today||!entries.length)continue;
-  entries=entries.filter((e:any,idx:number,a:any[])=>a.findIndex((x:any)=>n(x.eventLabel)===n(e.eventLabel))===idx);
-  const mq=await db.from('meets').upsert({source_id:j.source_id,external_id:id,name:parsed.name||('SwimSystem '+id),start_date:evidence.startDate,end_date:evidence.endDate||null,course:evidence.course,official_url:base,status:'scheduled',...(parsed.venue?{venue:parsed.venue}:{}),...(evidence.city?{city:evidence.city}:parsed.city?{city:parsed.city}:{})},{onConflict:'source_id,external_id'}).select('id').single();
-  if(mq.error)throw new Error('Meet atual SwimSystem: '+mq.error.message);
-  const ev=await eventMap();
-  for(const e of entries){const eid=ev.get(n(e.eventLabel));if(eid)await db.from('meet_entries').upsert({meet_id:mq.data.id,athlete_id:j.athlete_id,event_id:eid,seed_time_ms:e.seedTimeMs,heat:e.heat,lane:e.lane,entry_status:'seeded',source_id:j.source_id},{onConflict:'meet_id,athlete_id,event_id'})}
-  found+=entries.length
+ const id=ids[cursor];
+ if(!id)return {found:0,done:true,nextCursor:0,total:ids.length,metadata:{current_discovery_cursor:0,current_discovery_pdf_cursor:0,current_discovery_meet_id:null,current_discovery_evidence:null,current_discovery_entries:[]}};
+ const base='https://www.swimsystem.app/meets/sw/'+id;
+ let html='';
+ try{html=await get(base)}catch{
+   const nextCursor=cursor+1,done=nextCursor>=ids.length;
+   return {found:0,done,nextCursor:done?0:nextCursor,total:ids.length,metadata:{current_discovery_cursor:done?0:nextCursor,current_discovery_pdf_cursor:0,current_discovery_meet_id:null,current_discovery_evidence:null,current_discovery_entries:[]}}
  }
- const nextCursor=cursor+batch.length;
- return {found,done:nextCursor>=ids.length,nextCursor:nextCursor>=ids.length?0:nextCursor,total:ids.length}
+ const parsed=parseMeet(html,base);
+ const pdfLinks=[...new Set([...html.matchAll(/https?:\/\/[^"'\\s]+\.pdf/gi)].map(m=>m[0]))];
+ const sameMeet=j.metadata?.current_discovery_meet_id===id;
+ const pdfCursor=sameMeet?Number(j.metadata?.current_discovery_pdf_cursor||0):0;
+ let evidence:any=sameMeet?(j.metadata?.current_discovery_evidence||null):null;
+ let entries:any[]=sameMeet&&Array.isArray(j.metadata?.current_discovery_entries)?j.metadata.current_discovery_entries:[];
+ const docBatch=pdfLinks.slice(pdfCursor,pdfCursor+2);
+ for(const pdfUrl of docBatch){
+   try{
+     const txt=await quickReaderText(pdfUrl),evd=parseSwimSystemMeetEvidence(txt);
+     if(evd&&!evidence)evidence=evd;
+     if(evd)entries.push(...parseStartlistEntries(txt,i))
+   }catch{}
+ }
+ entries=entries.filter((e:any,idx:number,a:any[])=>a.findIndex((x:any)=>n(x.eventLabel)===n(e.eventLabel))===idx);
+ const nextPdfCursor=pdfCursor+docBatch.length;
+ if(nextPdfCursor<pdfLinks.length){
+   return {found:0,done:false,nextCursor:cursor,total:ids.length,metadata:{current_discovery_cursor:cursor,current_discovery_pdf_cursor:nextPdfCursor,current_discovery_meet_id:id,current_discovery_evidence:evidence,current_discovery_entries:entries}}
+ }
+ let found=0;
+ if(evidence?.startDate&&evidence.startDate>=today&&entries.length){
+   const mq=await db.from('meets').upsert({source_id:j.source_id,external_id:id,name:parsed.name||('SwimSystem '+id),start_date:evidence.startDate,end_date:evidence.endDate||null,course:evidence.course,official_url:base,status:'scheduled',...(parsed.venue?{venue:parsed.venue}:{}),...(evidence.city?{city:evidence.city}:parsed.city?{city:parsed.city}:{})},{onConflict:'source_id,external_id'}).select('id').single();
+   if(mq.error)throw new Error('Meet atual SwimSystem: '+mq.error.message);
+   const ev=await eventMap();
+   for(const e of entries){const eid=ev.get(n(e.eventLabel));if(eid)await db.from('meet_entries').upsert({meet_id:mq.data.id,athlete_id:j.athlete_id,event_id:eid,seed_time_ms:e.seedTimeMs,heat:e.heat,lane:e.lane,entry_status:'seeded',source_id:j.source_id},{onConflict:'meet_id,athlete_id,event_id'})}
+   found=entries.length
+ }
+ const nextCursor=cursor+1,done=nextCursor>=ids.length;
+ return {found,done,nextCursor:done?0:nextCursor,total:ids.length,metadata:{current_discovery_cursor:done?0:nextCursor,current_discovery_pdf_cursor:0,current_discovery_meet_id:null,current_discovery_evidence:null,current_discovery_entries:[]}}
 }
 async function processJob(j:any){
  const {data:idn}=await db.from('athlete_identifiers').select('*').eq('athlete_id',j.athlete_id).eq('source_id',j.source_id).eq('active',true).single();
@@ -963,7 +981,7 @@ async function processJob(j:any){
    if(j.job_type==='current_meet'&&sourceCode==='swimsystem'){
      const scan=await discoverCurrentSwimSystemMeet(j,i);
      await db.from('monitor_runs').update({status:'completed',finished_at:new Date().toISOString(),records_found:scan.found,records_inserted:0,records_duplicated:0}).eq('id',run.id);
-     const metadata={...(j.metadata||{}),current_discovery_cursor:scan.nextCursor};
+     const metadata={...(j.metadata||{}),...(scan.metadata||{}),current_discovery_cursor:scan.nextCursor};
      await db.from('monitor_jobs').update({
        status:scan.done?'completed':'pending',metadata,last_run_at:new Date().toISOString(),
        next_run_at:scan.done?null:new Date(Date.now()+60000).toISOString(),locked_at:null,last_error:null,attempts:0,
