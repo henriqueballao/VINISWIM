@@ -1094,9 +1094,6 @@ async function processJob(j:any){
 
 Deno.serve(async(req)=>{
  const invocationStart=Date.now();
- let forceAthleteId='';
- try{const body=await req.clone().json();forceAthleteId=typeof body?.force_athlete_id==='string'?body.force_athlete_id:''}catch{}
- if(!forceAthleteId){try{forceAthleteId=new URL(req.url).searchParams.get('force_athlete_id')||''}catch{}}
  // Free-plan wall-clock budget is 150s. Reserve a safety margin for the
  // links/monitor_jobs sections above and general jitter, and only start the
  // next archive job if there's still enough safe time for its worst case
