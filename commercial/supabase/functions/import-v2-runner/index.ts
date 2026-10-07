@@ -1,9 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-import { historicalDryRun } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/5c916496c8f2ef6f22f222f5b1cb87bff7eac188/commercial/packages/import-v2/src/historical-dryrun.mjs";
-import { discoverSwimSystemMeetIds } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/5c916496c8f2ef6f22f222f5b1cb87bff7eac188/commercial/packages/import-v2/src/discovery.mjs";
-import { parseMeetEvidence,parseStartlist } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/5c916496c8f2ef6f22f222f5b1cb87bff7eac188/commercial/packages/import-v2/src/swimsystem-current.mjs";
-import { classifyImportFailure } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/5c916496c8f2ef6f22f222f5b1cb87bff7eac188/commercial/packages/import-v2/src/failure-states.mjs";
+import { historicalDryRun } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/130c9d95685b6586903059726d563774ce60e108/commercial/packages/import-v2/src/historical-dryrun.mjs";
+import { discoverSwimSystemMeetIds } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/130c9d95685b6586903059726d563774ce60e108/commercial/packages/import-v2/src/discovery.mjs";
+import { parseMeetEvidence,parseStartlist } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/130c9d95685b6586903059726d563774ce60e108/commercial/packages/import-v2/src/swimsystem-current.mjs";
+import { classifyImportFailure } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/130c9d95685b6586903059726d563774ce60e108/commercial/packages/import-v2/src/failure-states.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false}});
 const json=(v:any,s=200)=>new Response(JSON.stringify(v),{status:s,headers:{"content-type":"application/json"}});
@@ -56,6 +56,7 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
   const semanticOld=semanticRows?.[0]||null;
   const {data:fingerprintOld}=await db.from("results").select("id").eq("result_fingerprint",fp).maybeSingle();
   let rid=semanticOld?.id||fingerprintOld?.id;
+  let promotedCandidate=false;
   if(!rid){
    let legacy=db.from("results").select("id,meet_id,meets!inner(external_id)").eq("athlete_id",job.athlete_id).eq("event_id",eid).eq("course",c.course).eq("status",c.status);
    legacy=c.timeMs==null?legacy.is("time_ms",null):legacy.eq("time_ms",c.timeMs);
@@ -73,7 +74,7 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
      category:categoryFor(c.resultDate,athlete.birth_date,athlete.category)
     }).eq("id",legacyMatch.id).select("id").single();
     if(up.error)throw up.error;
-    rid=up.data.id;promoted++;
+    rid=up.data.id;promoted++;promotedCandidate=true;
    }
   }
   if(!rid){
@@ -86,7 +87,7 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
     if((ins.error as any).code==="23505"){duplicated++;const q=await db.from("results").select("id").eq("result_fingerprint",fp).maybeSingle();rid=q.data?.id}
     else throw ins.error;
    }else{rid=ins.data.id;inserted++}
-  }else if(!promoted)duplicated++;
+  }else if(!promotedCandidate)duplicated++;
   if(rid)await db.from("result_sources").upsert({
    result_id:rid,source_id:job.source_id,source_url:c.sourceUrl,external_id:c.sourceUrl,retrieved_at:c.retrievedAt,
    raw_hash:null,metadata:{engine:"v2",parser_version:c.parserVersion,source_block:c.sourceBlock}
@@ -130,7 +131,7 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
  }
  const aq=await db.from("historical_archives").select("*").eq("source_id",job.source_id).order("created_at",{ascending:true});
  if(aq.error)throw aq.error;
- const archives=(aq.data||[]).filter((x:any)=>x.active!==false);
+ const archives=aq.data||[];
  const ai=Number(cursor.archive_index||0);
  if(ai>=archives.length)return {done:true,cursor,found:0,inserted:0,duplicated:0};
  const a=archives[ai],retrievedAt=new Date().toISOString(),docs:any[]=[];
