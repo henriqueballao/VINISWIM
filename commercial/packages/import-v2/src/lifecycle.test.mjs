@@ -1,0 +1,6 @@
+import test from "node:test";import assert from "node:assert/strict";import {reconcileRequestLifecycle} from "./lifecycle.mjs";
+test("Gate 6 stays running while direct work is active",()=>assert.deepEqual(reconcileRequestLifecycle({jobs:[{status:"completed"},{status:"pending"}]}),{status:"running",terminal:false}));
+test("Gate 6 stays running while descendant work is active",()=>assert.deepEqual(reconcileRequestLifecycle({jobs:[{status:"completed"}],descendants:[{status:"running"}]}),{status:"running",terminal:false}));
+test("Gate 6 completes only after every descendant ends",()=>assert.deepEqual(reconcileRequestLifecycle({jobs:[{status:"completed"}],descendants:[{status:"completed"}]}),{status:"completed",terminal:true}));
+test("Gate 6 terminal failure fails the request",()=>assert.deepEqual(reconcileRequestLifecycle({jobs:[{status:"completed"}],descendants:[{status:"failed"}]}),{status:"failed",terminal:true}));
+test("Gate 6 cancellation is terminal only after active work drains",()=>{assert.equal(reconcileRequestLifecycle({cancelRequested:true,jobs:[{status:"running"}]}).terminal,false);assert.deepEqual(reconcileRequestLifecycle({cancelRequested:true,jobs:[{status:"cancelled"}]}),{status:"cancelled",terminal:true})});
