@@ -930,7 +930,7 @@ async function discoverCurrentSwimSystemMeet(j:any,i:any){
  const ids=[...new Set([...listing.matchAll(/\/meets\/sw\/([0-9a-f-]{36})/g)].map(m=>m[1]))];
  const today=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
  const cursor=Number(j.metadata?.current_discovery_cursor||0);
- const batch=ids.slice(cursor,cursor+8);
+ const batch=ids.slice(cursor,cursor+2);
  let found=0;
  for(const id of batch){
   const base='https://www.swimsystem.app/meets/sw/'+id;
