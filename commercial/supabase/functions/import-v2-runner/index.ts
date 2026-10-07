@@ -8,6 +8,14 @@ import { classifyImportFailure } from "https://raw.githubusercontent.com/henriqu
 const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false}});
 const json=(v:any,s=200)=>new Response(JSON.stringify(v),{status:s,headers:{"content-type":"application/json"}});
 const n=(v:any)=>String(v||"").normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().replace(/\s+/g," ").trim();
+function canonicalMeetName(v:any){
+ return String(v||"").replace(/^\s*(?:Resultados|Provas|Atletas|Clubes|Inscrições|Informações)\s*[·:|-]\s*/i,"").replace(/\s+/g," ").trim();
+}
+async function meetEvidence(sourceId:string,externalId:string){
+ const q=await db.from("meet_metadata_evidence").select("canonical_name,venue,city,evidence_url").eq("source_id",sourceId).eq("external_id",externalId).maybeSingle();
+ if(q.error)throw q.error;
+ return q.data||null;
+}
 
 async function fetchText(url:string,ms=15000){
  const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);
@@ -44,9 +52,13 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
   const eid=ev.get(n(c.event));if(!eid)continue;
   const start=c.meetStartDate||archive.start_date||c.resultDate;
   if(!start||!c.resultDate||!c.course)continue;
+  const evidence=await meetEvidence(job.source_id,String(archive.event_key));
   const meetUp=await db.from("meets").upsert({
-   source_id:job.source_id,external_id:String(archive.event_key),name:archive.name||("Competição "+archive.event_key),
-   start_date:start,end_date:c.meetEndDate||archive.end_date||null,course:c.course,official_url:archive.base_url,status:"completed"
+   source_id:job.source_id,external_id:String(archive.event_key),
+   name:canonicalMeetName(evidence?.canonical_name||archive.name||("Competição "+archive.event_key)),
+   start_date:start,end_date:c.meetEndDate||archive.end_date||null,course:c.course,
+   venue:evidence?.venue||undefined,city:evidence?.city||undefined,
+   official_url:archive.base_url,status:"completed"
   },{onConflict:"source_id,external_id"}).select("id").single();
   if(meetUp.error)throw meetUp.error;
 
@@ -217,7 +229,13 @@ async function processCurrent(job:any,identity:any){
  const next=pi+batch.length;
  if(next<links.length)return {done:false,cursor:{meet_index:mi,meet_id:id,pdf_cursor:next,evidence,entries},found:0,inserted:0,duplicated:0};
  if(evidence?.startDate&&entries.length){
-  const mq=await db.from("meets").upsert({source_id:job.source_id,external_id:id,name:"SwimSystem "+id,start_date:evidence.startDate,end_date:evidence.endDate||null,course:evidence.course,official_url:base,status:"scheduled",city:evidence.city||null},{onConflict:"source_id,external_id"}).select("id").single();
+  const meta=await meetEvidence(job.source_id,id);
+  const mq=await db.from("meets").upsert({
+   source_id:job.source_id,external_id:id,
+   name:canonicalMeetName(meta?.canonical_name||("SwimSystem "+id)),
+   start_date:evidence.startDate,end_date:evidence.endDate||null,course:evidence.course,
+   official_url:base,status:"scheduled",venue:meta?.venue||null,city:meta?.city||evidence.city||null
+  },{onConflict:"source_id,external_id"}).select("id").single();
   if(mq.error)throw mq.error;const ev=await eventMap();
   for(const e of entries){const eid=ev.get(n(e.event));if(eid)await db.from("meet_entries").upsert({meet_id:mq.data.id,athlete_id:job.athlete_id,event_id:eid,seed_time_ms:e.seedTimeMs,heat:e.heat,lane:e.lane,entry_status:"seeded",source_id:job.source_id},{onConflict:"meet_id,athlete_id,event_id"})}
  }
