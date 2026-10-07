@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import {discoverSwimSystemMeetIds} from "./discovery.mjs";
+test("discovery has no arbitrary 20-meet truncation",()=>{const ids=Array.from({length:37},(_,i)=>(i.toString(16).padStart(8,"0")+"-0000-4000-8000-"+i.toString(16).padStart(12,"0")));const html=ids.map(x=>'<a href="/meets/sw/'+x+'">x</a>').join("");const got=discoverSwimSystemMeetIds(html);assert.equal(got.length,37);assert.deepEqual(got,ids)});
