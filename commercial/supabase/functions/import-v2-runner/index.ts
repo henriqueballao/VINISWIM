@@ -152,10 +152,16 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
   const txt=await readerText(a.base_url);
   if(n(txt).includes(n(identity.canonicalName))||identity.aliases.some((x:string)=>n(txt).includes(n(x))))docs.push({externalMeetId:String(a.event_key),url:a.base_url,text:txt});
  }else if(a.provider==="swimsystem_v2"){
+  const cached=await db.from("historical_document_text_cache").select("url,text_content").eq("fetch_status","ok").like("url","%/meet-documents/"+String(a.event_key)+"/%").limit(100);
+  if(cached.error)throw cached.error;
+  for(const d of cached.data||[]){if(String(d.text_content||"").includes(identity.externalId))docs.push({externalMeetId:String(a.event_key),url:d.url,text:d.text_content})}
   const base=String(a.base_url).replace(/\/results\/?$/,""),html=await fetchText(base);
   const links=pdfLinks(html);
   const pi=Number(cursor.pdf_cursor||0),batch=links.slice(pi,pi+3);
-  for(const u of batch){const txt=await readerText(u);if(String(txt).includes(identity.externalId))docs.push({externalMeetId:String(a.event_key),url:u,text:txt})}
+  for(const u of batch){
+   if(docs.some((d:any)=>d.url===u))continue;
+   const txt=await readerText(u);if(String(txt).includes(identity.externalId))docs.push({externalMeetId:String(a.event_key),url:u,text:txt})
+  }
   const next=pi+batch.length;
   if(next<links.length){
    const pack=historicalDryRun({identity,archives:[{externalMeetId:String(a.event_key),sourceCode:source.code,course:a.course,provider:a.provider,startDate:a.start_date,endDate:a.end_date,name:a.name}],documents:docs,retrievedAt});
