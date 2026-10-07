@@ -50,23 +50,21 @@ function parseCachedDocHeader(text:any){
 }
 async function discoverModernMirror(archive:any){
  const start=String(archive.start_date||"");
- const year=start.slice(0,4);
- if(!year)return null;
- const q=await db.from("historical_document_text_cache").select("url,text_content").eq("fetch_status","ok").like("url","%/meet-documents/%").ilike("text_content","%"+year+"%").limit(1200);
+ if(!start)return null;
+ const q=await db.from("official_meet_document_catalog").select("external_id,sample_text,source_url").limit(1000);
  if(q.error)throw q.error;
- const best=new Map<string,{score:number,url:string}>();
+ const ranked=[];
  for(const d of q.data||[]){
-  const m=String(d.url||"").match(/\/meet-documents\/([0-9a-f-]{36})\//i);if(!m)continue;
-  const meta=parseCachedDocHeader(d.text_content);
+  const meta=parseCachedDocHeader(d.sample_text);
   if(meta.start_date!==start)continue;
   if(archive.course&&meta.course&&String(archive.course)!==meta.course)continue;
   const score=tokenScore(archive.name,meta.name);
-  const prev=best.get(m[1]);if(!prev||score>prev.score)best.set(m[1],{score,url:d.url});
+  if(score>0)ranked.push({id:String(d.external_id),score});
  }
- const ranked=[...best.entries()].sort((a,b)=>b[1].score-a[1].score);
- if(!ranked.length||ranked[0][1].score<0.34)return null;
- if(ranked[1]&&Math.abs(ranked[0][1].score-ranked[1][1].score)<0.08)return null;
- return ranked[0][0];
+ ranked.sort((a,b)=>b.score-a.score);
+ if(!ranked.length||ranked[0].score<0.34)return null;
+ if(ranked[1]&&Math.abs(ranked[0].score-ranked[1].score)<0.08)return null;
+ return ranked[0].id;
 }
 async function meetEvidence(sourceId:string,externalId:string,archive?:any){
  const cached=await db.from("meet_metadata_evidence").select("canonical_name,venue,city,evidence_url,evidence_kind").eq("source_id",sourceId).eq("external_id",externalId).maybeSingle();
@@ -245,6 +243,10 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
  if(!cursor.discovery_done){
   if(source.code==="swimsystem")await ensureSwimSystemArchives(job.source_id);
   if(source.code==="masters_parana")await ensureMastersArchives(job.source_id);
+  if(source.code==="fdap"||source.code==="swimsystem"){
+   const refreshed=await db.rpc("refresh_official_meet_document_catalog");
+   if(refreshed.error)throw refreshed.error;
+  }
   cursor.discovery_done=true;cursor.archive_index=0;cursor.pdf_cursor=0;
  }
  const aq=await db.from("historical_archives").select("*").eq("source_id",job.source_id).order("created_at",{ascending:true});
