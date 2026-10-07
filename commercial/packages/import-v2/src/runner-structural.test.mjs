@@ -10,7 +10,7 @@ test("V2 historical scan is full, not capped by existing max result date",()=>{
 });
 
 test("V2 may promote only a same-competition legacy row backed by official candidate",()=>{
- assert.equal(src.includes('external===archiveKey||external.endsWith(":sw-"+archiveKey)'),true);
+ assert.equal(src.includes('official.includes("/meets/sw/"+archiveKey)'),true);
  assert.equal(src.includes('result_date:c.resultDate'),true);
  assert.equal(src.includes('result_fingerprint:fp'),true);
 });
@@ -22,4 +22,8 @@ test("V2 production runner has no athlete-specific branch",()=>{
 test("V2 persists official provenance after insert or promotion",()=>{
  assert.equal(src.includes('from("result_sources").upsert'),true);
  assert.equal(src.includes('parser_version:c.parserVersion'),true);
+});
+test("V2 collapses a verified legacy duplicate only after moving provenance",()=>{
+ assert.equal(src.includes('reconciled_by:"import-v2"'),true);
+ assert.equal(src.includes('from("results").delete().eq("id",old.id)'),true);
 });
