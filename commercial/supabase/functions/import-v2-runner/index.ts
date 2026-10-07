@@ -56,23 +56,46 @@ function parseCachedDocHeader(text:any){
   name:canonicalMeetName(named?.[1]||flat.slice(0,220))
  };
 }
+let liveMeetCatalogCache:any[]|null=null;
+async function loadLiveMeetCatalog(){
+ if(liveMeetCatalogCache)return liveMeetCatalogCache;
+ const html=await fetchText("https://www.swimsystem.app/meets",20000);
+ const normalized=String(html||"").replace(/\\\"/g,'"');
+ const out:any[]=[];
+ const re=/"id":"([0-9a-f-]{36})"[\s\S]{0,240}?"name":"([^"]+)"[\s\S]{0,180}?"start_date":"(\d{4}-\d{2}-\d{2})"[\s\S]{0,180}?"end_date":"(\d{4}-\d{2}-\d{2})"[\s\S]{0,500}?"course":(?:"(SCM|LCM)"|null)/gi;
+ for(const m of normalized.matchAll(re)){
+  out.push({id:m[1],name:decodeHtml(m[2]),start_date:m[3],end_date:m[4],course:m[5]||null});
+ }
+ liveMeetCatalogCache=[...new Map(out.map((x:any)=>[x.id,x])).values()];
+ return liveMeetCatalogCache;
+}
 async function discoverModernMirror(archive:any){
  const start=String(archive.start_date||"");
  if(!start)return null;
- const q=await db.from("official_meet_document_catalog").select("external_id,sample_text,source_url").limit(1000);
- if(q.error)throw q.error;
- const ranked=[];
- for(const d of q.data||[]){
-  const meta=parseCachedDocHeader(d.sample_text);
-  if(meta.start_date!==start)continue;
-  if(archive.course&&meta.course&&String(archive.course)!==meta.course)continue;
-  const score=tokenScore(archive.name,meta.name);
-  if(score>0)ranked.push({id:String(d.external_id),score});
+ const candidates:any[]=[];
+ try{
+  for(const m of await loadLiveMeetCatalog()){
+   if(m.start_date!==start)continue;
+   if(archive.course&&m.course&&String(archive.course)!==m.course)continue;
+   const score=tokenScore(archive.name,m.name);
+   if(score>0)candidates.push({id:m.id,score});
+  }
+ }catch{}
+ if(!candidates.length){
+  const q=await db.from("official_meet_document_catalog").select("external_id,sample_text,source_url").limit(1000);
+  if(q.error)throw q.error;
+  for(const d of q.data||[]){
+   const meta=parseCachedDocHeader(d.sample_text);
+   if(meta.start_date!==start)continue;
+   if(archive.course&&meta.course&&String(archive.course)!==meta.course)continue;
+   const score=tokenScore(archive.name,meta.name);
+   if(score>0)candidates.push({id:String(d.external_id),score});
+  }
  }
- ranked.sort((a,b)=>b.score-a.score);
- if(!ranked.length||ranked[0].score<0.34)return null;
- if(ranked[1]&&Math.abs(ranked[0].score-ranked[1].score)<0.08)return null;
- return ranked[0].id;
+ candidates.sort((a,b)=>b.score-a.score);
+ if(!candidates.length||candidates[0].score<0.34)return null;
+ if(candidates[1]&&Math.abs(candidates[0].score-candidates[1].score)<0.08)return null;
+ return candidates[0].id;
 }
 async function meetEvidence(sourceId:string,externalId:string,archive?:any){
  const cached=await db.from("meet_metadata_evidence").select("canonical_name,venue,city,evidence_url,evidence_kind").eq("source_id",sourceId).eq("external_id",externalId).maybeSingle();
