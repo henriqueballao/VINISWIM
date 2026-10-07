@@ -39,7 +39,7 @@ async function eventMap(){
  return new Map((data||[]).map((x:any)=>[n(x.label),x.id]));
 }
 async function persistCandidates(job:any,archive:any,candidates:any[],athlete:any){
- const ev=await eventMap();let inserted=0,duplicated=0;
+ const ev=await eventMap();let inserted=0,duplicated=0,promoted=0;
  for(const c of candidates){
   const eid=ev.get(n(c.event));if(!eid)continue;
   const start=archive.start_date||c.resultDate;
@@ -57,6 +57,26 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
   const {data:fingerprintOld}=await db.from("results").select("id").eq("result_fingerprint",fp).maybeSingle();
   let rid=semanticOld?.id||fingerprintOld?.id;
   if(!rid){
+   let legacy=db.from("results").select("id,meet_id,meets!inner(external_id)").eq("athlete_id",job.athlete_id).eq("event_id",eid).eq("course",c.course).eq("status",c.status);
+   legacy=c.timeMs==null?legacy.is("time_ms",null):legacy.eq("time_ms",c.timeMs);
+   const {data:legacyRows,error:legacyError}=await legacy.limit(20);
+   if(legacyError)throw legacyError;
+   const archiveKey=String(archive.event_key);
+   const legacyMatch=(legacyRows||[]).find((x:any)=>{
+    const external=String(x.meets?.external_id||"");
+    return x.meet_id===meetUp.data.id||external===archiveKey||external.endsWith(":sw-"+archiveKey)
+   });
+   if(legacyMatch){
+    const up=await db.from("results").update({
+     meet_id:meetUp.data.id,result_date:c.resultDate,course:c.course,time_ms:c.timeMs,status:c.status,
+     origin:"official",source_id:job.source_id,is_official:true,result_fingerprint:fp,
+     category:categoryFor(c.resultDate,athlete.birth_date,athlete.category)
+    }).eq("id",legacyMatch.id).select("id").single();
+    if(up.error)throw up.error;
+    rid=up.data.id;promoted++;
+   }
+  }
+  if(!rid){
    const ins=await db.from("results").insert({
     athlete_id:job.athlete_id,meet_id:meetUp.data.id,event_id:eid,result_date:c.resultDate,course:c.course,
     time_ms:c.timeMs,status:c.status,origin:"official",source_id:job.source_id,is_official:true,
@@ -66,13 +86,13 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
     if((ins.error as any).code==="23505"){duplicated++;const q=await db.from("results").select("id").eq("result_fingerprint",fp).maybeSingle();rid=q.data?.id}
     else throw ins.error;
    }else{rid=ins.data.id;inserted++}
-  }else duplicated++;
+  }else if(!promoted)duplicated++;
   if(rid)await db.from("result_sources").upsert({
    result_id:rid,source_id:job.source_id,source_url:c.sourceUrl,external_id:c.sourceUrl,retrieved_at:c.retrievedAt,
    raw_hash:null,metadata:{engine:"v2",parser_version:c.parserVersion,source_block:c.sourceBlock}
   },{onConflict:"result_id,source_id,external_id"});
  }
- return {inserted,duplicated};
+ return {inserted,duplicated,promoted};
 }
 async function ensureSwimSystemArchives(sourceId:string){
  const html=await fetchText("https://www.swimsystem.app/meets");
@@ -110,10 +130,7 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
  }
  const aq=await db.from("historical_archives").select("*").eq("source_id",job.source_id).order("created_at",{ascending:true});
  if(aq.error)throw aq.error;
- const maxq=await db.from("results").select("result_date").eq("athlete_id",job.athlete_id).eq("source_id",job.source_id).eq("is_official",true).order("result_date",{ascending:false}).limit(1).maybeSingle();
- const maxDate=maxq.data?.result_date||null;
- const cutoff=maxDate?new Date(new Date(maxDate+"T00:00:00Z").getTime()-45*86400000).toISOString().slice(0,10):null;
- const archives=(aq.data||[]).filter((x:any)=>!cutoff||!x.start_date||x.start_date>=cutoff);
+ const archives=(aq.data||[]).filter((x:any)=>x.active!==false);
  const ai=Number(cursor.archive_index||0);
  if(ai>=archives.length)return {done:true,cursor,found:0,inserted:0,duplicated:0};
  const a=archives[ai],retrievedAt=new Date().toISOString(),docs:any[]=[];
