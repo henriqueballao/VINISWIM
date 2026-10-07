@@ -1,5 +1,6 @@
 import {parseResultList} from "./resultlist-parser.mjs";
 import {parseMastersParana} from "./masters-parana-parser.mjs";
+import {parseModernResultBook} from "./swimsystem-modern-results.mjs";
 import {dryRun} from "./dry-run.mjs";
 export function scanDocuments(input){
  const out=[];
@@ -8,6 +9,11 @@ export function scanDocuments(input){
   if(!meet)continue;
   if(meet.provider==="masters_parana"){
    out.push(...parseMastersParana({text:doc.text,identity:input.identity,meet,sourceUrl:doc.url,retrievedAt:input.retrievedAt}));
+   continue;
+  }
+  if(meet.provider==="swimsystem_v2"){
+   out.push(...parseModernResultBook({text:doc.text,identity:input.identity,meet,sourceUrl:doc.url,retrievedAt:input.retrievedAt}));
+   if(/ResultList_/i.test(doc.url||""))out.push(...parseResultList({text:doc.text,identity:input.identity,meet,sourceUrl:doc.url,retrievedAt:input.retrievedAt}));
    continue;
   }
   if(/ResultList_/i.test(doc.url||"")||meet.provider!=="swimtime_progression"){
