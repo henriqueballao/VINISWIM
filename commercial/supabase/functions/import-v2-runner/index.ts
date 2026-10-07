@@ -133,7 +133,7 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
   for(const d of cq.data||[]){if(/ResultList_/i.test(d.url)&&String(d.text_content||"").includes(identity.externalId))docs.push({externalMeetId:String(a.event_key),url:d.url,text:d.text_content})}
  }
  const pack=historicalDryRun({identity,archives:[{externalMeetId:String(a.event_key),sourceCode:source.code,course:a.course,provider:a.provider,startDate:a.start_date,endDate:a.end_date,name:a.name}],documents:docs,retrievedAt});
- if(docs.length&&pack.accepted.length===0){const e:any=new Error("parser no match");e.parserMatched=false;throw e}
+ if(docs.length&&pack.accepted.length===0&&a.provider!=="masters_parana"){const e:any=new Error("parser no match");e.parserMatched=false;throw e}
  const p=await persistCandidates(job,a,pack.accepted,athlete);
  return {done:ai+1>=archives.length,cursor:{...cursor,archive_index:ai+1,pdf_cursor:0},found:pack.accepted.length,inserted:p.inserted,duplicated:p.duplicated};
 }
