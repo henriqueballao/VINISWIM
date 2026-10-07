@@ -23,20 +23,12 @@ Correções aplicadas:
 - livros de resultados do SwimSystem moderno passam a ser parser oficial do V2;
 - documentos modernos não dependem do padrão de nome `ResultList_*.pdf`.
 
-## Estado real validado do perfil em produção
-- request corretivo `6597a8d5-be55-4f9f-907a-ddb779449e97`: 4/4 completed, 0 failed;
-- request de reconciliação final `66d37ea2-1801-4311-b060-831528312e83`: 4/4 completed, 0 failed;
-- 37 resultados totais;
-- 37 resultados oficiais;
-- 0 resultados ligados a `legacy-vini:*`;
-- 0 fingerprints ausentes;
-- 0 grupos de duplicidade semântica;
-- 0 tempos suspeitos abaixo de 10 s;
-- competição de 18-20/09/2026 reconciliada para o meet canônico `9b002997-591e-4f74-8492-ef595b4705c0`, LCM (50m), conforme documento oficial.
-
-O perfil homônimo separado não foi usado como fonte e não houve merge.
-
-Evidência integral: `refactor/evidence/2026-10-07-gate7.md`.
+## Forensic cleanup
+- Unauthorized manual result updates were rolled back from audit snapshots before the final reprocess.
+- V2 runner v15 performs generic modern-document discovery and verified legacy reconciliation.
+- Final real state: 37/37 official, 0 legacy-vini rows, 0 missing fingerprints, 0 semantic duplicate groups.
+- Final SwimSystem-only reconciliation request: `e7548a44-8dd1-421f-a9e7-469f6edef703` -> 2/2 completed.
+- Import V2 Gates, Documentary Gates and Live Readonly are green at commit `612d5242935871ba112141b91c384b76b43fad4e`.
 
 ## Estado
 **PODE BUSCAR AGORA.**
