@@ -977,8 +977,12 @@ async function processJob(j:any){
      // HTML host has broken TLS; the ProgressionDetails adapter no longer needs
      // that HTML host. Excluding active=false here made failed jobs impossible
      // to retry after the adapter was fixed.
-     let archiveQuery=db.from('historical_archives').select('id,active,provider').eq('source_id',j.source_id);
-     const {data:allArchives}=await archiveQuery;
+     const archiveSourceIds=[j.source_id];
+     if(sourceCode==='swimsystem'){
+       const {data:legacySource}=await db.from('sources').select('id').eq('code','fdap').maybeSingle();
+       if(legacySource?.id&&!archiveSourceIds.includes(legacySource.id))archiveSourceIds.push(legacySource.id)
+     }
+     const {data:allArchives}=await db.from('historical_archives').select('id,active,provider').in('source_id',archiveSourceIds);
      const {data:existingForAthlete}=await db.from('historical_archive_jobs').select('archive_id').eq('athlete_id',j.athlete_id);
      const existingArchiveIds=new Set((existingForAthlete||[]).map((x:any)=>x.archive_id));
      const archives=(allArchives||[]).filter((a:any)=>a.active||((a.provider==='swimtime_progression')&&existingArchiveIds.has(a.id)));
@@ -990,15 +994,20 @@ async function processJob(j:any){
          .select('id,status').eq('athlete_id',j.athlete_id).eq('archive_id',a.id).maybeSingle();
        if(!existing){
          await db.from('historical_archive_jobs').insert({
-           athlete_id:j.athlete_id,archive_id:a.id,status:'pending',updated_at:new Date().toISOString()
+           athlete_id:j.athlete_id,archive_id:a.id,status:'pending',request_id:j.request_id||null,updated_at:new Date().toISOString()
          })
        }else if(existing.status==='failed'){
          await db.from('historical_archive_jobs').update({
            status:'pending',cursor_index:0,cursor_payload:{},heartbeat_at:null,
            finished_at:null,last_error:null,records_found:0,records_inserted:0,
-           records_promoted:0,updated_at:new Date().toISOString()
+           records_promoted:0,request_id:j.request_id||null,updated_at:new Date().toISOString()
          }).eq('id',existing.id).eq('status','failed')
        }
+     }
+     // A refresh request is terminal only after its descendant archive jobs end.
+     if(j.request_id){
+       const archiveIds=(archives||[]).map((a:any)=>a.id);
+       if(archiveIds.length)await db.from('historical_archive_jobs').update({request_id:j.request_id,updated_at:new Date().toISOString()}).eq('athlete_id',j.athlete_id).in('archive_id',archiveIds).in('status',['pending','running']);
      }
      const {count:remaining}=await db.from('historical_archive_jobs').select('id',{count:'exact',head:true}).eq('athlete_id',j.athlete_id).in('status',['pending','running']);
      await db.from('monitor_runs').update({status:'completed',finished_at:new Date().toISOString(),records_found:0,records_inserted:0,records_duplicated:0}).eq('id',run.id);
