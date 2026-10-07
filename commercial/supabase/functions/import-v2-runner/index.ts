@@ -1,9 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-import { historicalDryRun } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/130c9d95685b6586903059726d563774ce60e108/commercial/packages/import-v2/src/historical-dryrun.mjs";
-import { discoverSwimSystemMeetIds } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/130c9d95685b6586903059726d563774ce60e108/commercial/packages/import-v2/src/discovery.mjs";
-import { parseMeetEvidence,parseStartlist } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/130c9d95685b6586903059726d563774ce60e108/commercial/packages/import-v2/src/swimsystem-current.mjs";
-import { classifyImportFailure } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/130c9d95685b6586903059726d563774ce60e108/commercial/packages/import-v2/src/failure-states.mjs";
+import { historicalDryRun } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/338c7d9311eeaa621bc8dee438b50573e4b2c518/commercial/packages/import-v2/src/historical-dryrun.mjs";
+import { discoverSwimSystemMeetIds } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/338c7d9311eeaa621bc8dee438b50573e4b2c518/commercial/packages/import-v2/src/discovery.mjs";
+import { parseMeetEvidence,parseStartlist } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/338c7d9311eeaa621bc8dee438b50573e4b2c518/commercial/packages/import-v2/src/swimsystem-current.mjs";
+import { classifyImportFailure } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/338c7d9311eeaa621bc8dee438b50573e4b2c518/commercial/packages/import-v2/src/failure-states.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false}});
 const json=(v:any,s=200)=>new Response(JSON.stringify(v),{status:s,headers:{"content-type":"application/json"}});
@@ -42,11 +42,11 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
  const ev=await eventMap();let inserted=0,duplicated=0,promoted=0;
  for(const c of candidates){
   const eid=ev.get(n(c.event));if(!eid)continue;
-  const start=archive.start_date||c.resultDate;
+  const start=c.meetStartDate||archive.start_date||c.resultDate;
   if(!start||!c.resultDate||!c.course)continue;
   const meetUp=await db.from("meets").upsert({
    source_id:job.source_id,external_id:String(archive.event_key),name:archive.name||("Competição "+archive.event_key),
-   start_date:start,end_date:archive.end_date||null,course:c.course,official_url:archive.base_url,status:"completed"
+   start_date:start,end_date:c.meetEndDate||archive.end_date||null,course:c.course,official_url:archive.base_url,status:"completed"
   },{onConflict:"source_id,external_id"}).select("id").single();
   if(meetUp.error)throw meetUp.error;
   const fp=[job.athlete_id,meetUp.data.id,eid,c.resultDate,c.course,c.timeMs??"",c.status].join("|");
@@ -153,13 +153,13 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
   if(n(txt).includes(n(identity.canonicalName))||identity.aliases.some((x:string)=>n(txt).includes(n(x))))docs.push({externalMeetId:String(a.event_key),url:a.base_url,text:txt});
  }else if(a.provider==="swimsystem_v2"){
   const base=String(a.base_url).replace(/\/results\/?$/,""),html=await fetchText(base);
-  const links=pdfLinks(html).filter(u=>/ResultList_/i.test(u));
+  const links=pdfLinks(html);
   const pi=Number(cursor.pdf_cursor||0),batch=links.slice(pi,pi+3);
   for(const u of batch){const txt=await readerText(u);if(String(txt).includes(identity.externalId))docs.push({externalMeetId:String(a.event_key),url:u,text:txt})}
   const next=pi+batch.length;
   if(next<links.length){
    const pack=historicalDryRun({identity,archives:[{externalMeetId:String(a.event_key),sourceCode:source.code,course:a.course,provider:a.provider,startDate:a.start_date,endDate:a.end_date,name:a.name}],documents:docs,retrievedAt});
-   if(docs.length&&pack.accepted.length===0&&a.provider!=="masters_parana"){const e:any=new Error("parser no match");e.parserMatched=false;throw e}
+   if(docs.length&&pack.accepted.length===0&&a.provider!=="masters_parana"&&a.provider!=="swimsystem_v2"){const e:any=new Error("parser no match");e.parserMatched=false;throw e}
    const p=await persistCandidates(job,a,pack.accepted,athlete);
    return {done:false,cursor:{...cursor,archive_index:ai,pdf_cursor:next},found:pack.accepted.length,inserted:p.inserted,duplicated:p.duplicated};
   }
@@ -168,7 +168,7 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
   for(const d of cq.data||[]){if(/ResultList_/i.test(d.url)&&String(d.text_content||"").includes(identity.externalId))docs.push({externalMeetId:String(a.event_key),url:d.url,text:d.text_content})}
  }
  const pack=historicalDryRun({identity,archives:[{externalMeetId:String(a.event_key),sourceCode:source.code,course:a.course,provider:a.provider,startDate:a.start_date,endDate:a.end_date,name:a.name}],documents:docs,retrievedAt});
- if(docs.length&&pack.accepted.length===0&&a.provider!=="masters_parana"){const e:any=new Error("parser no match");e.parserMatched=false;throw e}
+ if(docs.length&&pack.accepted.length===0&&a.provider!=="masters_parana"&&a.provider!=="swimsystem_v2"){const e:any=new Error("parser no match");e.parserMatched=false;throw e}
  const p=await persistCandidates(job,a,pack.accepted,athlete);
  return {done:ai+1>=archives.length,cursor:{...cursor,archive_index:ai+1,pdf_cursor:0},found:pack.accepted.length,inserted:p.inserted,duplicated:p.duplicated};
 }
