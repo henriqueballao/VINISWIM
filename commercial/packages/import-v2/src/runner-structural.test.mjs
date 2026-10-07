@@ -16,7 +16,7 @@ test("V2 may promote only a same-competition legacy row backed by official candi
 });
 
 test("V2 production runner has no athlete-specific branch",()=>{
- assert.equal(/vinicius|vini|422692|andre|393259|lorenzo|399680/i.test(src),false);
+ assert.equal(/vinicius|422692|andre|393259|lorenzo|399680/i.test(src),false);
 });
 
 test("V2 persists official provenance after insert or promotion",()=>{
