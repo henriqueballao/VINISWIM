@@ -1,9 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-import { historicalDryRun } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/46af3ca89d75dd62647477f3ec7ff3c730528ff6/commercial/packages/import-v2/src/historical-dryrun.mjs";
-import { discoverSwimSystemMeetIds } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/46af3ca89d75dd62647477f3ec7ff3c730528ff6/commercial/packages/import-v2/src/discovery.mjs";
-import { parseMeetEvidence,parseStartlist } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/46af3ca89d75dd62647477f3ec7ff3c730528ff6/commercial/packages/import-v2/src/swimsystem-current.mjs";
-import { classifyImportFailure } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/46af3ca89d75dd62647477f3ec7ff3c730528ff6/commercial/packages/import-v2/src/failure-states.mjs";
+import { historicalDryRun } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/0bc38f0be3a3c04f31b5ce959ec9872e11e64a42/commercial/packages/import-v2/src/historical-dryrun.mjs";
+import { discoverSwimSystemMeetIds } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/0bc38f0be3a3c04f31b5ce959ec9872e11e64a42/commercial/packages/import-v2/src/discovery.mjs";
+import { parseMeetEvidence,parseStartlist } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/0bc38f0be3a3c04f31b5ce959ec9872e11e64a42/commercial/packages/import-v2/src/swimsystem-current.mjs";
+import { classifyImportFailure } from "https://raw.githubusercontent.com/henriqueballao/VINISWIM/0bc38f0be3a3c04f31b5ce959ec9872e11e64a42/commercial/packages/import-v2/src/failure-states.mjs";
 
 const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false}});
 const json=(v:any,s=200)=>new Response(JSON.stringify(v),{status:s,headers:{"content-type":"application/json"}});
@@ -50,8 +50,12 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
   },{onConflict:"source_id,external_id"}).select("id").single();
   if(meetUp.error)throw meetUp.error;
   const fp=[job.athlete_id,meetUp.data.id,eid,c.resultDate,c.course,c.timeMs??"",c.status].join("|");
-  const {data:old}=await db.from("results").select("id").eq("result_fingerprint",fp).maybeSingle();
-  let rid=old?.id;
+  let semantic=db.from("results").select("id").eq("athlete_id",job.athlete_id).eq("event_id",eid).eq("result_date",c.resultDate).eq("course",c.course).eq("status",c.status);
+  semantic=c.timeMs==null?semantic.is("time_ms",null):semantic.eq("time_ms",c.timeMs);
+  const {data:semanticRows}=await semantic.limit(1);
+  const semanticOld=semanticRows?.[0]||null;
+  const {data:fingerprintOld}=await db.from("results").select("id").eq("result_fingerprint",fp).maybeSingle();
+  let rid=semanticOld?.id||fingerprintOld?.id;
   if(!rid){
    const ins=await db.from("results").insert({
     athlete_id:job.athlete_id,meet_id:meetUp.data.id,event_id:eid,result_date:c.resultDate,course:c.course,
@@ -63,6 +67,7 @@ async function persistCandidates(job:any,archive:any,candidates:any[],athlete:an
     else throw ins.error;
    }else{rid=ins.data.id;inserted++}
   }else duplicated++;
+  if(rid&&semanticOld)duplicated++;
   if(rid)await db.from("result_sources").upsert({
    result_id:rid,source_id:job.source_id,source_url:c.sourceUrl,external_id:c.sourceUrl,retrieved_at:c.retrievedAt,
    raw_hash:null,metadata:{engine:"v2",parser_version:c.parserVersion,source_block:c.sourceBlock}
