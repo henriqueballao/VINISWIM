@@ -1,0 +1,21 @@
+name: Import V2 Documentary Gates
+on:
+  push:
+    paths:
+      - 'commercial/packages/import-v2/**'
+      - '.github/workflows/import-v2-documentary-gates.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  documentary:
+    name: Data Integrity - Gates 3 and 4
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Documentary dry-run
+        working-directory: commercial/packages/import-v2
+        run: node --test src/documentary-dryrun.test.mjs
