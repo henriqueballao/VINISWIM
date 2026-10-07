@@ -1,5 +1,5 @@
 import {parseTime} from "./normalize.mjs";
-function iso(d,m,y){return y+"-"+m.padStart(2,"0")+"-"+d.padStart(2,"0")}
+function iso(d,m,y){const yy=y.length===2?String(2000+Number(y)):y;return yy+"-"+m.padStart(2,"0")+"-"+d.padStart(2,"0")}
 export function parseResultList({text,identity,meet,sourceUrl,retrievedAt}){
  const body=String(text||"").replace(/\r/g,""),h=body.match(/Prova\s*\d+\s*(?:Feminino|Masculino),\s*(\d{1,4})m\s*(Livre|Costas|Peito|Borboleta|Medley)[^\n]*\n(\d{1,2})\/(\d{1,2})\/(\d{4})\s*-\s*\d{1,2}:\d{2}\s*Resultados/i);if(!h)return [];
  const id=String(identity.externalId||"").trim();if(!id)return [];const flat=body.replace(/\s+/g," ").trim();let from=0,out=[];
