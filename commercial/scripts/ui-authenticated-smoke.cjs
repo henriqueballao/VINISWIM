@@ -11,7 +11,7 @@ const tables={
   athletes:[{id:athleteId,account_id:accountId,active:true,preferred_name:'Nadador Sintético',category:'Master'}],
   v_result_timeline:[{id:'66666666-6666-4666-8666-666666666666',athlete_id:athleteId,event_id:eventId,course:'SCM',meet_id:meetId,meet_name:meet.name,result_date:'2026-09-01',created_at:'2026-09-01',status:'valid',time_ms:32000,origin:'official',is_official:true,category:'Master'}],
   v_athlete_overview:{total_results:1,official_results:1,manual_results:0,occurrences:0},
-  personal_bests:[{id:'77777777-7777-4777-8777-777777777777',results:{id:'66666666-6666-4666-8666-666666666666',event_id:eventId,course:'SCM',result_date:'2026-09-01',time_ms:32000,meets:{name:meet.name,venue:meet.venue,city:meet.city}}}],
+  personal_bests:Array.from({length:14},(_,i)=>({id:'pb-test-'+i,results:{id:'result-test-'+i,event_id:eventId,course:'SCM',result_date:'2026-09-01',time_ms:32000+i*1000,meets:{name:meet.name,venue:meet.venue,city:meet.city}}})),
   meet_entries:[{id:'88888888-8888-4888-8888-888888888888',meet_id:meetId,event_id:eventId,athlete_id:athleteId,meets:meet}],
   audit_log:[], result_sources:[], athlete_source_configs:[],monitor_jobs:[],historical_archive_jobs:[],
   v_refresh_request_status:null,athlete_result_filters:null
@@ -54,6 +54,13 @@ const tables={
    await page.getByRole('heading',{name:'Visão Geral'}).waitFor({timeout:20000});
    await page.getByRole('heading',{name:'Campeonatos'}).waitFor();
    await page.getByRole('heading',{name:'Expectativas de tempo'}).waitFor();
+   await page.locator('.pb-grid .pb').first().waitFor({timeout:15000});
+   assert.equal(await page.locator('.pb-grid .pb').count(),3,'Default should show three best marks');
+   await page.getByRole('button',{name:'Ver todas (14)'}).click();
+   assert.equal(await page.getByRole('heading',{name:'Visão Geral'}).count(),1,'Expanding should stay on dashboard');
+   assert.equal(await page.locator('.pb-grid .pb').count(),14,'Expanded list should show all 14 marks');
+   await page.getByRole('button',{name:'Recolher'}).click();
+   assert.equal(await page.locator('.pb-grid .pb').count(),3,'Collapsing should restore three marks');
    assert.equal(await page.getByRole('heading',{name:'Campeonatos'}).count(),1);
    assert.equal(await page.getByRole('heading',{name:'Expectativas de tempo'}).count(),1);
    await page.getByText('Campeonato Sintético').first().waitFor({timeout:15000});
