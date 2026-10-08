@@ -27,7 +27,7 @@ const checks = [
   ['Preservar ação Buscar campeonatos', js.includes('Buscar campeonatos')],
   ['Preservar ação Novo campeonato', js.includes('Novo campeonato')],
   ['Preservar vínculo de origem oficial', js.includes('official_url')],
-  ['Link de balizamento com rótulo identificável', js.includes('Abrir balizamento oficial')],
+  ['Link de prova para fonte oficial com rótulo identificável', js.includes('Abrir fonte oficial da competição')],
   ['Preservar campo meet.venue', js.includes('venue,city,name')],
 ];
 let fails = 0;
