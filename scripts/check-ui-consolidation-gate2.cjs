@@ -28,6 +28,10 @@ const checks = [
   ['Preservar ação Novo campeonato', js.includes('Novo campeonato')],
   ['Preservar vínculo de origem oficial', js.includes('official_url')],
   ['Link de prova para fonte oficial com rótulo identificável', js.includes('Abrir fonte oficial da competição')],
+  ['Link de prova aceita somente HTTPS', js.includes('typeof E.official_url===\"string\"&&/^https:\\/\\//i.test(E.official_url)')],
+  ['Link externo seguro', js.includes('rel:\"noopener noreferrer\"')],
+  ['Sem duplicação do próximo campeonato', !js.includes('Próximo campeonato')],
+  ['Melhores marcas resumidas a três', js.includes('e.slice(0,3).map((d,h)=>')],
   ['Preservar campo meet.venue', js.includes('venue,city,name')],
 ];
 let fails = 0;
