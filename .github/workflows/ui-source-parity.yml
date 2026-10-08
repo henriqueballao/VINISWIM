@@ -11,6 +11,9 @@ on:
       - 'app/assets/**'
       - 'scripts/check-ui-consolidation-gate2.cjs'
       - '.github/workflows/ui-source-parity.yml'
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
