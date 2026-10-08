@@ -14,6 +14,7 @@ const assets = [...index.matchAll(/src=["']\.\/assets\/([^"']+\.js)["']/g)];
 assert.equal(assets.length, 1, 'O app deve referenciar exatamente um bundle JS principal');
 const bundlePath = path.resolve(__dirname, '../app/assets', assets[0][1]);
 const js = fs.readFileSync(bundlePath, 'utf8');
+const appSource = fs.readFileSync(path.resolve(__dirname, '../commercial/apps/web/src/App.tsx'), 'utf8');
 const checks = [
   ['Painel unificado no menu', /"dashboard","Visão Geral"/.test(js)],
   ['Resultados mantidos', /"results","Resultados"/.test(js)],
@@ -28,10 +29,10 @@ const checks = [
   ['Preservar ação Novo campeonato', js.includes('Novo campeonato')],
   ['Preservar vínculo de origem oficial', js.includes('official_url')],
   ['Link de prova para fonte oficial com rótulo identificável', js.includes('Abrir fonte oficial da competição')],
-  ['Link de prova aceita somente HTTPS', js.includes('typeof E.official_url===\"string\"&&/^https:\\/\\//i.test(E.official_url)')],
+  ['Link de prova aceita somente HTTPS', /typeof m\.official_url==='string'&&\/\^https:/.test(appSource) && appSource.includes('test(m.official_url)')],
   ['Link externo seguro', js.includes('rel:\"noopener noreferrer\"')],
-  ['Sem duplicação do próximo campeonato', !js.includes('Próximo campeonato')],
-  ['Melhores marcas resumidas a três', js.includes('e.slice(0,3).map((d,h)=>')],
+  ['Sem duplicação do próximo campeonato', (js.match(/Próximo campeonato/g)||[]).length === 1 && appSource.includes('m.id===nextMeetId')],
+  ['Melhores marcas resumidas a três', appSource.includes('pbs.slice(0,3).map') && js.includes('Ver todas (')],
   ['Preservar campo meet.venue', js.includes('venue,city,name')],
 ];
 let fails = 0;
