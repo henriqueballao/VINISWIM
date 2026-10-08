@@ -61,3 +61,33 @@ Regra: atleta + prova + tempo/status + data + piscina devem vir da mesma evidên
 - provenance[]
 
 Persistência deve ser idempotente e transacional por unidade lógica.
+
+
+## MeetMetadataEvidence
+- source_code/source_id
+- external_meet_id
+- canonical_name
+- venue
+- city
+- evidence_url
+- evidence_kind
+- verified_at
+
+Regras:
+- `canonical_name` e `venue` devem vir de evidência oficial descoberta pelo pipeline; não podem ser semeados por competição para satisfazer teste;
+- `venue` é o local/clube da competição; `city` é campo distinto e nunca substitui `venue` na UI quando o rótulo é "Local";
+- títulos de navegação como `Resultados ·`, `Provas ·`, `Atletas ·`, `Clubes ·`, `Inscrições ·` e `Informações ·` não fazem parte do nome canônico;
+- para espelhos legado -> moderno, o vínculo deve ser reproduzível por atributos genéricos da competição, como data, piscina e similaridade normalizada de nome.
+
+## ManualResult
+- athlete_id
+- meet_id/event_id
+- result_date
+- course
+- time_ms ou status
+- venue/city/category quando disponíveis
+- origin = manual
+- is_official = false
+- trace/provenance da operação manual
+
+Resultado manual explicitamente autorizado pelo usuário não pertence ao contrato de descoberta automática e não pode ser usado para satisfazer gates do Import V2.
