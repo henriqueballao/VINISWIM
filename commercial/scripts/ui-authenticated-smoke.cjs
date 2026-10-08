@@ -49,7 +49,8 @@ const tables={
    await page.getByRole('heading',{name:'Expectativas de tempo'}).waitFor();
    assert.equal(await page.getByRole('heading',{name:'Campeonatos'}).count(),1);
    assert.equal(await page.getByRole('heading',{name:'Expectativas de tempo'}).count(),1);
-   assert.ok(await page.getByRole('link',{name:/Abrir fonte oficial da competição/}).count()>0,'Official meet URL missing');
+   await page.getByText('Campeonato Sintético').first().waitFor({timeout:15000});
+   await page.getByRole('link',{name:/Abrir fonte oficial da competição/}).first().waitFor({timeout:15000});
    const clickNav=async(label)=>{
     const button=page.locator('aside.sidebar nav button').filter({hasText:label});
     if(size.name==='mobile')await page.getByRole('button',{name:'Abrir menu'}).click();
