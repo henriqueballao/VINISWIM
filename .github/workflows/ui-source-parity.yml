@@ -68,7 +68,7 @@ jobs:
           index=dist/'index.html'
           if not index.exists(): raise SystemExit('FAIL: compiled index missing')
           html=index.read_text()
-          links=re.findall(r'(?:src|href)="([^"]+\\.(?:js|css))"',html)
+          links=[u for u in re.findall(r'(?:src|href)="([^"]+)"',html) if u.endswith(('.js','.css'))]
           js_files=list((dist/'assets').glob('*.js'))
           css_files=list((dist/'assets').glob('*.css'))
           if not links or not js_files or not css_files:
