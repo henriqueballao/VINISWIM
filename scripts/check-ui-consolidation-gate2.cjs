@@ -32,7 +32,7 @@ const checks = [
   ['Link de prova aceita somente HTTPS', /typeof m\.official_url==='string'&&\/\^https:/.test(appSource) && appSource.includes('test(m.official_url)')],
   ['Link externo seguro', js.includes('rel:\"noopener noreferrer\"')],
   ['Sem duplicação do próximo campeonato', (js.match(/Próximo campeonato/g)||[]).length === 1 && appSource.includes('m.id===nextMeetId')],
-  ['Melhores marcas resumidas a três', appSource.includes('pbs.slice(0,3).map') && js.includes('Ver todas (')],
+  ['Melhores marcas resumidas a três', appSource.includes('sortedBests.slice(0,3)') && js.includes('Ver todas (')],
   ['Preservar campo meet.venue', js.includes('venue,city,name')],
 ];
 let fails = 0;
