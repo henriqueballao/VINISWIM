@@ -37,6 +37,13 @@ const tables={
       const data=Object.hasOwn(tables,table)?tables[table]:[];
       return route.fulfill({status:200,contentType:'application/json',headers:{'content-range':'0-0/1'},body:JSON.stringify(data)});
     }
+    // Supabase RPC transport is POST even for read-only operations.
+    // Mock ONLY this audited allowlist; all mutations remain forbidden.
+    if(req.method()==='POST'&&path.startsWith('/rest/v1/rpc/')){
+      const readOnly={'list_account_members':[],'list_account_invites':[],'account_limits':{},'is_platform_admin':false};
+      const name=path.split('/').pop();
+      if(Object.hasOwn(readOnly,name))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(readOnly[name])});
+    }
     writes.push(req.method()+' '+path);
     return route.fulfill({status:403,contentType:'application/json',body:JSON.stringify({message:'Synthetic test blocks all mutations'})});
    });
