@@ -59,5 +59,31 @@ jobs:
       - name: Type-check and build React source
         working-directory: commercial
         run: npm run build:web
+      - name: Verify freshly compiled UI
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          dist=Path('commercial/apps/web/dist')
+          index=dist/'index.html'
+          if not index.exists(): raise SystemExit('FAIL: compiled index missing')
+          html=index.read_text()
+          links=re.findall(r'(?:src|href)="([^"]+\\.(?:js|css))"',html)
+          js_files=list((dist/'assets').glob('*.js'))
+          css_files=list((dist/'assets').glob('*.css'))
+          if not links or not js_files or not css_files:
+              raise SystemExit('FAIL: compiled JS/CSS assets missing')
+          text=''.join(f.read_text() for f in js_files)
+          checks={
+             'new sidebar': 'Visão Geral' in text and 'Configurações' in text,
+             'unified summary': 'Ver todas (' in text,
+             'championship': 'Próximo campeonato' in text,
+             'official link': 'Abrir fonte oficial da competição' in text,
+             'expectations': 'Expectativas de tempo' in text,
+          }
+          for name,ok in checks.items(): print(('PASS' if ok else 'FAIL')+' '+name)
+          if not all(checks.values()): raise SystemExit('FAIL: compiled UI not equivalent to source')
+          print('PASS: React source compiled into fresh distribution')
+          PY
       - name: Check isolated experimental bundle
         run: node scripts/check-ui-consolidation-gate2.cjs
