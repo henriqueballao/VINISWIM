@@ -13,7 +13,7 @@ const tables={
   v_athlete_overview:{total_results:1,official_results:1,manual_results:0,occurrences:0},
   personal_bests:Array.from({length:14},(_,i)=>({id:'pb-test-'+i,results:{id:'result-test-'+i,event_id:eventId,course:'SCM',result_date:'2026-09-01',time_ms:32000+i*1000,meets:{name:meet.name,venue:meet.venue,city:meet.city}}})),
   meet_entries:[{id:'88888888-8888-4888-8888-888888888888',meet_id:meetId,event_id:eventId,athlete_id:athleteId,meets:meet}],
-  audit_log:[], result_sources:[], athlete_source_configs:[],monitor_jobs:[],historical_archive_jobs:[],
+  audit_log:[], result_sources:[], athlete_source_configs:[{id:'source-config-test',athlete_id:athleteId,display_name:'SwimSystem',external_id:null,external_name:null,active:true,sources:{code:'swimsystem',name:'SwimSystem'}}],monitor_jobs:[],historical_archive_jobs:[],
   v_refresh_request_status:null,athlete_result_filters:null
 };
 (async()=>{
@@ -71,7 +71,11 @@ const tables={
     await button.click();
     await page.getByRole('heading',{name:label,exact:true}).first().waitFor();
    };
-   for(const label of ['Resultados','Evolução','Configurações','Visão Geral'])await clickNav(label);
+   await clickNav('Resultados');
+   await page.getByRole('button',{name:'Atualizar resultados'}).click();
+   await page.getByText(/Busca não iniciada: este atleta ainda não tem nome e registro/).waitFor();
+   assert.deepEqual(writes,[],'An unconfigured source must not launch a search RPC');
+   for(const label of ['Evolução','Configurações','Visão Geral'])await clickNav(label);
    const bodyWidth=await page.evaluate(()=>document.body.scrollWidth);
    assert.ok(bodyWidth<=size.width+2,'Horizontal overflow '+size.name+': '+bodyWidth);
    assert.deepEqual(errors,[],'JS errors '+size.name);

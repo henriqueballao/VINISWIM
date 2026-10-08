@@ -299,8 +299,22 @@ export default function App(){
  }
  async function refresh(){
   setRefreshMsg('')
-  const {error}=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athleteId,p_source_codes:searchSources})
+  const selected=sourceConfigs.filter((cfg:any)=>searchSources.includes(cfg.sources?.code||''))
+  if(!selected.length){
+   setRefreshMsg('Nenhuma fonte selecionada. Escolha uma fonte em Resultados antes de iniciar a busca.')
+   return
+  }
+  const configured=selected.filter((cfg:any)=>Boolean(String(cfg.external_id||'').trim()&&String(cfg.external_name||'').trim()))
+  const missing=selected.filter((cfg:any)=>(!String(cfg.external_id||'').trim()||!String(cfg.external_name||'').trim()))
+  if(!configured.length){
+   setRefreshMsg('Busca não iniciada: este atleta ainda não tem nome e registro nas fontes selecionadas. Abra Configurações → Fontes de resultados, informe a identificação do atleta e salve antes de buscar.')
+   return
+  }
+  const sourceCodes=configured.map((cfg:any)=>cfg.sources?.code).filter(Boolean)
+  if(!sourceCodes.length){setRefreshMsg('Nenhuma fonte pronta para busca. Configure o nome e o registro em Configurações → Fontes de resultados.');return}
+  const {error}=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athleteId,p_source_codes:sourceCodes})
   if(error){setRefreshMsg('Falha ao solicitar atualização: '+error.message);return}
+  if(missing.length)setRefreshMsg('Busca iniciada somente nas fontes configuradas. Ignoradas: '+missing.map((cfg:any)=>cfg.display_name||'fonte').join(', ')+'.')
   await loadAthlete()
  }
  async function cancelActiveRequest(requestId:string){
@@ -383,6 +397,7 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,meetOp
     </div>
    </div>
   </div>
+  {sourceConfigs.some((cfg:any)=>(!String(cfg.external_id||'').trim()||!String(cfg.external_name||'').trim()))&&<div className="notice" role="alert">Fontes sem identificação do atleta não conseguem encontrar resultados oficiais. Informe nome e registro em Configurações → Fontes de resultados antes de iniciar a busca.</div>}
   <div className="results-sync-meta"><small>{lastSync?'Última busca concluída: '+new Date(lastSync).toLocaleString('pt-BR'):'Última busca concluída: —'}</small></div>
   {(isPending||isRunning||isCancelled||isFailed||isNoSources||refreshMsg)&&<div className={'sync-msg'+(isRunning?' swimming':'')}>
    {isNoSources?'Nenhuma fonte aplicável foi encontrada para esta busca.':(isPending||isRunning||isCancelled||isFailed)?<><div className="swim-status-copy"><div><b>{isActive?(slow?'BUSCA DEMORADA':'BUSCA EM ANDAMENTO')+' · '+syncClock:'Buscando novos resultados...'}</b><small>Consultando fontes oficiais e processando campeonatos.</small></div>{!isActive&&<strong className="swim-timer">{syncClock}</strong>}</div><div className={'swim-lane'+(syncAlert?' alert':'')} aria-label={syncAlert?'Busca paralisada':'Atualização em andamento'}><div className={'swimmer '+((athlete?.gender||'').toLowerCase().startsWith('f')?'female':'male')+(syncAlert?' stopped':'')}><span className="swim-head"/><span className="swim-body"/><span className="swim-arm arm-a"/><span className="swim-arm arm-b"/><span className="swim-splash">•••</span>{syncAlert&&<span className="swim-alert-sign"><AlertTriangle size={15}/></span>}</div></div>{syncAlert&&<div className="swim-alert-copy"><span>{isCancelled?'PAUSA SOLICITADA':isFailed?'ERRO NA BUSCA':'BUSCA DEMORADA'}</span></div>}</>:refreshMsg}
