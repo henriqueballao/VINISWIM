@@ -45,7 +45,7 @@ jobs:
             'manual result retention':"origin==='manual'" in s,
             'secure official link':'rel="noopener noreferrer"' in s,
             'source HTTPS link':"/^https:\\/\\//i.test(m.official_url)" in s,
-            'top three PBs':'pbs.slice(0,3).map' in s,
+            'top three PBs':'sortedBests.slice(0,3)' in s,
             'responsive consolidated layout':'overview-content-grid' in s and 'overview-content-grid' in Path('commercial/apps/web/src/styles.css').read_text(),
             'next championship highlighted once':'m.id===nextMeetId' in s and 'meet-next-label' in s,
             'next championship date order':"String(a.start_date||'').localeCompare" in s,
