@@ -28,6 +28,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
+          persist-credentials: true
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -115,7 +118,7 @@ jobs:
           node scripts/ui-browser-smoke.cjs
           node scripts/ui-authenticated-smoke.cjs
       - name: Synchronize approved artifact into app/ on validation branch
-        if: github.event_name == 'push' && github.ref == 'refs/heads/ui/unified-dashboard-validation'
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/ui/unified-dashboard-validation') || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'ui/unified-dashboard-validation' && github.event.pull_request.head.repo.full_name == github.repository)
         shell: bash
         run: |
           set -euo pipefail
