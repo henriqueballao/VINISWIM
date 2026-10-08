@@ -330,7 +330,7 @@ export default function App(){
   {inviteNotice&&<div className="notice" style={{margin:'14px 22px 0',display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><span>{inviteNotice.message}</span><button className="icon-btn" onClick={()=>setInviteNotice(null)} aria-label="Fechar"><X size={16}/></button></div>}
   <div className="content"><section className="athlete-hero"><AthleteAvatar athlete={athlete} size="lg"/><div className="athlete-main"><h2>{athlete?.full_name}</h2><p>{[athlete?.club_name,athlete?.status==='active'?'fonte oficial ativa':'fonte oficial pendente'].filter(Boolean).join(' · ')}</p><div className="athlete-meta"><span>Idade: {age==null?'—':age+' anos'}</span><span>Categoria: {athlete?.category||'—'}</span></div></div></section>
   {page==='dashboard'&&<><Dashboard overview={overview} pbs={dashboardBests} events={events} setPage={setPage}/><div className="overview-content-grid"><MeetsPage meets={meets} entries={entries} results={results} events={events} athlete={athlete} athleteId={athleteId} onNew={()=>setMeetModal(true)} reload={loadAthlete} onSearch={refresh} activeRequest={activeRequest}/><Expectations results={results} entries={entries} events={events}/></div></>}
-  {page==='results'&&<ResultsPage filtered={filtered} allResults={results} events={events} filters={filters} setFilters={setFilters} meets={meets} meetOptions={meetOptions} resultFilter={resultFilter} setResultFilter={updateResultFilter} sourceConfigs={sourceConfigs} selectedSources={searchSources} setSelectedSources={setSearchSources} onNew={()=>setModal({})} onEdit={setModal} onDelete={del} onRefresh={refresh} onCancelRefresh={cancelActiveRequest} refreshMsg={refreshMsg} lastSync={lastSync} athlete={athlete} activeRequest={activeRequest}/>}
+  {page==='results'&&<ResultsPage filtered={filtered} allResults={results} events={events} filters={filters} setFilters={setFilters} meets={meets} meetOptions={meetOptions} resultFilter={resultFilter} setResultFilter={updateResultFilter} sourceConfigs={sourceConfigs} selectedSources={searchSources} setSelectedSources={setSearchSources} onNew={()=>setModal({})} onEdit={setModal} onDelete={del} onRefresh={refresh} onCancelRefresh={cancelActiveRequest} refreshMsg={refreshMsg} lastSync={lastSync} athlete={athlete} activeRequest={activeRequest} onLinked={loadAthlete}/>}
   {page==='evolution'&&<Evolution key={athleteId} results={visibleByCompetition} events={events}/>}
   {page==='settings'&&<SettingsPage athlete={athlete} accountId={account.id} myRole={myRole} userId={session.user.id} sourceConfigs={sourceConfigs} reload={async()=>{await loadIdentity();await loadAthlete()}} onAddAthlete={()=>setAthleteModal(true)}/>}
   </div></main>
@@ -355,7 +355,45 @@ function Dashboard({overview,pbs,events,setPage}:{overview:any,pbs:any[],events:
  return <><div className="kpi-grid"><Kpi k="Total de resultados" v={overview?.total_results||0} s="Registros no histórico" onClick={()=>setPage('results')}/><Kpi k="Resultados manuais" v={overview?.manual_results||0} s="Lançamentos manuais" onClick={()=>setPage('results')}/><Kpi k="Resultados oficiais" v={overview?.official_results||0} s="Fontes oficiais" onClick={()=>setPage('results')}/><Kpi k="Ocorrências" v={overview?.occurrences||0} s="DNS · DSQ · DNF · Parcial" onClick={()=>setPage('results')}/></div><section className="section"><div className="section-head"><h3>Melhores marcas confirmadas</h3>{pbs.length>3&&<button className="btn" type="button" aria-expanded={showAllBests} onClick={()=>setShowAllBests(v=>!v)}>{showAllBests?'Recolher':'Ver todas ('+pbs.length+')'}</button>}</div><div className="pb-grid">{visibleBests.map((r:any,i)=><div className="pb" key={r.pb_id||r.id}><span>#{i+1}</span><div><b>{ev.get(r.event_id)||'Prova'}</b><small>{poolLabel(r.course)} · {d(r.result_date)} · {r.venue||'Local não identificado'}</small></div><strong>{formatSwimTime(r.time_ms)}</strong></div>)}{!pbs.length&&<p className="muted">Ainda não há melhores marcas oficiais.</p>}</div></section></>
 }
 
-function ResultsPage({filtered,allResults,events,filters,setFilters,meets,meetOptions,resultFilter,setResultFilter,sourceConfigs,selectedSources,setSelectedSources,onNew,onEdit,onDelete,onRefresh,onCancelRefresh,refreshMsg,lastSync,athlete,activeRequest}:{filtered:any[],allResults:any[],events:any[],filters:any,setFilters:any,meets:any[],meetOptions:{id:string,label:string,date:string}[],resultFilter:string[]|null,setResultFilter:(v:string[]|null)=>void,sourceConfigs:any[],selectedSources:string[],setSelectedSources:any,onNew:()=>void,onEdit:any,onDelete:any,onRefresh:()=>void,onCancelRefresh:(requestId:string)=>void,refreshMsg:string,lastSync?:string,athlete:any,activeRequest:any}){
+function AthleteOfficialDiscovery({athlete,sourceConfigs,onLinked}:{athlete:any,sourceConfigs:any[],onLinked:()=>Promise<void>}){
+ const [candidates,setCandidates]=useState<any[]|null>(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState('')
+ const cfg=sourceConfigs.find((x:any)=>x.sources?.code==='swimsystem')
+ if(!cfg||Boolean(String(cfg.external_id||'').trim()&&String(cfg.external_name||'').trim()))return null
+ async function discover(){
+  setBusy(true);setNotice('');setCandidates(null)
+  try{
+   const {data,error}=await supabase.rpc('discover_athlete_source_candidates',{p_athlete_id:athlete.id})
+   if(error)throw error
+   const choices=Array.isArray(data?.candidates)?data.candidates:[]
+   setCandidates(choices)
+   if(!choices.length)setNotice('Nenhuma identificação suficientemente comprovada foi localizada nos documentos oficiais disponíveis. Nenhum atleta foi vinculado e nenhum resultado foi criado.')
+  }catch(e:any){setNotice('A descoberta falhou: '+(e?.message||String(e)))}
+  finally{setBusy(false)}
+ }
+ async function confirm(choice:any){
+  setBusy(true);setNotice('')
+  try{
+   const {data,error}=await supabase.rpc('save_athlete_source_config',{
+    p_athlete_id:athlete.id,p_url:cfg.source_url,p_external_id:choice.external_id,
+    p_external_name:choice.external_name,p_display_name:cfg.display_name,p_config_id:cfg.id
+   })
+   if(error)throw error
+   if(!data?.ok)throw new Error(data?.message||'Falha ao vincular fonte')
+   const request=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athlete.id,p_source_codes:['swimsystem']})
+   if(request.error)setNotice('Identificação vinculada, mas a busca não iniciou: '+request.error.message)
+   else setNotice('Identificação confirmada por documentos oficiais. Busca automática iniciada no SwimSystem; confira o andamento e os resultados nesta tela.')
+   setCandidates(null)
+   await onLinked()
+  }catch(e:any){setNotice('Falha ao vincular identidade: '+(e?.message||String(e)))}
+  finally{setBusy(false)}
+ }
+ return <section className="section" aria-label="Identificação automática em fontes oficiais"><div className="section-head"><div><h3>Localizar atleta nas fontes oficiais</h3><p className="muted">Busca em documentos oficiais pelo nome cadastrado, sem digitar registro. Confira a correspondência antes de importar.</p></div><button className="btn primary" type="button" disabled={busy} onClick={discover}>{busy?'Consultando...':'Localizar atleta'}</button></div>
+ {notice&&<p className="notice" role="status">{notice}</p>}
+ {candidates&&candidates.length>0&&<div className="source-config-list">{candidates.map((c:any)=><div className="source-config-card" key={c.external_id}><div className="source-config-head"><div><b>{c.external_name}</b><small>Ano de nascimento: {c.birth_year} · Registro: {c.external_id} · {c.evidence_count} documentos</small></div><button type="button" className="btn primary" disabled={busy} onClick={()=>confirm(c)}>Confirmar e buscar provas</button></div><a href={c.evidence_url} target="_blank" rel="noreferrer">Conferir documento oficial ↗</a></div>)}</div>}
+ </section>
+}
+
+function ResultsPage({filtered,allResults,events,filters,setFilters,meets,meetOptions,resultFilter,setResultFilter,sourceConfigs,selectedSources,setSelectedSources,onNew,onEdit,onDelete,onRefresh,onCancelRefresh,refreshMsg,lastSync,athlete,activeRequest,onLinked}:{filtered:any[],allResults:any[],events:any[],filters:any,setFilters:any,meets:any[],meetOptions:{id:string,label:string,date:string}[],resultFilter:string[]|null,setResultFilter:(v:string[]|null)=>void,sourceConfigs:any[],selectedSources:string[],setSelectedSources:any,onNew:()=>void,onEdit:any,onDelete:any,onRefresh:()=>void,onCancelRefresh:(requestId:string)=>void,refreshMsg:string,lastSync?:string,athlete:any,activeRequest:any,onLinked:()=>Promise<void>}){
  const [sourceOpen,setSourceOpen]=useState(false)
  const [syncSeconds,setSyncSeconds]=useState(0)
  const [clickActive,setClickActive]=useState(false)
@@ -383,7 +421,7 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,meetOp
  const allSelected=allCodes.length>0&&allCodes.every((x:string)=>selectedSources.includes(x))
  function toggleAll(){setSelectedSources(allSelected?[]:allCodes)}
  async function refreshFromButton(){if(busy)return;setClickActive(true);window.setTimeout(()=>setClickActive(false),350);setBusy(true);try{if(isActive&&activeRequest?.request_id){await onCancelRefresh(activeRequest.request_id)}else{await onRefresh()}}finally{setBusy(false)}}
- return <section className="section">
+ return <><AthleteOfficialDiscovery athlete={athlete} sourceConfigs={sourceConfigs} onLinked={onLinked}/><section className="section">
   <div className="section-head">
    <h3>Resultados</h3>
    <div className="results-icon-actions">
@@ -425,7 +463,7 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,meetOp
   <div className="table-wrap desktop-results"><table><thead><tr><th>#</th><th>Data</th><th>Categoria</th><th>Prova</th><th>Tempo</th><th>Piscina</th><th>Local</th><th>Competição</th><th>Origem</th><th className="result-actions-col">Ações</th></tr></thead><tbody>{filtered.map(r=><tr key={r.id}><td>#{r.chronological_number}</td><td>{d(r.result_date)}</td><td>{r.category||'—'}</td><td>{ev.get(r.event_id)}</td><td><strong>{statusLabel(r.status,r.time_ms)}</strong></td><td>{poolLabel(r.course)}</td><td>{r.venue||'Local não identificado'}</td><td>{mt.get(r.meet_id)||r.meet_name||'—'}</td><td><span className={r.is_official?'tag official':'tag manual'}>{resultOrigin(r)}</span></td><td className="result-actions-col"><div className="actions">{r.origin==='manual'&&<button onClick={()=>onEdit(r)}>Editar</button>}<button className="danger" onClick={()=>onDelete(r)}>Excluir</button></div></td></tr>)}</tbody></table></div>
   <div className="mobile-results">{filtered.map(r=><div className="result-card" key={r.id}><div className="result-card-top"><div><span className="result-number">#{r.chronological_number}</span><b>{ev.get(r.event_id)}</b><small>{d(r.result_date)} · {poolLabel(r.course)} · {r.category||'categoria —'}</small></div><strong>{statusLabel(r.status,r.time_ms)}</strong></div><div className="result-card-meta">{r.venue||'Local não identificado'}{(mt.get(r.meet_id)||r.meet_name)?' · '+(mt.get(r.meet_id)||r.meet_name):''}</div><div className="result-card-foot"><span className={r.is_official?'tag official':'tag manual'}>{resultOrigin(r)}</span><div className="actions">{r.origin==='manual'&&<button onClick={()=>onEdit(r)}>Editar</button>}<button className="danger" onClick={()=>onDelete(r)}>Excluir</button></div></div></div>)}</div>
   </>}
- </section>
+ </section></>
 }
 
 function CompetitionFilter({options,value,onChange}:{options:{id:string,label:string,date:string}[],value:string[]|null,onChange:(v:string[]|null)=>void}){
