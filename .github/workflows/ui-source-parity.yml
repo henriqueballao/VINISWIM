@@ -11,6 +11,7 @@ on:
       - 'app/assets/**'
       - 'scripts/check-ui-consolidation-gate2.cjs'
       - 'commercial/scripts/ui-browser-smoke.cjs'
+      - 'commercial/scripts/ui-authenticated-smoke.cjs'
       - '.github/workflows/ui-source-parity.yml'
   pull_request:
     branches:
@@ -106,6 +107,7 @@ jobs:
             sleep 1
           done
           node scripts/ui-browser-smoke.cjs
+          node scripts/ui-authenticated-smoke.cjs
       - name: Store validated candidate build
         if: success()
         uses: actions/upload-artifact@v4
