@@ -1,0 +1,122 @@
+name: VINISWIM UI Gate 2 (source and build)
+on:
+  push:
+    branches:
+      - ui/unified-dashboard-gate2
+    paths:
+      - 'commercial/apps/web/src/**'
+      - 'commercial/apps/web/package.json'
+      - 'commercial/package.json'
+      - 'app/index.html'
+      - 'app/assets/**'
+      - 'scripts/check-ui-consolidation-gate2.cjs'
+      - 'commercial/scripts/ui-browser-smoke.cjs'
+      - 'commercial/scripts/ui-authenticated-smoke.cjs'
+      - '.github/workflows/ui-source-parity.yml'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Audit editable React source
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('commercial/apps/web/src/App.tsx').read_text()
+          checks={
+            'four routes':"type Page='dashboard'|'results'|'evolution'|'settings'" in s,
+            'old menu items removed':"['meets','Campeonatos'" not in s and "['expectations','Expectativas'" not in s,
+            'unified dashboard components':"{page==='dashboard'&&<><Dashboard" in s and '<MeetsPage meets={meets}' in s and '<Expectations results={results}' in s,
+            'old route renders removed':"{page==='meets'&&" not in s and "{page==='expectations'&&" not in s,
+            'V2 retained':'request_result_refresh_v2' in s,
+            'source meets retained':'function MeetsPage(' in s,
+            'source expectations retained':'function Expectations(' in s,
+            'manual result retention':"origin==='manual'" in s,
+            'secure official link':'rel="noopener noreferrer"' in s,
+            'source HTTPS link':"/^https:\\/\\//i.test(m.official_url)" in s,
+            'top three PBs':'pbs.slice(0,3).map' in s,
+            'responsive consolidated layout':'overview-content-grid' in s and 'overview-content-grid' in Path('commercial/apps/web/src/styles.css').read_text(),
+            'next championship highlighted once':'m.id===nextMeetId' in s and 'meet-next-label' in s,
+            'next championship date order':"String(a.start_date||'').localeCompare" in s,
+            'no duplicated dashboard next championship':'function Dashboard(' in s and '<h3>Próximo campeonato</h3>' not in s,
+            'no invented per-event URL':'/events/' not in s and '/balizamento/' not in s,
+          }
+          for label,ok in checks.items():print(('PASS' if ok else 'FAIL')+' '+label)
+          if not all(checks.values()):raise SystemExit('Gate 2 source verification failed')
+          PY
+      - name: Install dependencies (no deployment)
+        working-directory: commercial
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Type-check and build React source
+        working-directory: commercial
+        run: npm run build:web
+      - name: Verify freshly compiled UI
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          dist=Path('commercial/apps/web/dist')
+          index=dist/'index.html'
+          if not index.exists(): raise SystemExit('FAIL: compiled index missing')
+          html=index.read_text()
+          if 'src="/assets/' in html or 'href="/assets/' in html:
+              raise SystemExit('FAIL: root-absolute assets break /app/ deployment')
+          if 'src="./assets/' not in html or 'href="./assets/' not in html:
+              raise SystemExit('FAIL: relative /app/ assets missing')
+          links=[u for u in re.findall(r'(?:src|href)="([^"]+)"',html) if u.endswith(('.js','.css'))]
+          js_files=list((dist/'assets').glob('*.js'))
+          css_files=list((dist/'assets').glob('*.css'))
+          if not links or not js_files or not css_files:
+              raise SystemExit('FAIL: compiled JS/CSS assets missing')
+          text=''.join(f.read_text() for f in js_files)
+          checks={
+             'new sidebar': 'Visão Geral' in text and 'Configurações' in text,
+             'unified summary': 'Ver todas (' in text,
+             'championship': 'Próximo campeonato' in text,
+             'official link': 'Abrir fonte oficial da competição' in text,
+             'expectations': 'Expectativas de tempo' in text,
+          }
+          for name,ok in checks.items(): print(('PASS' if ok else 'FAIL')+' '+name)
+          if not all(checks.values()): raise SystemExit('FAIL: compiled UI not equivalent to source')
+          print('PASS: React source compiled into fresh distribution')
+          PY
+      - name: Check isolated experimental bundle
+        run: node scripts/check-ui-consolidation-gate2.cjs
+      - name: Install isolated browser smoke dependencies
+        working-directory: commercial
+        run: |
+          npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Browser smoke tests (synthetic, read-only)
+        working-directory: commercial
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --workspace @viniswim/web run preview -- --host 127.0.0.1 --port 4173 > /tmp/viniswim-preview.log 2>&1 &
+          server_pid=$!
+          trap 'kill $server_pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/ui-browser-smoke.cjs
+          node scripts/ui-authenticated-smoke.cjs
+      - name: Store validated candidate build
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: viniswim-ui-gate2-candidate
+          path: commercial/apps/web/dist/
+          if-no-files-found: error
+          retention-days: 7
