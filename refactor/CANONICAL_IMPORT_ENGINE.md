@@ -28,7 +28,8 @@ I. ReconcileRequest
 Cada estágio recebe e devolve contrato explícito. Nenhum estágio consulta implicitamente o resultado de outro por efeitos colaterais.
 
 ## Proibições
-- correção manual de resultado real;
+- correção ou fabricação manual de resultado oficial para mascarar falha do importador;
+- semeadura manual de nome/local/competição para fazer descoberta automática parecer funcional;
 - criação manual de competição para mascarar falha de descoberta;
 - tempo obtido de atleta vizinho;
 - primeiro tempo encontrado no bloco;
@@ -36,6 +37,16 @@ Cada estágio recebe e devolve contrato explícito. Nenhum estágio consulta imp
 - data atual quando a data oficial não existe;
 - competição marcada como concluída antes de seus documentos/jobs terminarem;
 - lógica especial para Vini, André, Lorenzo ou qualquer atleta.
+
+## Resultados manuais autorizados
+O produto pode conter resultados manuais quando o usuário solicitar explicitamente lançamento ou migração manual. Essa operação é externa ao motor automático e deve obedecer:
+- `origin=manual`;
+- `is_official=false`;
+- nunca promover o dado a oficial sem evidência documental válida;
+- nunca contar o registro manual como sucesso de descoberta/importação;
+- preservar data, prova, piscina, tempo/status, competição/local e rastreabilidade disponíveis;
+- ser idempotente contra duplicação semântica no atleta de destino;
+- não alterar resultados oficiais existentes.
 
 ## Compatibilidade
 Frontend, Auth, RLS e tabelas de produto são preservados inicialmente. O V2 nasce ao lado do motor legado. Cutover somente após os gates.
