@@ -355,7 +355,7 @@ function Dashboard({overview,pbs,events,setPage}:{overview:any,pbs:any[],events:
  return <><div className="kpi-grid"><Kpi k="Total de resultados" v={overview?.total_results||0} s="Registros no histórico" onClick={()=>setPage('results')}/><Kpi k="Resultados manuais" v={overview?.manual_results||0} s="Lançamentos manuais" onClick={()=>setPage('results')}/><Kpi k="Resultados oficiais" v={overview?.official_results||0} s="Fontes oficiais" onClick={()=>setPage('results')}/><Kpi k="Ocorrências" v={overview?.occurrences||0} s="DNS · DSQ · DNF · Parcial" onClick={()=>setPage('results')}/></div><section className="section"><div className="section-head"><h3>Melhores marcas confirmadas</h3>{pbs.length>3&&<button className="btn" type="button" aria-expanded={showAllBests} onClick={()=>setShowAllBests(v=>!v)}>{showAllBests?'Recolher':'Ver todas ('+pbs.length+')'}</button>}</div><div className="pb-grid">{visibleBests.map((r:any,i)=><div className="pb" key={r.pb_id||r.id}><span>#{i+1}</span><div><b>{ev.get(r.event_id)||'Prova'}</b><small>{poolLabel(r.course)} · {d(r.result_date)} · {r.venue||'Local não identificado'}</small></div><strong>{formatSwimTime(r.time_ms)}</strong></div>)}{!pbs.length&&<p className="muted">Ainda não há melhores marcas oficiais.</p>}</div></section></>
 }
 
-function AthleteOfficialDiscovery({athlete,sourceConfigs,onLinked}:{athlete:any,sourceConfigs:any[],onLinked:()=>Promise<void>}){
+function AthleteOfficialDiscovery({athlete,sourceConfigs,onLinked,trigger}:{athlete:any,sourceConfigs:any[],onLinked:()=>Promise<void>,trigger:number}){
  const [candidates,setCandidates]=useState<any[]|null>(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState('')
  const cfg=sourceConfigs.find((x:any)=>x.sources?.code==='swimsystem')
  if(!cfg||Boolean(String(cfg.external_id||'').trim()&&String(cfg.external_name||'').trim()))return null
@@ -370,6 +370,7 @@ function AthleteOfficialDiscovery({athlete,sourceConfigs,onLinked}:{athlete:any,
   }catch(e:any){setNotice('A descoberta falhou: '+(e?.message||String(e)))}
   finally{setBusy(false)}
  }
+ useEffect(()=>{if(trigger>0)void discover()},[trigger])
  async function confirm(choice:any){
   setBusy(true);setNotice('')
   try{
@@ -398,6 +399,7 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,meetOp
  const [syncSeconds,setSyncSeconds]=useState(0)
  const [clickActive,setClickActive]=useState(false)
  const [busy,setBusy]=useState(false)
+ const [discoveryTrigger,setDiscoveryTrigger]=useState(0)
  const status=activeRequest?.derived_status as string|undefined
  const isPending=status==='pending'
  const isRunning=status==='running'
@@ -420,8 +422,8 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,meetOp
  const allCodes=sourceConfigs.map((x:any)=>x.sources?.code).filter(Boolean)
  const allSelected=allCodes.length>0&&allCodes.every((x:string)=>selectedSources.includes(x))
  function toggleAll(){setSelectedSources(allSelected?[]:allCodes)}
- async function refreshFromButton(){if(busy)return;setClickActive(true);window.setTimeout(()=>setClickActive(false),350);setBusy(true);try{if(isActive&&activeRequest?.request_id){await onCancelRefresh(activeRequest.request_id)}else{await onRefresh()}}finally{setBusy(false)}}
- return <><AthleteOfficialDiscovery athlete={athlete} sourceConfigs={sourceConfigs} onLinked={onLinked}/><section className="section">
+ async function refreshFromButton(){if(busy)return;setClickActive(true);window.setTimeout(()=>setClickActive(false),350);setBusy(true);try{if(isActive&&activeRequest?.request_id){await onCancelRefresh(activeRequest.request_id)}else if(!sourceConfigs.some((cfg:any)=>selectedSources.includes(cfg.sources?.code||'')&&String(cfg.external_id||'').trim()&&String(cfg.external_name||'').trim())&&sourceConfigs.some((cfg:any)=>cfg.sources?.code==='swimsystem')){setDiscoveryTrigger(v=>v+1)}else{await onRefresh()}}finally{setBusy(false)}}
+ return <><AthleteOfficialDiscovery athlete={athlete} sourceConfigs={sourceConfigs} onLinked={onLinked} trigger={discoveryTrigger}/><section className="section">
   <div className="section-head">
    <h3>Resultados</h3>
    <div className="results-icon-actions">

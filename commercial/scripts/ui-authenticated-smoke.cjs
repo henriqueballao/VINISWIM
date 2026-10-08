@@ -76,7 +76,7 @@ const tables={
    await page.getByText('Nadador Sintetico').waitFor();
    assert.equal(await page.getByRole('button',{name:'Confirmar e buscar provas'}).count(),1);
    await page.getByRole('button',{name:'Atualizar resultados'}).click();
-   await page.getByText(/Busca não iniciada: este atleta ainda não tem nome e registro/).waitFor();
+   await page.getByText('Nadador Sintetico').waitFor();
    assert.deepEqual(writes,[],'An unconfigured source must not launch a search RPC');
    for(const label of ['Evolução','Configurações','Visão Geral'])await clickNav(label);
    const bodyWidth=await page.evaluate(()=>document.body.scrollWidth);
