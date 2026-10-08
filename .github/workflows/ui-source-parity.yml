@@ -41,6 +41,10 @@ jobs:
             'secure official link':'rel="noopener noreferrer"' in s,
             'source HTTPS link':"/^https:\\/\\//i.test(m.official_url)" in s,
             'top three PBs':'pbs.slice(0,3).map' in s,
+            'next championship highlighted once':'m.id===nextMeetId' in s and 'meet-next-label' in s,
+            'next championship date order':"String(a.start_date||'').localeCompare" in s,
+            'no duplicated dashboard next championship':'function Dashboard(' in s and '<h3>Próximo campeonato</h3>' not in s,
+            'no invented per-event URL':'/events/' not in s and '/balizamento/' not in s,
           }
           for label,ok in checks.items():print(('PASS' if ok else 'FAIL')+' '+label)
           if not all(checks.values()):raise SystemExit('Gate 2 source verification failed')
