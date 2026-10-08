@@ -7,7 +7,9 @@ Substituir a orquestração atual por uma pipeline determinística, testável e 
 Identidade -> Descoberta -> Documento oficial -> Extração -> Normalização -> Validação -> Deduplicação -> Persistência.
 
 ## Regra de ouro
-Nenhum dado real é inserido, corrigido, completado ou fabricado manualmente para fazer um teste passar.
+Nenhum dado real oficial é inserido, corrigido, completado ou fabricado manualmente para fazer um teste passar.
+
+Resultados manuais são permitidos somente quando o usuário pedir explicitamente lançamento/migração manual. Nesses casos devem permanecer `origin=manual`, `is_official=false`, manter rastreabilidade da origem e nunca podem ser usados como prova de funcionamento do importador automático.
 
 ## Gate de substituição
 O motor V2 só assume produção depois de reproduzir, em dry-run, históricos oficiais conhecidos e passar os contratos definidos em CANONICAL_IMPORT_ENGINE.md.
