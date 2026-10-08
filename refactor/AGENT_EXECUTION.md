@@ -24,4 +24,8 @@ Declaração em chat não conta como execução.
 Implementador não aprova o próprio gate. O workflow automatizado executa Gates 0/1 em todo push/PR relevante. Gates documentais e de integração recebem relatório separado.
 
 ## Regra de produção
-Nenhum agente escreve dados reais durante construção/auditoria da V2.
+Nenhum agente escreve dados reais oficiais durante construção/auditoria da V2.
+
+Exceção operacional: quando o usuário solicitar explicitamente um lançamento/migração manual, o agente pode gravar somente registros `origin=manual`, `is_official=false`, com rastreabilidade e sem alterar resultados oficiais existentes. Essa operação não conta como gate nem como prova do motor automático.
+
+Qualquer teste de descoberta de nome/local deve começar sem seed manual por competição. Evidência derivada pode ser reconstruída apenas pelo pipeline oficial.
