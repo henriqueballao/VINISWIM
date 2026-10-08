@@ -10,6 +10,7 @@ on:
       - 'app/index.html'
       - 'app/assets/**'
       - 'scripts/check-ui-consolidation-gate2.cjs'
+      - 'commercial/scripts/ui-browser-smoke.cjs'
       - '.github/workflows/ui-source-parity.yml'
   pull_request:
     branches:
@@ -87,6 +88,24 @@ jobs:
           PY
       - name: Check isolated experimental bundle
         run: node scripts/check-ui-consolidation-gate2.cjs
+      - name: Install isolated browser smoke dependencies
+        working-directory: commercial
+        run: |
+          npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Browser smoke tests (synthetic, read-only)
+        working-directory: commercial
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --workspace @viniswim/web run preview -- --host 127.0.0.1 --port 4173 > /tmp/viniswim-preview.log 2>&1 &
+          server_pid=$!
+          trap 'kill $server_pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/ui-browser-smoke.cjs
       - name: Store validated candidate build
         if: success()
         uses: actions/upload-artifact@v4
