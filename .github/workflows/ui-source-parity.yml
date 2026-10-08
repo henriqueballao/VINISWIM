@@ -70,6 +70,10 @@ jobs:
           index=dist/'index.html'
           if not index.exists(): raise SystemExit('FAIL: compiled index missing')
           html=index.read_text()
+          if 'src="/assets/' in html or 'href="/assets/' in html:
+              raise SystemExit('FAIL: root-absolute assets break /app/ deployment')
+          if 'src="./assets/' not in html or 'href="./assets/' not in html:
+              raise SystemExit('FAIL: relative /app/ assets missing')
           links=[u for u in re.findall(r'(?:src|href)="([^"]+)"',html) if u.endswith(('.js','.css'))]
           js_files=list((dist/'assets').glob('*.js'))
           css_files=list((dist/'assets').glob('*.css'))
