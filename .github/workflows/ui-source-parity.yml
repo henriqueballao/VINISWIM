@@ -1,10 +1,12 @@
-name: VINISWIM UI Source Parity
+name: VINISWIM UI Gate 2 (source and build)
 on:
   push:
     branches:
       - ui/unified-dashboard-gate2
     paths:
-      - 'commercial-src.zip'
+      - 'commercial/apps/web/src/**'
+      - 'commercial/apps/web/package.json'
+      - 'commercial/package.json'
       - 'app/index.html'
       - 'app/assets/**'
       - 'scripts/check-ui-consolidation-gate2.cjs'
@@ -15,40 +17,39 @@ permissions:
   contents: read
 
 jobs:
-  source-parity:
+  verify-source:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Audit packaged editable source and bundled app
-        shell: bash
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Audit editable React source
         run: |
-          set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          from zipfile import ZipFile
-          import re, sys
-          index=Path('app/index.html').read_text()
-          bundle_name=re.search(r'\./assets/([^"\']+\.js)',index)
-          if not bundle_name: raise SystemExit('FAIL: app/index.html has no JS bundle')
-          bundle=Path('app/assets',bundle_name.group(1)).read_text()
-          with ZipFile('commercial-src.zip') as z:
-              names=z.namelist()
-              source_names=[n for n in names if n.endswith('/apps/web/src/App.tsx')]
-              if len(source_names)!=1: raise SystemExit(f'FAIL: expected unique App.tsx inside zip, got {source_names}')
-              app=z.read(source_names[0]).decode('utf-8')
-              print(f'App.tsx in archive: {source_names[0]}, size={len(app)}')
-              print(f'Production bundle: {bundle_name.group(1)}, size={len(bundle)}')
-              probes={
-                'editable source contains Campeonatos section':'Campeonatos' in app,
-                'editable source contains Expectativas section':'Expectativas' in app,
-                'editable source has current import-v2 call':'request_result_refresh_v2' in app,
-                'editable source removes standalone Campeonatos route':not re.search('meets.{0,15}Campeonatos', app),
-                'editable source removes standalone Expectativas route':not re.search('expectations.{0,15}Expectativas', app),
-                'edited bundle has unified dashboard': 'A==="dashboard"&&y.jsxs(y.Fragment' in bundle,
-                'edited bundle has no standalone meets route':'A==="meets"&&' not in bundle,
-                'edited bundle has no standalone expectations route':'A==="expectations"&&' not in bundle,
-              }
-              for name, ok in probes.items(): print(('PASS' if ok else 'FAIL')+': '+name)
-              if not all(probes.values()): raise SystemExit('Source parity BLOCKED: source archive cannot be treated as validated current source.')
+          s=Path('commercial/apps/web/src/App.tsx').read_text()
+          checks={
+            'four routes':"type Page='dashboard'|'results'|'evolution'|'settings'" in s,
+            'old menu items removed':"['meets','Campeonatos'" not in s and "['expectations','Expectativas'" not in s,
+            'unified dashboard components':"{page==='dashboard'&&<><Dashboard" in s and '<MeetsPage meets={meets}' in s and '<Expectations results={results}' in s,
+            'old route renders removed':"{page==='meets'&&" not in s and "{page==='expectations'&&" not in s,
+            'V2 retained':'request_result_refresh_v2' in s,
+            'source meets retained':'function MeetsPage(' in s,
+            'source expectations retained':'function Expectations(' in s,
+            'manual result retention':"origin==='manual'" in s,
+            'secure official link':'rel="noopener noreferrer"' in s,
+            'source HTTPS link':"/^https:\\/\\//i.test(m.official_url)" in s,
+            'top three PBs':'pbs.slice(0,3).map' in s,
+          }
+          for label,ok in checks.items():print(('PASS' if ok else 'FAIL')+' '+label)
+          if not all(checks.values()):raise SystemExit('Gate 2 source verification failed')
           PY
-          node scripts/check-ui-consolidation-gate2.cjs
+      - name: Install dependencies (no deployment)
+        working-directory: commercial
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Type-check and build React source
+        working-directory: commercial
+        run: npm run build:web
+      - name: Check isolated experimental bundle
+        run: node scripts/check-ui-consolidation-gate2.cjs
