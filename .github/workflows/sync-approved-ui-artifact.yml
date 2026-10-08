@@ -1,0 +1,53 @@
+name: VINISWIM sync approved UI artifact
+on:
+  push:
+    branches:
+      - ui/unified-dashboard-validation
+    paths:
+      - '.github/workflows/sync-approved-ui-artifact.yml'
+permissions:
+  contents: write
+  actions: read
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: viniswim-ui-gate2-candidate
+          run-id: 37809509756
+          repository: henriqueballao/VINISWIM
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: /tmp/viniswim-approved
+      - name: Verify exact approved build bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/viniswim-approved
+          printf '%s\n' \
+            '43e5f2b96216c8d485af93d3b09a0f450481023a9de660eee844e3f74ddd2b13  assets/index-mwBvJawb.js' \
+            'b3f184f62c004dce73c8e72f5c2d8fe30620e592266f06af8acfee15ba3ed868  index.html' \
+            'da1abc81524c047943f78d5dfaf1f910f97c6a54041e0b031725284e7ddf8990  assets/index-CyjoYp8Q.css' \
+            'e843a33a94fa32006bd67a40caaa465bc1d5566c5d3368336be7fa4243b3e128  manifest.webmanifest' \
+            '9904897b3f460e60207e8f9786aeab5ebb15f9205fee77bb2373fa309d617bdc  sw.js' | sha256sum --check --status
+          test "$(find . -type f | wc -l)" -eq 5
+          grep -q './assets/index-mwBvJawb.js' index.html
+          grep -q './assets/index-CyjoYp8Q.css' index.html
+      - name: Synchronize approved static build into app/
+        run: |
+          set -euo pipefail
+          cp /tmp/viniswim-approved/index.html app/index.html
+          cp /tmp/viniswim-approved/manifest.webmanifest app/manifest.webmanifest
+          cp /tmp/viniswim-approved/sw.js app/sw.js
+          cp /tmp/viniswim-approved/assets/index-mwBvJawb.js app/assets/
+          cp /tmp/viniswim-approved/assets/index-CyjoYp8Q.css app/assets/
+          git add app/index.html app/manifest.webmanifest app/sw.js app/assets/index-mwBvJawb.js app/assets/index-CyjoYp8Q.css
+          git diff --cached --check
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'build(release): synchronize app with approved workflow 30 artifact'
+          git push origin HEAD:ui/unified-dashboard-validation
