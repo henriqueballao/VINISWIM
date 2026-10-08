@@ -44,3 +44,14 @@ Correções aplicadas:
 - Timeline real: 37 resultados, 0 locais vazios e 0 nomes contaminados.
 - Request FDAP final: `de1c62c6-90b4-41d3-a59d-b70285556e7d` -> 1/1 completed, 0 failed.
 - Runner produção: v22.
+
+
+## 2026-10-07 — fechamento antes de /clear
+- Runner de produção: v22.
+- Descoberta de metadados de competição não depende mais de seed manual: tabela de evidências foi zerada e 9/9 competições do histórico testado foram reconstruídas a partir do catálogo/páginas oficiais do SwimSystem.
+- Estado oficial do perfil principal antes do lançamento manual: 37 resultados oficiais, 0 locais vazios, 0 nomes com prefixo técnico, 0 duplicidades semânticas conhecidas.
+- Correção de Melhores Marcas: frontend passou a carregar `results(*,meets(venue,city,name))`; "Local" usa `meet.venue`. Commit de fonte `215670a7ebfc318596d519605ac89bc279d94d14`; build compilado `16cf5a4c5df9a306d0a8b0d28d7a1885ec9b3d31`.
+- Operação manual explicitamente autorizada pelo usuário: quatro resultados manuais identificados como `hist35-01..04` foram copiados do perfil secundário para o perfil principal, preservando `origin=manual` e `is_official=false`. Não foi apresentada como busca automática.
+- Estado atual do perfil principal após essa operação: 41 resultados = 37 oficiais + 4 manuais.
+- Os quatro manuais são do Torneio Regional da 1ª Região, 22/03/2025, SCM, Santa Mônica Clube de Campo: 100 Livre 2:11.61; 200 Livre 4:36.44; 50 Costas 57.52; 50 Livre 57.63.
+- Política canônica atualizada: escrita manual só é permitida quando explicitamente solicitada pelo usuário, permanece manual/não-oficial e nunca serve como evidência dos gates automáticos.
