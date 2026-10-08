@@ -87,3 +87,11 @@ jobs:
           PY
       - name: Check isolated experimental bundle
         run: node scripts/check-ui-consolidation-gate2.cjs
+      - name: Store validated candidate build
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: viniswim-ui-gate2-candidate
+          path: commercial/apps/web/dist/
+          if-no-files-found: error
+          retention-days: 7
