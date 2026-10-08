@@ -310,12 +310,11 @@ export default function App(){
    setRefreshMsg('Busca não iniciada: este atleta ainda não tem nome e registro nas fontes selecionadas. Abra Configurações → Fontes de resultados, informe a identificação do atleta e salve antes de buscar.')
    return
   }
-  if(missing.length){
-   setRefreshMsg('Busca não iniciada: configure nome e registro para '+missing.map((cfg:any)=>cfg.display_name||'fonte').join(', ')+'. Abra Configurações → Fontes de resultados e salve a identificação do atleta antes de continuar.')
-   return
-  }
-  const {error}=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athleteId,p_source_codes:searchSources})
+  const sourceCodes=configured.map((cfg:any)=>cfg.sources?.code).filter(Boolean)
+  if(!sourceCodes.length){setRefreshMsg('Nenhuma fonte pronta para busca. Configure o nome e o registro em Configurações → Fontes de resultados.');return}
+  const {error}=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athleteId,p_source_codes:sourceCodes})
   if(error){setRefreshMsg('Falha ao solicitar atualização: '+error.message);return}
+  if(missing.length)setRefreshMsg('Busca iniciada somente nas fontes configuradas. Ignoradas: '+missing.map((cfg:any)=>cfg.display_name||'fonte').join(', ')+'.')
   await loadAthlete()
  }
  async function cancelActiveRequest(requestId:string){
