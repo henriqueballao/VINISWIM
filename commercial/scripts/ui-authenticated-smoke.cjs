@@ -40,7 +40,7 @@ const tables={
     // Supabase RPC transport is POST even for read-only operations.
     // Mock ONLY this audited allowlist; all mutations remain forbidden.
     if(req.method()==='POST'&&path.startsWith('/rest/v1/rpc/')){
-      const readOnly={'list_account_members':[],'list_account_invites':[],'account_limits':{},'is_platform_admin':false};
+      const readOnly={'list_account_members':[],'list_account_invites':[],'account_limits':{},'is_platform_admin':false,'discover_athlete_source_candidates':{candidates:[{external_id:'000001',external_name:'Nadador Sintetico',birth_year:2015,evidence_count:3,evidence_url:'https://swimsystem.swimtimebrasil.com/11111/ResultList_1.pdf'}],source:'swimsystem'}};
       const name=path.split('/').pop();
       if(Object.hasOwn(readOnly,name))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(readOnly[name])});
     }
@@ -72,6 +72,9 @@ const tables={
     await page.getByRole('heading',{name:label,exact:true}).first().waitFor();
    };
    await clickNav('Resultados');
+   await page.getByRole('button',{name:'Localizar atleta'}).click();
+   await page.getByText('Nadador Sintetico').waitFor();
+   assert.equal(await page.getByRole('button',{name:'Confirmar e buscar provas'}).count(),1);
    await page.getByRole('button',{name:'Atualizar resultados'}).click();
    await page.getByText(/Busca não iniciada: este atleta ainda não tem nome e registro/).waitFor();
    assert.deepEqual(writes,[],'An unconfigured source must not launch a search RPC');
