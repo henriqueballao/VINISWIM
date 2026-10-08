@@ -120,13 +120,13 @@ jobs:
         run: |
           set -euo pipefail
           cd commercial/apps/web/dist
-          printf '%s\\n' \\
-            '43e5f2b96216c8d485af93d3b09a0f450481023a9de660eee844e3f74ddd2b13  assets/index-mwBvJawb.js' \\
-            'b3f184f62c004dce73c8e72f5c2d8fe30620e592266f06af8acfee15ba3ed868  index.html' \\
-            'da1abc81524c047943f78d5dfaf1f910f97c6a54041e0b031725284e7ddf8990  assets/index-CyjoYp8Q.css' \\
-            'e843a33a94fa32006bd67a40caaa465bc1d5566c5d3368336be7fa4243b3e128  manifest.webmanifest' \\
+          printf '%s\n' \
+            '43e5f2b96216c8d485af93d3b09a0f450481023a9de660eee844e3f74ddd2b13  assets/index-mwBvJawb.js' \
+            'b3f184f62c004dce73c8e72f5c2d8fe30620e592266f06af8acfee15ba3ed868  index.html' \
+            'da1abc81524c047943f78d5dfaf1f910f97c6a54041e0b031725284e7ddf8990  assets/index-CyjoYp8Q.css' \
+            'e843a33a94fa32006bd67a40caaa465bc1d5566c5d3368336be7fa4243b3e128  manifest.webmanifest' \
             '9904897b3f460e60207e8f9786aeab5ebb15f9205fee77bb2373fa309d617bdc  sw.js' | sha256sum --check --status
-          cd ../../../
+          cd ../../../..
           cp commercial/apps/web/dist/index.html app/index.html
           cp commercial/apps/web/dist/manifest.webmanifest app/manifest.webmanifest
           cp commercial/apps/web/dist/sw.js app/sw.js
