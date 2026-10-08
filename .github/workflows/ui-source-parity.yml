@@ -136,7 +136,7 @@ jobs:
           cp commercial/apps/web/dist/assets/index-mwBvJawb.js app/assets/
           cp commercial/apps/web/dist/assets/index-CyjoYp8Q.css app/assets/
           git add app/index.html app/manifest.webmanifest app/sw.js app/assets/index-mwBvJawb.js app/assets/index-CyjoYp8Q.css
-          git diff --cached --check
+          git diff --cached --check -- app/index.html app/manifest.webmanifest app/sw.js
           if git diff --cached --quiet; then exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
