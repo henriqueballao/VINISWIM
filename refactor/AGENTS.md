@@ -25,6 +25,8 @@ Autoriza cutover somente com todos os gates documentados. Em falha, mantém lega
 
 ## Regras comuns
 - Ler todos os CANONICAL_*.md antes de editar.
+- Resultado manual autorizado pelo usuário é dado de produto, não evidência do importador; deve permanecer manual/não-oficial.
+- Nenhum agente pode semear manualmente nome/local/competição para fazer a descoberta automática parecer correta.
 - Não alterar os canônicos silenciosamente para acomodar implementação.
 - Mudança de contrato exige commit separado e justificativa.
 - Toda correção deve incluir teste de regressão.
