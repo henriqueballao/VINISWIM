@@ -10,7 +10,8 @@ function athleteRow(flat,id,pos){
  return {text:flat.slice(start,end).trim(),prefix:prev[0],after:flat.slice(afterId,end).trim()};
 }
 function rowStatus(prefix){
- if(/^N\/C|^DQL|^DQ\b|^DSQ/i.test(prefix))return "dsq";
+ if(/^N\/C/i.test(prefix))return "dns";
+ if(/^DQL|^DQ\b|^DSQ/i.test(prefix))return "dsq";
  if(/^DNS/i.test(prefix))return "dns";
  if(/^DNF/i.test(prefix))return "dnf";
  return null;
@@ -21,7 +22,8 @@ function officialTime(after){
   /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*\d{2,3}%\s*(?:\d{1,2}[.,]\d{2}|-)\s*\d{1,4}(?:\s|$))/,
   /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*-\s*-\s*\d{1,4}(?:\s|$))/,
   /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*-{1,2}\s*\d{1,4}(?:\s|$))/,
-  /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*\d{1,2},\d{2}\s*\d{1,4}(?:\s|$))/
+  /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*\d{1,2},\d{2}\s*\d{1,4}(?:\s|$))/,
+  /(\d{1,2}:\d{2}\.\d{2}|\d{1,3}\.\d{2})(?=\s*-\s*\d{1,4}(?:\s|$))/
  ];
  for(const rx of patterns){const m=payload.match(rx);if(m){const ms=parseTime(m[1]);if(ms!=null&&ms>5000&&ms<1800000)return ms}}
  return null;
