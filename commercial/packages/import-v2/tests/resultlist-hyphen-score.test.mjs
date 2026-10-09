@@ -23,3 +23,12 @@ test('N/C is absent/DNS, never disqualified or a fabricated time',()=>{
  assert.equal(out[0].status,'dns');
  assert.equal(out[0].timeMs,null);
 });
+
+test('Legacy PDF dash plus decimal points accepts both comma and dot formats',()=>{
+ const mk=(time,points)=>'Prova 12 Masculino, 100m Livre Mirim 01/03/2024 - 17:46 Resultados 3. 3 / 3 Vizinho 400000 2015 Clube 1:44.79 - 14,00 78 4. 3 / 8 Lorenzo De Fortes 399680 2015 Curitibano '+time+' - '+points+' 62 5. 2 / 2 Proximo 400001 2015 Clube 2:17.16 - 10,00 34';
+ for(const points of ['12,00','12.00']){
+  const r=parseResultList({text:mk('1:53.21',points),...metadata});
+  assert.equal(r.length,1,points);
+  assert.equal(r[0].timeMs,113210,points);
+ }
+});
