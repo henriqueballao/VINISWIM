@@ -310,11 +310,11 @@ export default function App(){
    setRefreshMsg('Busca não iniciada: este atleta ainda não tem nome e registro nas fontes selecionadas. Abra Configurações → Fontes de resultados, informe a identificação do atleta e salve antes de buscar.')
    return
   }
-  const sourceCodes=configured.map((cfg:any)=>cfg.sources?.code).filter(Boolean)
-  if(!sourceCodes.length){setRefreshMsg('Nenhuma fonte pronta para busca. Configure o nome e o registro em Configurações → Fontes de resultados.');return}
+  const sourceCodes=selected.map((cfg:any)=>cfg.sources?.code).filter(Boolean)
+  if(!sourceCodes.length){setRefreshMsg('Nenhuma fonte ativa selecionada para varredura.');return}
   const {error}=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athleteId,p_source_codes:sourceCodes})
   if(error){setRefreshMsg('Falha ao solicitar atualização: '+error.message);return}
-  if(missing.length)setRefreshMsg('Busca iniciada somente nas fontes configuradas. Ignoradas: '+missing.map((cfg:any)=>cfg.display_name||'fonte').join(', ')+'.')
+  if(missing.length)setRefreshMsg('Varredura solicitada também às fontes sem registro confirmado: '+missing.map((cfg:any)=>cfg.display_name||'fonte').join(', ')+'. A execução de cada fonte informará se está preparada ou se precisa de correção no importador.')
   await loadAthlete()
  }
  async function cancelActiveRequest(requestId:string){
@@ -383,7 +383,7 @@ function AthleteOfficialDiscovery({athlete,sourceConfigs,onLinked,trigger}:{athl
    })
    if(error)throw error
    if(!data?.ok)throw new Error(data?.message||'Falha ao vincular fonte')
-   const request=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athlete.id,p_source_codes:['swimsystem']})
+   const request=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athlete.id})
    if(request.error)setNotice('Identificação vinculada, mas a busca não iniciou: '+request.error.message)
    else setNotice('Identificação confirmada por documentos oficiais. Busca automática iniciada no SwimSystem; confira o andamento e os resultados nesta tela.')
    setCandidates(null)
