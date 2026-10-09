@@ -387,6 +387,20 @@ async function process(job:any){
  const cq=await db.from("athlete_source_configs").select("external_id,external_name").eq("athlete_id",job.athlete_id).eq("source_id",job.source_id).eq("active",true).maybeSingle();if(cq.error)throw cq.error;
  const iq=await db.from("athlete_identifiers").select("external_id,external_name").eq("athlete_id",job.athlete_id).eq("source_id",job.source_id).eq("active",true).maybeSingle();
  let externalId=String(cq.data?.external_id||iq.data?.external_id||"").trim();
+ // If identity is absent, identify athlete from a unique official registration
+ // confirmed by at least two different federation PDFs. Never fabricate results.
+ if(!externalId&&(sq.data.code==="swimsystem"||sq.data.code==="fdap")){
+  const linked=await db.rpc("auto_link_verified_swimsystem_identity",{p_athlete_id:job.athlete_id});
+  if(linked.error)throw linked.error;
+  if(linked.data?.linked||linked.data?.reason==="already_identified"){
+   const ss=await db.from("sources").select("id").eq("code","swimsystem").single();
+   if(ss.error)throw ss.error;
+   const sc=await db.from("athlete_source_configs").select("external_id,external_name").eq("athlete_id",job.athlete_id).eq("source_id",ss.data.id).eq("active",true).maybeSingle();
+   if(sc.error)throw sc.error;
+   externalId=String(sc.data?.external_id||"").trim();
+  }
+ }
+
  if(!externalId&&sq.data.code==="fdap"){
   const ss=await db.from("sources").select("id").eq("code","swimsystem").maybeSingle();
   if(ss.data?.id){
