@@ -19,13 +19,15 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify-source:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -112,6 +114,22 @@ jobs:
           done
           node scripts/ui-browser-smoke.cjs
           node scripts/ui-authenticated-smoke.cjs
+      - name: Stage validated refresh feedback build
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'fix/refresh-visible-feedback-20261008' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp commercial/apps/web/dist/index.html app/index.html
+          cp commercial/apps/web/dist/manifest.webmanifest app/manifest.webmanifest
+          cp commercial/apps/web/dist/sw.js app/sw.js
+          cp commercial/apps/web/dist/assets/*.js app/assets/
+          cp commercial/apps/web/dist/assets/*.css app/assets/
+          git add app/
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'build: stage validated refresh feedback'
+          git push origin HEAD:fix/refresh-visible-feedback-20261008
       - name: Store validated candidate build
         if: success()
         uses: actions/upload-artifact@v4
