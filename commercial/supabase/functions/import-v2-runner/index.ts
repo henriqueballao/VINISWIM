@@ -289,6 +289,7 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
  if(aq.error)throw aq.error;
  const archives=aq.data||[];
  const ai=Number(cursor.archive_index||0);
+ if(!archives.length)throw new Error("source_archive_not_configured: no historical meet catalog for "+source.code);
  if(ai>=archives.length)return {done:true,cursor,found:0,inserted:0,duplicated:0};
  const a=archives[ai],retrievedAt=new Date().toISOString(),docs:any[]=[];
  if(a.provider==="masters_parana"){
@@ -363,7 +364,7 @@ async function process(job:any){
  }
  const canonicalName=cq.data?.external_name||iq.data?.external_name||aq.data.full_name;
  if(!externalId&&job.job_type==="current_meet"){const e:any=new Error("parser no match: missing external identity");e.parserMatched=false;throw e}
- if(!externalId&&job.job_type==="historical"&&sq.data.code!=="masters_parana")return {done:true,cursor:{},found:0,inserted:0,duplicated:0};
+ if(!externalId&&job.job_type==="historical"&&sq.data.code!=="masters_parana")throw new Error("source_identity_missing: historical search requires verified athlete identifier for "+sq.data.code);
  const identity={externalId,canonicalName,aliases:[aq.data.full_name,aq.data.preferred_name,cq.data?.external_name,iq.data?.external_name].filter(Boolean)};
  return job.job_type==="current_meet"?await processCurrent(job,identity):await processHistorical(job,sq.data,identity,aq.data);
 }
