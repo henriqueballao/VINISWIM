@@ -22,7 +22,7 @@ const tables={
   for(const size of [{name:'desktop',width:1440,height:900},{name:'mobile',width:390,height:844}]){
    const context=await browser.newContext({viewport:{width:size.width,height:size.height},serviceWorkers:'block'});
    const page=await context.newPage();
-   const errors=[],writes=[];
+   const errors=[],writes=[],refreshPayloads=[];
    page.on('pageerror',e=>errors.push(e.message));
    await page.route('**/*',async route=>{
     const req=route.request(),url=new URL(req.url());
@@ -42,6 +42,10 @@ const tables={
     if(req.method()==='POST'&&path.startsWith('/rest/v1/rpc/')){
       const readOnly={'list_account_members':[],'list_account_invites':[],'account_limits':{},'is_platform_admin':false,'discover_athlete_source_candidates':{candidates:[{external_id:'000001',external_name:'Nadador Sintetico',birth_year:2015,evidence_count:3,evidence_url:'https://swimsystem.swimtimebrasil.com/11111/ResultList_1.pdf'}],source:'swimsystem'}};
       const name=path.split('/').pop();
+      if(name==='request_result_refresh_v2'){
+       refreshPayloads.push(req.postDataJSON());
+       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({request_id:'99999999-9999-4999-8999-999999999999',engine:'v2',job_count:5})});
+      }
       if(Object.hasOwn(readOnly,name))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(readOnly[name])});
     }
     writes.push(req.method()+' '+path);
@@ -78,11 +82,31 @@ const tables={
    await page.getByRole('button',{name:'Atualizar resultados'}).click();
    await page.getByText('Nadador Sintetico').waitFor();
    assert.deepEqual(writes,[],'An unconfigured source must not launch a search RPC');
+   assert.deepEqual(refreshPayloads,[],'Unidentified athlete must ask for identity confirmation first');
    for(const label of ['Evolução','Configurações','Visão Geral'])await clickNav(label);
    const bodyWidth=await page.evaluate(()=>document.body.scrollWidth);
    assert.ok(bodyWidth<=size.width+2,'Horizontal overflow '+size.name+': '+bodyWidth);
    assert.deepEqual(errors,[],'JS errors '+size.name);
    assert.deepEqual(writes,[],'Unexpected write requests '+size.name);
+   const originalConfigs=tables.athlete_source_configs;
+   tables.athlete_source_configs=[
+    {...originalConfigs[0],external_id:'000001',external_name:'Nadador Sintetico'},
+    ...['fdap','fgda','masters_parana'].map((code,i)=>({
+     id:'source-config-'+i,athlete_id:athleteId,display_name:code,
+     external_id:null,external_name:null,active:true,sources:{code,name:code}
+    }))
+   ];
+   await page.reload({waitUntil:'domcontentloaded'});
+   await page.getByRole('heading',{name:'Visão Geral'}).waitFor();
+   await clickNav('Resultados');
+   await page.getByRole('button',{name:'Atualizar resultados'}).click();
+   await page.getByText('Varredura solicitada para 4 fontes ativas').waitFor();
+   assert.equal(refreshPayloads.length,1,'Configured athlete should request one sweep');
+   assert.deepEqual(new Set(refreshPayloads[0].p_source_codes),new Set(['swimsystem','fdap','fgda','masters_parana']),'Must sweep every active source, not only source with linked ID');
+   assert.deepEqual(writes,[],'No unexpected mutation while requesting all-source import');
+   assert.deepEqual(errors,[],'No JS errors after all-source refresh');
+   tables.athlete_source_configs=originalConfigs;
+   console.log('PASS synthetic all-source refresh '+size.name);
    console.log('PASS synthetic authenticated dashboard/navigation '+size.name);
    await context.close();
   }
