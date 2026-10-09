@@ -27,8 +27,9 @@ begin
     where c.athlete_id=a.id and c.active and s.active
    )
    and not exists (
-    select 1 from public.refresh_requests r
-    where r.athlete_id=a.id and r.finalized_at is null
+    -- An old unfinished request with no runnable jobs must not starve the athlete.
+    select 1 from public.import_v2_jobs j
+    where j.athlete_id=a.id and j.status in ('pending','running')
    )
  loop
   insert into public.refresh_requests
