@@ -358,8 +358,10 @@ function Dashboard({overview,pbs,events,setPage}:{overview:any,pbs:any[],events:
 function AthleteOfficialDiscovery({athlete,sourceConfigs,onLinked,trigger}:{athlete:any,sourceConfigs:any[],onLinked:()=>Promise<void>,trigger:number}){
  const [candidates,setCandidates]=useState<any[]|null>(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState('')
  const cfg=sourceConfigs.find((x:any)=>x.sources?.code==='swimsystem')
- if(!cfg||Boolean(String(cfg.external_id||'').trim()&&String(cfg.external_name||'').trim()))return null
+ const ready=Boolean(cfg&&String(cfg.external_id||'').trim()&&String(cfg.external_name||'').trim())
  async function discover(){
+  if(!cfg){setNotice('A fonte SwimSystem não foi carregada para este atleta. Confira Configurações → Fontes de resultados.');setCandidates(null);return}
+  if(ready){setNotice('A fonte já está identificada. A busca será executada diretamente.');return}
   setBusy(true);setNotice('');setCandidates(null)
   try{
    const {data,error}=await supabase.rpc('discover_athlete_source_candidates',{p_athlete_id:athlete.id})
@@ -370,6 +372,7 @@ function AthleteOfficialDiscovery({athlete,sourceConfigs,onLinked,trigger}:{athl
   }catch(e:any){setNotice('A descoberta falhou: '+(e?.message||String(e)))}
   finally{setBusy(false)}
  }
+ useEffect(()=>{setCandidates(null);setNotice('')},[athlete.id])
  useEffect(()=>{if(trigger>0)void discover()},[trigger])
  async function confirm(choice:any){
   setBusy(true);setNotice('')
@@ -388,6 +391,7 @@ function AthleteOfficialDiscovery({athlete,sourceConfigs,onLinked,trigger}:{athl
   }catch(e:any){setNotice('Falha ao vincular identidade: '+(e?.message||String(e)))}
   finally{setBusy(false)}
  }
+ if(ready)return null
  return <section className="section" aria-label="Identificação automática em fontes oficiais"><div className="section-head"><div><h3>Localizar atleta nas fontes oficiais</h3><p className="muted">Busca em documentos oficiais pelo nome cadastrado, sem digitar registro. Confira a correspondência antes de importar.</p></div><button className="btn primary" type="button" disabled={busy} onClick={discover}>{busy?'Consultando...':'Localizar atleta'}</button></div>
  {notice&&<p className="notice" role="status">{notice}</p>}
  {candidates&&candidates.length>0&&<div className="source-config-list">{candidates.map((c:any)=><div className="source-config-card" key={c.external_id}><div className="source-config-head"><div><b>{c.external_name}</b><small>Ano de nascimento: {c.birth_year} · Registro: {c.external_id} · {c.evidence_count} documentos</small></div><button type="button" className="btn primary" disabled={busy} onClick={()=>confirm(c)}>Confirmar e buscar provas</button></div><a href={c.evidence_url} target="_blank" rel="noreferrer">Conferir documento oficial ↗</a></div>)}</div>}
@@ -422,7 +426,7 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,meetOp
  const allCodes=sourceConfigs.map((x:any)=>x.sources?.code).filter(Boolean)
  const allSelected=allCodes.length>0&&allCodes.every((x:string)=>selectedSources.includes(x))
  function toggleAll(){setSelectedSources(allSelected?[]:allCodes)}
- async function refreshFromButton(){if(busy)return;setClickActive(true);window.setTimeout(()=>setClickActive(false),350);setBusy(true);try{if(isActive&&activeRequest?.request_id){await onCancelRefresh(activeRequest.request_id)}else if(!sourceConfigs.some((cfg:any)=>selectedSources.includes(cfg.sources?.code||'')&&String(cfg.external_id||'').trim()&&String(cfg.external_name||'').trim())&&sourceConfigs.some((cfg:any)=>cfg.sources?.code==='swimsystem')){setDiscoveryTrigger(v=>v+1)}else{await onRefresh()}}finally{setBusy(false)}}
+ async function refreshFromButton(){if(busy)return;setClickActive(true);window.setTimeout(()=>setClickActive(false),350);setBusy(true);try{if(isActive&&activeRequest?.request_id){await onCancelRefresh(activeRequest.request_id)}else if(!sourceConfigs.some((cfg:any)=>selectedSources.includes(cfg.sources?.code||'')&&String(cfg.external_id||'').trim()&&String(cfg.external_name||'').trim())){setDiscoveryTrigger(v=>v+1)}else{await onRefresh()}}finally{setBusy(false)}}
  return <><AthleteOfficialDiscovery athlete={athlete} sourceConfigs={sourceConfigs} onLinked={onLinked} trigger={discoveryTrigger}/><section className="section">
   <div className="section-head">
    <h3>Resultados</h3>
@@ -439,7 +443,8 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,meetOp
   </div>
   {sourceConfigs.some((cfg:any)=>(!String(cfg.external_id||'').trim()||!String(cfg.external_name||'').trim()))&&<div className="notice" role="alert">Fontes sem identificação do atleta não conseguem encontrar resultados oficiais. Informe nome e registro em Configurações → Fontes de resultados antes de iniciar a busca.</div>}
   <div className="results-sync-meta"><small>{lastSync?'Última busca concluída: '+new Date(lastSync).toLocaleString('pt-BR'):'Última busca concluída: —'}</small></div>
-  {(isPending||isRunning||isCancelled||isFailed||isNoSources||refreshMsg)&&<div className={'sync-msg'+(isRunning?' swimming':'')}>
+  {refreshMsg&&<div className="notice" role="alert">{refreshMsg}</div>}
+  {(isPending||isRunning||isCancelled||isFailed||isNoSources)&&<div className={'sync-msg'+(isRunning?' swimming':'')}>
    {isNoSources?'Nenhuma fonte aplicável foi encontrada para esta busca.':(isPending||isRunning||isCancelled||isFailed)?<><div className="swim-status-copy"><div><b>{isActive?(slow?'BUSCA DEMORADA':'BUSCA EM ANDAMENTO')+' · '+syncClock:'Buscando novos resultados...'}</b><small>Consultando fontes oficiais e processando campeonatos.</small></div>{!isActive&&<strong className="swim-timer">{syncClock}</strong>}</div><div className={'swim-lane'+(syncAlert?' alert':'')} aria-label={syncAlert?'Busca paralisada':'Atualização em andamento'}><div className={'swimmer '+((athlete?.gender||'').toLowerCase().startsWith('f')?'female':'male')+(syncAlert?' stopped':'')}><span className="swim-head"/><span className="swim-body"/><span className="swim-arm arm-a"/><span className="swim-arm arm-b"/><span className="swim-splash">•••</span>{syncAlert&&<span className="swim-alert-sign"><AlertTriangle size={15}/></span>}</div></div>{syncAlert&&<div className="swim-alert-copy"><span>{isCancelled?'PAUSA SOLICITADA':isFailed?'ERRO NA BUSCA':'BUSCA DEMORADA'}</span></div>}</>:refreshMsg}
   </div>}
   <div className="result-filter-grid">
