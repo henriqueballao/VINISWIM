@@ -304,17 +304,12 @@ export default function App(){
    setRefreshMsg('Nenhuma fonte selecionada. Escolha uma fonte em Resultados antes de iniciar a busca.')
    return
   }
-  const configured=selected.filter((cfg:any)=>Boolean(String(cfg.external_id||'').trim()&&String(cfg.external_name||'').trim()))
   const missing=selected.filter((cfg:any)=>(!String(cfg.external_id||'').trim()||!String(cfg.external_name||'').trim()))
-  if(!configured.length){
-   setRefreshMsg('Busca não iniciada: este atleta ainda não tem nome e registro nas fontes selecionadas. Abra Configurações → Fontes de resultados, informe a identificação do atleta e salve antes de buscar.')
-   return
-  }
-  const sourceCodes=configured.map((cfg:any)=>cfg.sources?.code).filter(Boolean)
-  if(!sourceCodes.length){setRefreshMsg('Nenhuma fonte pronta para busca. Configure o nome e o registro em Configurações → Fontes de resultados.');return}
+  const sourceCodes=selected.map((cfg:any)=>cfg.sources?.code).filter(Boolean)
+  if(!sourceCodes.length){setRefreshMsg('Nenhuma fonte ativa selecionada para varredura.');return}
   const {error}=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athleteId,p_source_codes:sourceCodes})
   if(error){setRefreshMsg('Falha ao solicitar atualização: '+error.message);return}
-  if(missing.length)setRefreshMsg('Busca iniciada somente nas fontes configuradas. Ignoradas: '+missing.map((cfg:any)=>cfg.display_name||'fonte').join(', ')+'.')
+  if(missing.length)setRefreshMsg('Varredura solicitada também às fontes sem registro confirmado: '+missing.map((cfg:any)=>cfg.display_name||'fonte').join(', ')+'. A execução de cada fonte informará se está preparada ou se precisa de correção no importador.')
   await loadAthlete()
  }
  async function cancelActiveRequest(requestId:string){
@@ -383,7 +378,7 @@ function AthleteOfficialDiscovery({athlete,sourceConfigs,onLinked,trigger}:{athl
    })
    if(error)throw error
    if(!data?.ok)throw new Error(data?.message||'Falha ao vincular fonte')
-   const request=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athlete.id,p_source_codes:['swimsystem']})
+   const request=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athlete.id})
    if(request.error)setNotice('Identificação vinculada, mas a busca não iniciou: '+request.error.message)
    else setNotice('Identificação confirmada por documentos oficiais. Busca automática iniciada no SwimSystem; confira o andamento e os resultados nesta tela.')
    setCandidates(null)
@@ -426,7 +421,7 @@ function ResultsPage({filtered,allResults,events,filters,setFilters,meets,meetOp
  const allCodes=sourceConfigs.map((x:any)=>x.sources?.code).filter(Boolean)
  const allSelected=allCodes.length>0&&allCodes.every((x:string)=>selectedSources.includes(x))
  function toggleAll(){setSelectedSources(allSelected?[]:allCodes)}
- async function refreshFromButton(){if(busy)return;setClickActive(true);window.setTimeout(()=>setClickActive(false),350);setBusy(true);try{if(isActive&&activeRequest?.request_id){await onCancelRefresh(activeRequest.request_id)}else if(!sourceConfigs.some((cfg:any)=>selectedSources.includes(cfg.sources?.code||'')&&String(cfg.external_id||'').trim()&&String(cfg.external_name||'').trim())){setDiscoveryTrigger(v=>v+1)}else{await onRefresh()}}finally{setBusy(false)}}
+ async function refreshFromButton(){if(busy)return;setClickActive(true);window.setTimeout(()=>setClickActive(false),350);setBusy(true);try{if(isActive&&activeRequest?.request_id){await onCancelRefresh(activeRequest.request_id)}else if(sourceConfigs.some((cfg:any)=>cfg.sources?.code==='swimsystem')&&!sourceConfigs.some((cfg:any)=>selectedSources.includes(cfg.sources?.code||'')&&String(cfg.external_id||'').trim()&&String(cfg.external_name||'').trim())){setDiscoveryTrigger(v=>v+1)}else{await onRefresh()}}finally{setBusy(false)}}
  return <><AthleteOfficialDiscovery athlete={athlete} sourceConfigs={sourceConfigs} onLinked={onLinked} trigger={discoveryTrigger}/><section className="section">
   <div className="section-head">
    <h3>Resultados</h3>
