@@ -1676,7 +1676,7 @@ function renderCards(){
   ];
   $('#summaryCards').innerHTML=cards.map(c=>`<div class="card kpi-card clickable" role="button" tabindex="0" onclick="openResultsBySource('${c[4]}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openResultsBySource('${c[4]}')}"><div class="kpi-card-icon">${metricIcon(c[3])}</div><div class="k">${c[0]}</div><div class="v">${c[1]}</div><div class="s">${c[2]}</div></div>`).join('');
   if(next){
-    $('#nextMeet').innerHTML=`<div class="meet modern-meet"><div><h4>${next.name}${meetState(next)}</h4><p>${fmtDate(next.dateStart)} a ${fmtDate(next.dateEnd)} · ${next.venue||next.city||'local não informado'} · ${poolLabel(next.poolMeters)}</p><div class="entry-grid">${(next.entries||[]).map(e=>{const rr=resultForEntry(next,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)} · ${e.scheduled||'—'}</small><span class="entry-seed-label">Balizamento</span><span class="entry-seed-time mono">${e.seed||'NT'}</span><small>Série ${e.series??'—'} · Raia ${e.lane??'—'}</small>${compareMarkup(e,rr,{meet:next})}</div>`}).join('')}</div></div></div>`
+    $('#nextMeet').innerHTML=`<div class="meet modern-meet"><div><h4>${next.name}${meetState(next)}</h4><p>${fmtDate(next.dateStart)} a ${fmtDate(next.dateEnd)} · ${next.venue||next.city||'local não informado'} · ${poolLabel(next.poolMeters)}</p><div class="entry-grid">${(next.entries||[]).map(e=>{const rr=resultForEntry(next,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)} · ${e.scheduled||'—'}</small><span class="entry-seed-label">Tempo de inscrição</span><span class="entry-seed-time mono">${e.seed||'NT'}</span><small>Série ${e.series??'—'} · Raia ${e.lane??'—'}</small>${compareMarkup(e,rr,{meet:next})}</div>`}).join('')}</div></div></div>`
   } else $('#nextMeet').innerHTML='<span class="muted">Nenhum campeonato futuro cadastrado.</span>';
 }
 function renderBest(){
@@ -1923,7 +1923,7 @@ function renderMeets(){
     const xf=String(x.dateEnd||'')>=today?0:1, yf=String(y.dateEnd||'')>=today?0:1;
     return xf-yf || String(x.dateStart||'').localeCompare(String(y.dateStart||''));
   });
-  $('#meetList').innerHTML=ordered.map(m=>`<div class="meet"><div><h4>${m.name}${meetState(m)}</h4><p>${fmtDate(m.dateStart)} a ${fmtDate(m.dateEnd)} · ${m.venue||m.city||'—'} · ${poolLabel(m.poolMeters)}</p>${m.entries?.length?`<div class="entry-grid">${m.entries.map(e=>{const rr=resultForEntry(m,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)}</small><span class="entry-seed-label">Balizamento</span><span class="entry-seed-time mono">${e.seed||'NT'}</span><small>S${e.series??'—'} / R${e.lane??'—'} · ${e.scheduled||'—'}</small>${compareMarkup(e,rr,{meet:m})}</div>`}).join('')}</div>`:''}</div><div><span class="tag ${m.sourceId||m.sourceUrl?'official':'manual'}">${sourceProviderLabel(m)}</span></div></div>`).join('');
+  $('#meetList').innerHTML=ordered.map(m=>`<div class="meet"><div><h4>${m.name}${meetState(m)}</h4><p>${fmtDate(m.dateStart)} a ${fmtDate(m.dateEnd)} · ${m.venue||m.city||'—'} · ${poolLabel(m.poolMeters)}</p>${m.entries?.length?`<div class="entry-grid">${m.entries.map(e=>{const rr=resultForEntry(m,e);return `<div class="entry modern-entry"><b>${e.event}</b><small>${fmtDate(e.date)}</small><span class="entry-seed-label">Tempo de inscrição</span><span class="entry-seed-time mono">${e.seed||'NT'}</span><small>S${e.series??'—'} / R${e.lane??'—'} · ${e.scheduled||'—'}</small>${compareMarkup(e,rr,{meet:m})}</div>`}).join('')}</div>`:''}</div><div><span class="tag ${m.sourceId||m.sourceUrl?'official':'manual'}">${sourceProviderLabel(m)}</span></div></div>`).join('');
 }
 function regress(points){
   if(points.length<2)return null;
@@ -2016,10 +2016,10 @@ function renderPredictions(){
       const completed=['official','manual','dns','dsq','dnf'].includes(status);
       const pill=status==='official'?'OFICIAL':status==='dns'?'DNS':status==='dsq'?'DSQ':status==='dnf'?'DNF':status==='manual'?'CONFIRMADO':'PROVISÓRIO';
       const cls=completed?'high':'medium';
-      return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · prova realizada</small><small style="display:block;color:var(--muted);margin-top:3px">${expectationMeta}</small></div>${actualResultCard(e,rr)}${expectationVsActual('Expectativa conservadora',est?.conservative,rr)}${expectationVsActual('Expectativa provável',est?.prob,rr)}${expectationVsActual('Expectativa agressiva',est?.aggressive,rr)}<div class="confidence ${cls}">${pill}</div></div>`;
+      return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Inscrição ${e.seed||'NT'} · prova realizada</small><small style="display:block;color:var(--muted);margin-top:3px">${expectationMeta}</small></div>${actualResultCard(e,rr)}${expectationVsActual('Expectativa conservadora',est?.conservative,rr)}${expectationVsActual('Expectativa provável',est?.prob,rr)}${expectationVsActual('Expectativa agressiva',est?.aggressive,rr)}<div class="confidence ${cls}">${pill}</div></div>`;
     }
-    if(!est)return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · Sem histórico suficiente</small></div>${actualResultCard(e,null)}<div></div><div></div><div></div><div class="confidence low">BAIXA</div></div>`;
-    return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Balizamento ${e.seed||'NT'} · ${est.n} resultado(s) anteriores utilizados</small></div>${actualResultCard(e,null)}<div class="range"><small>Conservadora</small><b class="mono">${fmtTime(est.conservative)}</b></div><div class="range"><small>Provável</small><b class="mono">${fmtTime(est.prob)}</b></div><div class="range"><small>Agressiva</small><b class="mono">${fmtTime(est.aggressive)}</b></div><div class="confidence ${est.conf}">${est.conf==='high'?'ALTA':est.conf==='medium'?'MÉDIA':'BAIXA'}</div></div>`;
+    if(!est)return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Inscrição ${e.seed||'NT'} · Sem histórico suficiente</small></div>${actualResultCard(e,null)}<div></div><div></div><div></div><div class="confidence low">BAIXA</div></div>`;
+    return `<div class="pred"><div class="title"><b>${e.event}</b><small style="display:block;color:var(--muted)">Inscrição ${e.seed||'NT'} · ${est.n} resultado(s) anteriores utilizados</small></div>${actualResultCard(e,null)}<div class="range"><small>Conservadora</small><b class="mono">${fmtTime(est.conservative)}</b></div><div class="range"><small>Provável</small><b class="mono">${fmtTime(est.prob)}</b></div><div class="range"><small>Agressiva</small><b class="mono">${fmtTime(est.aggressive)}</b></div><div class="confidence ${est.conf}">${est.conf==='high'?'ALTA':est.conf==='medium'?'MÉDIA':'BAIXA'}</div></div>`;
   }).join('');
 }
 function renderAudit(){
@@ -3092,19 +3092,25 @@ async function importFromSwimSystem(){
   }
   status.innerHTML='<span class="pill">Consultando SwimSystem...</span>';
   try{
-    const r=await fetch(base+'/swimsystem/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,registration:DATA.settings?.athleteRegistration||DATA.athlete?.registration})});
-    if(!r.ok)throw new Error('O conector não conseguiu consultar o SwimSystem.');
+    const r=await fetch(base+'/swimsystem/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,registration:DATA.settings?.athleteRegistration||DATA.athlete?.registration,name:DATA.athlete?.name||''})});
     const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'O conector não conseguiu consultar o SwimSystem.');
     if(!d.meet)throw new Error('Competição não reconhecida pelo conector.');
+    if(!Array.isArray(d.meet.entries)||!d.meet.entries.length)throw new Error('Nenhuma prova identificada. O campeonato não foi importado.');
     const exists=DATA.meets.find(m=>m.sourceUrl===url||m.id===d.meet.id);
     d.meet.resultProvider='swimsystem';
     if(exists){
-      Object.assign(exists,d.meet,{resultProvider:'swimsystem'});
+      const previous=exists.entries||[];
+      const merged=d.meet.entries.map(entry=>{
+        const prior=previous.find(e=>String(e.event||'').toLowerCase()===String(entry.event||'').toLowerCase() && (!entry.date||!e.date||e.date===entry.date));
+        return {...(prior||{}),...Object.fromEntries(Object.entries(entry).filter(([,v])=>v!==null&&v!==undefined&&v!==''))};
+      });
+      Object.assign(exists,d.meet,{entries:merged,resultProvider:'swimsystem'});
     }else DATA.meets.push(d.meet);
     if(d.source && !DATA.sources.find(s=>s.id===d.source.id))DATA.sources.push(d.source);
     DATA.settings.swimSystemMeetUrl=url;
     render();queueSave(true);
-    status.innerHTML=`<div class="notice"><b>Importação concluída.</b> ${d.meet.entries?.length||0} prova(s) do Vini encontrada(s). Revise antes de usar.</div>`;
+    status.innerHTML=`<div class="notice"><b>Importação concluída.</b> ${d.meet.entries?.length||0} prova(s) identificada(s) para o atleta selecionado. Revise horários, séries e raias.</div>`;
   }catch(e){
     status.innerHTML=`<div class="notice" style="border-left-color:var(--bad)"><b>Falha na importação:</b> ${e.message}</div>`;
   }
