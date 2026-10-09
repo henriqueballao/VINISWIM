@@ -11,8 +11,11 @@ declare
  v_first text;
  v_last text;
  v_pattern text;
- v_match record;
  v_candidates integer;
+ v_registration text;
+ v_year integer;
+ v_official_name text;
+ v_docs integer;
 begin
  select full_name,birth_date into v_athlete
  from public.athletes where id=p_athlete_id and active=true;
@@ -47,18 +50,18 @@ begin
   having count(distinct d.url)>=2
  )
  select count(*), min(registration),min(birth_year),min(official_name),max(docs)
- into v_candidates,v_match
+ into v_candidates,v_registration,v_year,v_official_name,v_docs
  from matches;
  if v_candidates<>1 then
   return jsonb_build_object('linked',false,'reason',case when v_candidates=0 then 'no_verified_candidate' else 'ambiguous_identity' end,'candidate_count',v_candidates);
  end if;
  update public.athlete_source_configs
- set external_id=v_match.registration,
-     external_name=v_match.official_name,
+ set external_id=v_registration,
+     external_name=v_official_name,
      updated_at=now()
  where id=v_config.id and nullif(btrim(external_id),'') is null;
  if not found then return jsonb_build_object('linked',false,'reason','changed_concurrently'); end if;
- return jsonb_build_object('linked',true,'source','swimsystem','external_id',v_match.registration,'document_count',v_match.docs);
+ return jsonb_build_object('linked',true,'source','swimsystem','external_id',v_match.registration,'document_count',v_docs);
 end;
 $$;
 revoke all on function public.auto_link_verified_swimsystem_identity(uuid) from public,anon,authenticated;
