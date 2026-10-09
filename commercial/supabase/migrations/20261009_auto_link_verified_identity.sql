@@ -61,7 +61,7 @@ begin
      updated_at=now()
  where id=v_config.id and nullif(btrim(external_id),'') is null;
  if not found then return jsonb_build_object('linked',false,'reason','changed_concurrently'); end if;
- return jsonb_build_object('linked',true,'source','swimsystem','external_id',v_match.registration,'document_count',v_docs);
+ return jsonb_build_object('linked',true,'source','swimsystem','external_id',v_registration,'document_count',v_docs);
 end;
 $$;
 revoke all on function public.auto_link_verified_swimsystem_identity(uuid) from public,anon,authenticated;
