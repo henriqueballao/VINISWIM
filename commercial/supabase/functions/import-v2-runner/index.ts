@@ -290,7 +290,7 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
  const archives=aq.data||[];
  const ai=Number(cursor.archive_index||0);
  if(!archives.length)throw new Error("source_archive_not_configured: no historical meet catalog for "+source.code);
- if(ai>=archives.length){if(Number(cursor.unparsed_archives||0)>0)throw new Error("historical_partial_unparsed: "+cursor.unparsed_archives+" archives contained identifier evidence but no accepted individual result; last="+cursor.last_unparsed_archive);return {done:true,cursor,found:0,inserted:0,duplicated:0}};
+ if(ai>=archives.length){if(Number(cursor.unparsed_archives||0)>0)throw new Error("historical_partial_unparsed: "+cursor.unparsed_archives+" archives contain unmatched evidence; "+JSON.stringify(cursor.unparsed_details||[]).slice(0,650));return {done:true,cursor,found:0,inserted:0,duplicated:0}};
  const a=archives[ai],retrievedAt=new Date().toISOString(),docs:any[]=[];
  if(a.provider==="masters_parana"){
   const txt=await readerText(a.base_url);
@@ -309,7 +309,7 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
   const next=pi+batch.length;
   if(next<links.length){
    const pack=historicalDryRun({identity,archives:[{externalMeetId:String(a.event_key),sourceCode:source.code,course:a.course,provider:a.provider,startDate:a.start_date,endDate:a.end_date,name:a.name}],documents:docs,retrievedAt});
-   if(docs.length&&pack.accepted.length===0&&a.provider!=="masters_parana"&&a.provider!=="swimsystem_v2"){cursor.unparsed_archives=Number(cursor.unparsed_archives||0)+1;cursor.last_unparsed_archive=String(a.event_key)}
+   if(docs.length&&pack.accepted.length===0&&a.provider!=="masters_parana"&&a.provider!=="swimsystem_v2"){cursor.unparsed_archives=Number(cursor.unparsed_archives||0)+1;cursor.last_unparsed_archive=String(a.event_key);cursor.unparsed_details=[...(cursor.unparsed_details||[]),{meet:String(a.event_key),documents:docs.length,rejected:pack.rejected.length,errors:pack.rejected[0]?.errors||[],example_url:docs[0]?.url?.split("/").pop()}].slice(-10)}
    const p=await persistCandidates(job,a,pack.accepted,athlete);
    return {done:false,cursor:{...cursor,archive_index:ai,pdf_cursor:next},found:pack.accepted.length,inserted:p.inserted,duplicated:p.duplicated};
   }
@@ -318,7 +318,7 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
   for(const d of cq.data||[]){if(/ResultList_/i.test(d.url)&&String(d.text_content||"").includes(identity.externalId))docs.push({externalMeetId:String(a.event_key),url:d.url,text:d.text_content})}
  }
  const pack=historicalDryRun({identity,archives:[{externalMeetId:String(a.event_key),sourceCode:source.code,course:a.course,provider:a.provider,startDate:a.start_date,endDate:a.end_date,name:a.name}],documents:docs,retrievedAt});
- if(docs.length&&pack.accepted.length===0&&a.provider!=="masters_parana"&&a.provider!=="swimsystem_v2"){cursor.unparsed_archives=Number(cursor.unparsed_archives||0)+1;cursor.last_unparsed_archive=String(a.event_key)}
+ if(docs.length&&pack.accepted.length===0&&a.provider!=="masters_parana"&&a.provider!=="swimsystem_v2"){cursor.unparsed_archives=Number(cursor.unparsed_archives||0)+1;cursor.last_unparsed_archive=String(a.event_key);cursor.unparsed_details=[...(cursor.unparsed_details||[]),{meet:String(a.event_key),documents:docs.length,rejected:pack.rejected.length,errors:pack.rejected[0]?.errors||[],example_url:docs[0]?.url?.split("/").pop()}].slice(-10)}
  const p=await persistCandidates(job,a,pack.accepted,athlete);
  return {done:ai+1>=archives.length&&Number(cursor.unparsed_archives||0)===0,cursor:{...cursor,archive_index:ai+1,pdf_cursor:0},found:pack.accepted.length,inserted:p.inserted,duplicated:p.duplicated};
 }
