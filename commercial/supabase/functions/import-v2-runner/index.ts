@@ -139,10 +139,10 @@ function pdfLinks(html:string){
  return [...new Set([...String(html||"").matchAll(/https?:\/\/[^"'\\s]+\.pdf/gi)].map(m=>m[0]))];
 }
 function categoryFor(resultDate:string,birthDate:string|null,current:string|null){
- if(!resultDate||!birthDate)return current||null;
+ if(!resultDate||!birthDate)return null; // Historical category cannot be inferred from current category.
  const age=Number(resultDate.slice(0,4))-Number(String(birthDate).slice(0,4));
  const labels:any={9:"Mirim I",10:"Mirim II",11:"Petiz I",12:"Petiz II",13:"Infantil I",14:"Infantil II",15:"Juvenil I",16:"Juvenil II",17:"Júnior I",18:"Júnior II",19:"Sênior",20:"Sênior"};
- return labels[age]||(age>=25?"Master":current||null);
+ return labels[age]||(age>=25?"Master":null);
 }
 async function eventMap(){
  const {data,error}=await db.from("events").select("id,label").eq("active",true);if(error)throw error;
@@ -257,6 +257,38 @@ async function ensureSwimSystemArchives(sourceId:string){
   await db.from("historical_archives").insert({source_id:sourceId,provider:"swimsystem_v2",event_key:id,name:"SwimSystem "+id,base_url:"https://www.swimsystem.app/meets/sw/"+id,active:true,updated_at:new Date().toISOString()});
  }
 }
+// Expand the legacy archive catalog from independently cached official ResultList PDFs.
+// These URLs are already stored with original source evidence; no inferred results are created.
+async function ensureCachedLegacyArchives(sourceId:string){
+ const all:string[]=[];
+ for(let from=0;from<5000;from+=1000){
+  const q=await db.from("historical_document_text_cache").select("url").eq("fetch_status","ok")
+   .like("url","https://swimsystem.swimtimebrasil.com/%/ResultList_%")
+   .range(from,from+999);
+  if(q.error)throw q.error;
+  const batch=(q.data||[]).map((x:any)=>String(x.url||""));
+  all.push(...batch);
+  if(batch.length<1000)break;
+ }
+ const ids=new Set<string>();
+ for(const url of all){
+  const m=url.match(/^https:\/\/swimsystem\.swimtimebrasil\.com\/([0-9]{4,8})\/ResultList_[0-9]+\.pdf$/i);
+  if(m)ids.add(m[1]);
+ }
+ const existing=await db.from("historical_archives").select("event_key").eq("source_id",sourceId);
+ if(existing.error)throw existing.error;
+ const have=new Set((existing.data||[]).map((x:any)=>String(x.event_key)));
+ for(const id of ids){
+  if(have.has(id))continue;
+  const r=await db.from("historical_archives").insert({
+   source_id:sourceId,provider:"swimsystem",event_key:id,
+   name:"Competição SwimSystem "+id,
+   base_url:"https://swimsystem.swimtimebrasil.com/"+id+"/",
+   active:true,updated_at:new Date().toISOString()
+  });
+  if(r.error&&!String(r.error.code||"").includes("23505"))throw r.error;
+ }
+}
 async function ensureMastersArchives(sourceId:string){
  let pages:any[]=[];
  try{pages=JSON.parse(await fetchText("http://mastersparana.com.br/associacao/index.php?rest_route=/wp/v2/pages&per_page=50"))}catch{return}
@@ -278,6 +310,7 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
  const cursor={...(job.cursor||{})};
  if(!cursor.discovery_done){
   if(source.code==="swimsystem")await ensureSwimSystemArchives(job.source_id);
+  if(source.code==="fdap")await ensureCachedLegacyArchives(job.source_id);
   if(source.code==="masters_parana")await ensureMastersArchives(job.source_id);
   if(source.code==="fdap"||source.code==="swimsystem"){
    const refreshed=await db.rpc("refresh_official_meet_document_catalog");
@@ -285,7 +318,7 @@ async function processHistorical(job:any,source:any,identity:any,athlete:any){
   }
   cursor.discovery_done=true;cursor.archive_index=0;cursor.pdf_cursor=0;
  }
- const aq=await db.from("historical_archives").select("*").eq("source_id",job.source_id).order("created_at",{ascending:true});
+ const aq=await db.from("historical_archives").select("*").eq("source_id",job.source_id).eq("active",true).order("created_at",{ascending:true});
  if(aq.error)throw aq.error;
  const archives=aq.data||[];
  const ai=Number(cursor.archive_index||0);
@@ -365,8 +398,19 @@ async function process(job:any){
  const canonicalName=cq.data?.external_name||iq.data?.external_name||aq.data.full_name;
  if(!externalId&&job.job_type==="current_meet"){const e:any=new Error("parser no match: missing external identity");e.parserMatched=false;throw e}
  if(!externalId&&job.job_type==="historical"&&sq.data.code!=="masters_parana")throw new Error("source_identity_missing: historical search requires verified athlete identifier for "+sq.data.code);
+ if(!["swimsystem","fdap","masters_parana"].includes(sq.data.code))throw new Error("source_adapter_not_implemented: "+sq.data.code+" (source was not scanned)");
  const identity={externalId,canonicalName,aliases:[aq.data.full_name,aq.data.preferred_name,cq.data?.external_name,iq.data?.external_name].filter(Boolean)};
- return job.job_type==="current_meet"?await processCurrent(job,identity):await processHistorical(job,sq.data,identity,aq.data);
+ let athleteWithVerifiedYear=aq.data;
+ if(!aq.data.birth_date){
+  const year=await db.rpc("verified_official_birth_year",{p_athlete_id:job.athlete_id});
+  if(year.error)throw year.error;
+  // Year only, verified in >=2 independently cached official result PDFs.
+  // This is an in-memory calculation placeholder; do NOT modify athlete.birth_date.
+  if(Number.isInteger(year.data)&&year.data>=1900&&year.data<=new Date().getFullYear()){
+   athleteWithVerifiedYear={...aq.data,birth_date:String(year.data)+"-01-01"};
+  }
+ }
+ return job.job_type==="current_meet"?await processCurrent(job,identity):await processHistorical(job,sq.data,identity,athleteWithVerifiedYear);
 }
 Deno.serve(async()=>{
  try{
