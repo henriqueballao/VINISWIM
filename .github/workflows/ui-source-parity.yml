@@ -29,6 +29,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Verify historical result-list parser
+        run: node --test commercial/packages/import-v2/tests/resultlist-hyphen-score.test.mjs
       - name: Audit editable React source
         run: |
           python3 - <<'PY'
