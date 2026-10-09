@@ -264,10 +264,31 @@ function findAthleteBlock($,athlete){
 }
 
 function extractEntriesFromBlock(text){
+  // Athlete details contain separate fields for call time, heat/lane and seed time.
+  // Never map a seed time ("Inscrição") to a scheduled start or a race result.
   const entries=[];
-  const rx=/(\d{1,2}:\d{2})\s+((?:\d+x)?\d{2,4}m?\s+(?:Livre|Costas|Peito|Borboleta|Medley))/gi;
-  let m;
-  while((m=rx.exec(text)))entries.push({scheduled:m[1],event:m[2].replace(/\s+/g,' ').trim()});
+  const eventRx=/(?:^|\s)(\d{1,3})\s+((?:\d+x)?\d{2,4}\s*m?\s+(?:Livre|Costas|Peito|Borboleta|Medley))\b/gi;
+  const matches=[...String(text||'').matchAll(eventRx)];
+  for(let i=0;i<matches.length;i++){
+    const hit=matches[i], start=hit.index+hit[0].length;
+    const tail=String(text).slice(start,i+1<matches.length?matches[i+1].index:undefined);
+    const scheduled=(tail.match(/\b([01]?\d|2[0-3]):[0-5]\d\b/)||[])[0]||null;
+    const heat=tail.match(/S[eé]rie\s*(\d+)\s*[·,;/ -]*\s*Raia\s*(\d+)/i);
+    const series=heat?Number(heat[1]):null;
+    const lane=heat?Number(heat[2]):null;
+    const seed=(tail.match(/Inscri[çc][aã]o\s*:\s*((?:\d+:)?\d{1,2}[.,]\d{1,2}|NT)/i)||[])[1]||null;
+    entries.push({
+      event:hit[2].replace(/\s+/g,' ').trim(),
+      eventNumber:Number(hit[1]),
+      scheduled,series,lane,seed
+    });
+  }
+  // Older SwimSystem presentation, without event numbers.
+  if(!entries.length){
+    const rx=/(\d{1,2}:\d{2})\s+((?:\d+x)?\d{2,4}m?\s+(?:Livre|Costas|Peito|Borboleta|Medley))/gi;
+    let m;
+    while((m=rx.exec(String(text||''))))entries.push({scheduled:m[1],event:m[2].replace(/\s+/g,' ').trim(),series:null,lane:null,seed:null});
+  }
   return entries;
 }
 
@@ -632,7 +653,9 @@ async function importSwimSystem(url,athlete){
   const meet=extractMeet(meetHtml,base);
   const $=cheerio.load(athleteHtml);
   const block=findAthleteBlock($,athlete);
-  if(block)meet.entries=extractEntriesFromBlock(block.text);
+  if(!block)throw new Error('Atleta não localizado na competição. Confira registro e nome.');
+  meet.entries=extractEntriesFromBlock(block.text);
+  if(!meet.entries.length)throw new Error('Atleta localizado, mas nenhuma prova foi extraída. Importação não realizada.');
   return {meet,source:{id:meet.id+'-source',title:meet.name||'SwimSystem',url:base,kind:'official'}};
 }
 
@@ -2252,7 +2275,8 @@ app.post('/swimsystem/import',async(req,res)=>{
   const {url,registration,name}=req.body||{};
   if(!/^https:\/\/(www\.)?swimsystem\.app\/meets\/sw\//i.test(String(url||'')))return res.status(400).json({error:'URL inválida'});
   try{
-    const result=await importSwimSystem(url,{registration:String(registration||''),name:String(name||'')});
+    const profile=AUTONOMOUS_ATHLETES.find(a=>a.registration===String(registration||''));
+    const result=await importSwimSystem(url,{registration:String(registration||''),name:String(name||profile?.name||''),aliases:profile?.aliases||[]});
     res.json(result);
   }catch(e){
     console.error('import',e);
