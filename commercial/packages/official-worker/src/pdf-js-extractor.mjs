@@ -10,7 +10,7 @@ export async function extractOfficialPdfJs(bytes){
   if(document.numPages>200)throw new SourceAccessError('Official PDF exceeds 200-page processing limit',{formatUnrecognized:true});
   const pages=[],started=performance.now();
   for(let number=1;number<=document.numPages;number++){
-   if(performance.now()-started>15000)throw new SourceAccessError('Official PDF extraction timeout',{message:'timeout'});
+   if(performance.now()-started>15000)throw new SourceAccessError('Official PDF extraction timeout',{timeout:true});
    const page=await document.getPage(number),content=await page.getTextContent();
    pages.push(pdfTextLines(content.items).join('\n'));page.cleanup();
   }
@@ -20,5 +20,5 @@ export async function extractOfficialPdfJs(bytes){
  }catch(error){
   if(error instanceof SourceAccessError)throw error;
   throw new SourceAccessError('Official PDF extraction failed: '+String(error?.message||error),{formatUnrecognized:true});
- }finally{if(document)await document.destroy();}
+ }finally{if(document)await document.loadingTask.destroy();}
 }
