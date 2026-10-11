@@ -1,3 +1,4 @@
+DO $$ BEGIN IF current_database()<>'viniswim_isolated_test' THEN RAISE EXCEPTION 'Synthetic fixture must never run on production'; END IF; END $$;
 -- SYNTHETIC isolated test only. Relevant audited column types; no production data.
 CREATE ROLE anon;
 CREATE ROLE authenticated;

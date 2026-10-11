@@ -1,3 +1,4 @@
+DO $$ BEGIN IF current_database()<>'viniswim_isolated_test' THEN RAISE EXCEPTION 'Synthetic fixture must never run on production'; END IF; END $$;
 -- SYNTHETIC isolated PostgreSQL contract fixture, never run on production.
 -- Mirrors the audited relevant constraints; not a full Supabase schema dump.
 CREATE TYPE public.swim_course AS ENUM ('SCM','LCM');

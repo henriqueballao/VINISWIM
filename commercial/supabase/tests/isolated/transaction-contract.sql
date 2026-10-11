@@ -1,3 +1,4 @@
+DO $$ BEGIN IF current_database()<>'viniswim_isolated_test' THEN RAISE EXCEPTION 'Synthetic fixture must never run on production'; END IF; END $$;
 -- SYNTHETIC ONLY. Isolated Postgres; no production credentials or sporting data.
 -- Relevant audited contracts, not a full Supabase snapshot or trigger suite.
 CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
@@ -142,3 +143,5 @@ BEGIN
 END $$;
 ROLLBACK;
 SELECT 'isolated transaction assertions passed; not live persistence' AS outcome;
+
+CREATE TABLE isolated_test_payload AS SELECT pg_temp.batch() AS payload;
