@@ -38,7 +38,7 @@ export async function processClaimedOfficialJob({job,rpc,extractPdf,fetchImpl=fe
   catch(recordError){if(stale(recordError))return {jobId:job.id,requestId:job.request_id,status:'cancelled_or_stale',code:'worker_lease_unavailable'};throw new AggregateError([error,recordError],'Official worker could not record its failure');}
  }
 }
-export function officialWorkerHandler({rpc,extractPdf,serviceToken,fetchImpl=fetch,now}){
+export function officialWorkerHandler({rpc,extractPdf,serviceToken,fetchImpl=fetch,now=()=>new Date()}){
  return async request=>{
   const auth=authorizeWorkerRequest(request,serviceToken);
   if(!auth.allowed)return Response.json({outcome:auth.code},{status:auth.status});

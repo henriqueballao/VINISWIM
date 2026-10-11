@@ -35,6 +35,7 @@ CREATE TABLE historical_archive_jobs(request_id uuid,status text,heartbeat_at ti
 \ir ../../proposals/official-request-cancellation.sql
 \ir ../../proposals/official-targeted-request.sql
 \ir ../../proposals/official-progress-view.sql
+\ir published-triggers.sql
 GRANT USAGE ON SCHEMA public,extensions TO service_role;
 GRANT SELECT,INSERT,UPDATE ON ALL TABLES IN SCHEMA public TO service_role;
 ALTER TABLE results ENABLE ROW LEVEL SECURITY;
@@ -59,6 +60,16 @@ BEGIN
  r=jsonb_build_object('kind','official_result','accountId',account,'athleteId',athlete,'athleteExternalId','700001','sourceCode','swimsystem','externalMeetId','aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','externalEventId','16','round','Final Direta','sex','masculino','event','100 Livre','resultDate','2026-10-10','course','LCM','status','valid','timeMs',12345,'sourceUrl',url,'rawHash',doc->>'rawHash','retrievedAt',doc->>'retrievedAt','sourceBlock','SYNTHETIC athlete 700001 result','parserVersion','synthetic-isolated-v1');
  RETURN jsonb_build_object('accountId',account,'athleteId',athlete,'athleteExternalId','700001','meet',jsonb_build_object('name','SYNTHETIC ONLY','externalMeetId','aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','officialUrl','https://www.swimsystem.app/meets/sw/aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','startDate','2026-10-10','endDate','2026-10-11','course','LCM'),'documents',jsonb_build_array(doc),'entries','[]'::jsonb,'results',jsonb_build_array(r));
 END $$;
+BEGIN;
+DO $$
+DECLARE j import_v2_jobs;
+BEGIN
+ j=pg_temp.new_job();UPDATE import_v2_jobs SET status='blocked' WHERE id=j.id;
+ IF (SELECT terminal_status FROM refresh_requests WHERE id=j.request_id)<>'completed' THEN RAISE EXCEPTION 'Published blocked-finalizer defect not reproduced'; END IF;
+END $$;
+ROLLBACK;
+\ir ../../proposals/official-finalization-trigger.sql
+\ir ../../proposals/official-personal-best-concurrency.sql
 DO $$
 DECLARE j import_v2_jobs;b jsonb;outcome jsonb;before_count integer;
 BEGIN
