@@ -17,8 +17,8 @@ CREATE TABLE athlete_identifiers(athlete_id uuid REFERENCES athletes(id),source_
 CREATE TABLE athlete_source_configs(athlete_id uuid REFERENCES athletes(id),source_id uuid REFERENCES sources(id),external_id text,active boolean);
 CREATE TABLE events(id uuid PRIMARY KEY,label text NOT NULL,active boolean NOT NULL);
 CREATE TABLE meets(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),source_id uuid REFERENCES sources(id),external_id text,name text NOT NULL,start_date date NOT NULL,end_date date,course swim_course,official_url text,UNIQUE(source_id,external_id));
-CREATE TABLE refresh_requests(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),athlete_id uuid REFERENCES athletes(id),requested_by uuid NOT NULL,cancel_requested_at timestamptz,terminal_status text,updated_at timestamptz DEFAULT now(),completed_job_count integer,failed_job_count integer,finalized_at timestamptz);
-CREATE TABLE import_v2_jobs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),request_id uuid REFERENCES refresh_requests(id),athlete_id uuid REFERENCES athletes(id),source_id uuid REFERENCES sources(id),status text NOT NULL DEFAULT 'pending',attempts integer NOT NULL DEFAULT 0,priority integer NOT NULL DEFAULT 10,locked_at timestamptz,last_run_at timestamptz,next_run_at timestamptz DEFAULT now(),failure_code text,last_error text,records_found integer DEFAULT 0,records_inserted integer DEFAULT 0,records_duplicated integer DEFAULT 0,created_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now(),CONSTRAINT import_v2_jobs_status_check CHECK(status IN ('pending','running','completed','failed','cancelled')));
+CREATE TABLE refresh_requests(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),athlete_id uuid REFERENCES athletes(id),requested_by uuid NOT NULL,cancel_requested_at timestamptz,terminal_status text,updated_at timestamptz DEFAULT now(),completed_job_count integer,failed_job_count integer,finalized_at timestamptz,created_at timestamptz DEFAULT now(),source_codes text[],job_count integer NOT NULL DEFAULT 0);
+CREATE TABLE import_v2_jobs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),request_id uuid REFERENCES refresh_requests(id),athlete_id uuid REFERENCES athletes(id),source_id uuid REFERENCES sources(id),job_type text NOT NULL DEFAULT 'current_meet',cursor jsonb NOT NULL DEFAULT '{}',status text NOT NULL DEFAULT 'pending',attempts integer NOT NULL DEFAULT 0,priority integer NOT NULL DEFAULT 10,locked_at timestamptz,last_run_at timestamptz,next_run_at timestamptz DEFAULT now(),failure_code text,last_error text,records_found integer DEFAULT 0,records_inserted integer DEFAULT 0,records_duplicated integer DEFAULT 0,created_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now(),CONSTRAINT import_v2_jobs_status_check CHECK(status IN ('pending','running','completed','failed','cancelled')));
 CREATE TABLE results(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),athlete_id uuid REFERENCES athletes(id),meet_id uuid REFERENCES meets(id),event_id uuid REFERENCES events(id),result_date date,course swim_course,time_ms integer CHECK(time_ms IS NULL OR time_ms>0),status result_status NOT NULL,origin result_origin NOT NULL,source_id uuid REFERENCES sources(id),external_id text,is_official boolean NOT NULL,result_fingerprint text);
 CREATE UNIQUE INDEX results_source_external_uidx ON results(source_id,external_id) WHERE source_id IS NOT NULL AND external_id IS NOT NULL;
 CREATE UNIQUE INDEX results_fingerprint_uidx ON results(result_fingerprint) WHERE result_fingerprint IS NOT NULL;
@@ -28,9 +28,11 @@ CREATE UNIQUE INDEX meet_entries_natural_uidx ON meet_entries(meet_id,athlete_id
 \ir ../../proposals/official-event-integrity.sql
 \ir ../../proposals/official-worker-leases.sql
 \ir ../../proposals/official-batch-transaction.sql
-CREATE TABLE monitor_jobs(request_id uuid,status text,locked_at timestamptz,next_run_at timestamptz,updated_at timestamptz);
-CREATE TABLE historical_archive_jobs(request_id uuid,status text,heartbeat_at timestamptz,finished_at timestamptz,updated_at timestamptz);
+CREATE TABLE monitor_jobs(request_id uuid,status text,locked_at timestamptz,next_run_at timestamptz,updated_at timestamptz,last_error text);
+CREATE TABLE historical_archive_jobs(request_id uuid,status text,heartbeat_at timestamptz,finished_at timestamptz,updated_at timestamptz,started_at timestamptz,last_error text);
 \ir ../../proposals/official-request-cancellation.sql
+\ir ../../proposals/official-targeted-request.sql
+\ir ../../proposals/official-progress-view.sql
 GRANT USAGE ON SCHEMA public,extensions TO service_role;
 GRANT SELECT,INSERT,UPDATE ON ALL TABLES IN SCHEMA public TO service_role;
 ALTER TABLE results ENABLE ROW LEVEL SECURITY;
@@ -145,3 +147,30 @@ ROLLBACK;
 SELECT 'isolated transaction assertions passed; not live persistence' AS outcome;
 
 CREATE TABLE isolated_test_payload AS SELECT pg_temp.batch() AS payload;
+
+BEGIN;
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-4000-8000-000000000031';
+DO $$
+DECLARE response jsonb;
+BEGIN
+ response=request_official_meet_import('00000000-0000-4000-8000-000000000011','https://www.swimsystem.app/meets/sw/aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa');
+ IF response->>'request_id' IS NULL OR response->>'job_id' IS NULL THEN RAISE EXCEPTION 'Request lacks auditable IDs'; END IF;
+ BEGIN
+  PERFORM request_official_meet_import('00000000-0000-4000-8000-000000000012','https://www.swimsystem.app/meets/sw/aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa');
+  RAISE EXCEPTION 'Other account enqueued';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'ATHLETE_ACCESS_DENIED' THEN RAISE; END IF; END;
+ BEGIN
+  PERFORM request_official_meet_import('00000000-0000-4000-8000-000000000011','https://unauthorized.example/results');
+  RAISE EXCEPTION 'Unapproved source enqueued';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'INVALID_OFFICIAL_MEET_URL' THEN RAISE; END IF; END;
+END $$;
+ROLLBACK;
+DO $$
+DECLARE j import_v2_jobs;request uuid;
+BEGIN
+ j=pg_temp.new_job();request=j.request_id;
+ UPDATE import_v2_jobs SET status='blocked',failure_code='authentication_required',last_error='Source requires authorized access' WHERE id=j.id;
+ IF (SELECT derived_status FROM v_refresh_request_status WHERE request_id=request)<>'failed'
+  OR (SELECT sample_error FROM v_refresh_request_status WHERE request_id=request) IS NULL THEN RAISE EXCEPTION 'Blocked job reported successful'; END IF;
+END $$;

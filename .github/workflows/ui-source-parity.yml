@@ -32,7 +32,7 @@ jobs:
       - name: Verify historical result-list parser
         run: node --test commercial/packages/import-v2/tests/resultlist-hyphen-score.test.mjs
       - name: Verify exact official race association in UI
-        run: node --experimental-strip-types commercial/apps/web/src/domain/result-for-entry.test.mjs
+        run: node --experimental-strip-types --test commercial/apps/web/src/domain/*.test.mjs
       - name: Audit editable React source
         run: |
           python3 - <<'PY'
