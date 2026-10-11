@@ -9,8 +9,12 @@ test('captures original bytes, hash and capture date through authorized extracto
 });
 test('authentication, access denied, missing PDF and challenge stop ingestion',async()=>{
  for(const [status,code] of [[401,'authentication_required'],[403,'access_denied'],[404,'document_missing']])await assert.rejects(captureOfficialDocument({...options,fetchImpl:async()=>new Response('error',{status})}),e=>e.failure.code===code);
- await assert.rejects(captureOfficialDocument({...options,fetchImpl:async()=>new Response('<div class="cf-turnstile">',{headers:{'content-type':'text/html'}})}),e=>e.failure.code==='anti_bot_blocked');
+ await assert.rejects(captureOfficialDocument({...options,fetchImpl:async()=>new Response('<title>Just a moment</title><div>Verify you are human</div>',{headers:{'content-type':'text/html'}})}),e=>e.failure.code==='anti_bot_blocked');
  await assert.rejects(captureOfficialDocument({...options,fetchImpl:async()=>new Response('Object not found',{headers:{'content-type':'text/plain'}})}),e=>e.failure.code==='document_missing');
+});
+test('Turnstile script preload alone does not hide an accessible public publication',async()=>{
+ const text='<title>Public meet</title><link rel="preload" href="https://challenges.cloudflare.com/turnstile/v0/api.js"><a href="results.pdf">Results</a>';
+ const r=await captureOfficialDocument({...options,fetchImpl:async()=>new Response(text,{headers:{'content-type':'text/html'}})});assert.equal(r.text,text);
 });
 test('redirects cannot escape the configured official hosts',async()=>{
  let calls=0;await assert.rejects(captureOfficialDocument({...options,fetchImpl:async()=>{calls++;return new Response(null,{status:302,headers:{location:'https://other.example/secret'}});}}),e=>e.failure.code==='access_denied');assert.equal(calls,1);

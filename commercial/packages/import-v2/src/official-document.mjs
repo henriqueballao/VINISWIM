@@ -35,7 +35,7 @@ export async function captureOfficialDocument({url,allowedHosts,fetchImpl=fetch,
   if(isPdf){if(!extractPdf)throw new SourceAccessError('Authorized PDF extractor is unavailable',{formatUnrecognized:true});text=await extractPdf(bytes);}
   else if(['text/plain','text/html'].includes(mime))text=new TextDecoder().decode(bytes);
   else throw new SourceAccessError('Official document format is unrecognized',{formatUnrecognized:true});
-  if(/cf-chl-|challenges.cloudflare.com\/turnstile|cf-turnstile|verify you are human/i.test(text))throw new SourceAccessError('Official source requires anti-bot validation',{antiBot:true,sourceUrl:target.href});
+  if(/cf-chl-|<title>\s*(?:just a moment|attention required)|verify you are human/i.test(text))throw new SourceAccessError('Official source requires anti-bot validation',{antiBot:true,sourceUrl:target.href});
   if(/object not found/i.test(text)&&text.length<2000)throw new SourceAccessError('Official document object not found',{httpStatus:404,sourceUrl:target.href});
   if(!text.trim())throw new SourceAccessError('Empty extracted official document',{formatUnrecognized:true});
   return {url:target.href,retrievedAt:now().toISOString(),rawHash,mime,bytes,text};
