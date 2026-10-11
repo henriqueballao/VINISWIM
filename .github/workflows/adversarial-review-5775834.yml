@@ -1,0 +1,35 @@
+name: Adversarial review of 5775834 (unresolved contracts)
+on:
+  push:
+    branches: ['fix/official-import-audit-20261011']
+    paths: ['docs/audit/2026-10-11/repros/**', '.github/workflows/adversarial-review-5775834.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  transaction-error-diagnostics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preserve semantic transaction errors (expected failure until fixed)
+        run: node --test docs/audit/2026-10-11/repros/transaction-error-propagation.test.mjs
+  legacy-entry-compatibility:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: viniswim_isolated_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: SYNTHETIC-CI-ONLY
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve active legacy upsert contract (expected failure until fixed)
+        env:
+          PGPASSWORD: SYNTHETIC-CI-ONLY
+        run: psql -h 127.0.0.1 -U postgres -d viniswim_isolated_test -v ON_ERROR_STOP=1 -v VERBOSITY=verbose -f docs/audit/2026-10-11/repros/legacy-entry-upsert.sql
