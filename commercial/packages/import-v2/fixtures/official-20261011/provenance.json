@@ -1,0 +1,83 @@
+{
+  "kind": "authorized-public-document-excerpts",
+  "meetId": "c8587533-2e44-4b08-991f-f827170c7344",
+  "extraction": "pdftotext -layout",
+  "artifactRun": "https://github.com/henriqueballao/VINISWIM/actions/runs/38148027929",
+  "documents": [
+    {
+      "requestedUrl": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/11a0e615-4cb5-4d56-9d16-0972097f6404.pdf",
+      "url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/11a0e615-4cb5-4d56-9d16-0972097f6404.pdf",
+      "retrievedAt": "2026-10-11T14:39:06.591Z",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "rawHash": "0d1b8fbbc4a18f85f12a39804d122c1d2068f9a97177a0bc8c94e9f9de30043c",
+      "bytes": 248780,
+      "outcome": "document_captured",
+      "file": "official-document-5.pdf",
+      "fixture": "seeded.txt",
+      "textHash": "38cea6938b52c861315241d91fc94efe5e89469f8c6117a526e299ce25322147",
+      "sourceLineRanges": [
+        {
+          "startLine": 609,
+          "endLine": 651,
+          "eventNumber": 16
+        },
+        {
+          "startLine": 723,
+          "endLine": 754,
+          "eventNumber": 20
+        },
+        {
+          "startLine": 1017,
+          "endLine": 1101,
+          "eventNumber": 26
+        },
+        {
+          "startLine": 1390,
+          "endLine": 1445,
+          "eventNumber": 36
+        },
+        {
+          "startLine": 1662,
+          "endLine": 1701,
+          "eventNumber": 42
+        },
+        {
+          "startLine": 2046,
+          "endLine": 2105,
+          "eventNumber": 50
+        }
+      ]
+    },
+    {
+      "requestedUrl": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/e8f27d6d-2811-4d41-a77a-a318336d44ce.pdf",
+      "url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/e8f27d6d-2811-4d41-a77a-a318336d44ce.pdf",
+      "retrievedAt": "2026-10-11T14:39:07.581Z",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "rawHash": "9cfee410a819b3aa2a5128fd437013a529b4bec65136299380d7928114207a68",
+      "bytes": 120961,
+      "outcome": "document_captured",
+      "file": "official-document-7.pdf",
+      "fixture": "results.txt",
+      "textHash": "5a83ba7ab3c09f76b449514a0936fecb06802aab8cbcf5e31e4e39bd365a60ae",
+      "sourceLineRanges": [
+        {
+          "startLine": 630,
+          "endLine": 681,
+          "eventNumber": 16
+        },
+        {
+          "startLine": 755,
+          "endLine": 789,
+          "eventNumber": 20
+        },
+        {
+          "startLine": 1025,
+          "endLine": 1085,
+          "eventNumber": 26
+        }
+      ]
+    }
+  ]
+}
