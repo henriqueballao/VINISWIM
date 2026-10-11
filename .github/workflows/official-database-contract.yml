@@ -10,7 +10,7 @@ jobs:
   database-contract:
     strategy:
       matrix:
-        contract: [event, lease]
+        contract: [event, lease, transaction]
     runs-on: ubuntu-latest
     services:
       postgres:
