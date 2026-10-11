@@ -1,5 +1,6 @@
 import {canModifyResult,canWriteManualResult} from './domain/result-permissions';
 import {createScopedLoader} from './domain/scoped-loader';
+import {confirmedBests,performanceKey} from './domain/performance-groups';
 import {useEffect,useMemo,useRef,useState} from 'react'
 import {AlertTriangle,Bell,Camera,ChartNoAxesCombined,ChevronDown,Copy,Eye,EyeOff,Gauge,LogOut,Medal,Menu,MoreHorizontal,Plus,Printer,RefreshCw,Settings,ShieldCheck,UserPlus,Users,X} from 'lucide-react'
 import {CartesianGrid,Legend,Line,LineChart,ReferenceLine,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
@@ -301,7 +302,7 @@ export default function App(){
   (!filters.category.length||filters.category.includes(r.category))&&
   (!filters.origin.length||filters.origin.some((o:string)=>o==='official'?r.is_official:o==='manual'?r.origin==='manual':['dns','dsq','dnf','partial'].includes(r.status)))
  )
- const dashboardBests=resultFilter===null?pbs:events.map(e=>visibleByCompetition.filter(r=>r.event_id===e.id&&r.status==='valid'&&r.time_ms!=null).sort((a,b)=>a.time_ms-b.time_ms)[0]).filter(Boolean)
+ const dashboardBests=resultFilter===null?pbs:confirmedBests(visibleByCompetition)
  if(!authReady)return <div className="loading">Carregando VINISWIM...</div>
  if(recovery&&session)return <PasswordRecovery onDone={()=>{window.history.replaceState({},'',window.location.pathname);setRecovery(false);setSession(null)}}/>
  if(!session&&inviteToken)return <InviteAuth token={inviteToken} onAuthenticated={s=>{identityRun.current++;setNeedsInitialAthlete(false);setIdentityLoaded(false);setSession(s)}}/>
@@ -524,12 +525,13 @@ function Evolution({results,events}:{results:any[],events:any[]}){
  const badColor='#c94747'
  const rows:any[]=valid.map(p=>({_id:p.id,date:d(p.result_date),_items:[] as any[]}))
  const rowById=new Map(rows.map(r=>[r._id,r]))
- const groupKeys=isAll?[...new Set(valid.map(r=>r.event_id))]:[...new Set(valid.map(r=>r.course).filter(Boolean))]
+ const groupKeys=[...new Set(valid.map(performanceKey))]
  const groups=groupKeys.map((key,gi)=>{
-   const pts=valid.filter(r=>isAll?r.event_id===key:r.course===key)
+   const pts=valid.filter(r=>performanceKey(r)===key)
+   const [raceId,pool]=JSON.parse(key)
    const pointKey='point_'+gi
-   const label=isAll?(labels.get(key)||String(key)):(courseMeta[key]?.label||key)
-   const color=isAll?palette[gi%palette.length]:(courseMeta[key]?.color||'#5d7b83')
+   const label=isAll?`${labels.get(raceId)||raceId} · ${poolLabel(pool)}`:(courseMeta[pool]?.label||pool)
+   const color=isAll?palette[gi%palette.length]:(courseMeta[pool]?.color||'#5d7b83')
    pts.forEach(p=>{const row=rowById.get(p.id);if(row){row[pointKey]=p.time_ms/1000;row._items.push({label:isAll?label:(labels.get(event)||'Prova'),time:p.time_ms,category:p.category,course:p.course})}})
    const segments=pts.slice(1).map((p,i)=>{
      const a=pts[i],segKey='seg_'+gi+'_'+i,from=rowById.get(a.id),to=rowById.get(p.id)

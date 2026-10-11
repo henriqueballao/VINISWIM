@@ -7,6 +7,7 @@ const meet={id:meetId,name:'Campeonato Sintético',status:'scheduled',start_date
 const tables={
   profiles:{id:user.id,full_name:'Usuário Sintético'},
   account_members:[{account_id:accountId,role:'owner',accounts:{id:accountId,name:'Conta Sintética'}}],
+  meets:[meet],
   events:[{id:eventId,label:'50 Livre',sort_order:1}],
   athletes:[{id:athleteId,account_id:accountId,active:true,preferred_name:'Nadador Sintético',category:'Master'}],
   v_result_timeline:[{id:'66666666-6666-4666-8666-666666666666',athlete_id:athleteId,event_id:eventId,course:'SCM',meet_id:meetId,meet_name:meet.name,result_date:'2026-09-01',created_at:'2026-09-01',status:'valid',time_ms:32000,origin:'official',is_official:true,category:'Master'}],
