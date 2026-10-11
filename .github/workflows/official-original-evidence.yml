@@ -1,0 +1,31 @@
+name: Verify original official PDF evidence
+on:
+  push:
+    branches: ['fix/official-import-audit-20261011']
+    paths: ['commercial/packages/import-v2/fixtures/official-20261011/**', 'scripts/verify-official-artifact.py', '.github/workflows/official-original-evidence.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  original-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download immutable original capture artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: official-import-live-readonly
+          run-id: 38148027929
+          github-token: ${{ github.token }}
+          path: original-capture
+      - name: Install authorized local PDF extractor
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Verify all eight byte hashes and reconstruct official excerpts
+        run: python3 scripts/verify-official-artifact.py original-capture
+      - name: Preserve verified original PDF bytes beyond first artifact retention
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-original-official-pdfs
+          path: original-capture/official-document-*.pdf
+          retention-days: 90

@@ -19,32 +19,32 @@
       "sourceLineRanges": [
         {
           "startLine": 609,
-          "endLine": 651,
+          "endLine": 650,
           "eventNumber": 16
         },
         {
           "startLine": 723,
-          "endLine": 754,
+          "endLine": 753,
           "eventNumber": 20
         },
         {
           "startLine": 1017,
-          "endLine": 1101,
+          "endLine": 1100,
           "eventNumber": 26
         },
         {
           "startLine": 1390,
-          "endLine": 1445,
+          "endLine": 1444,
           "eventNumber": 36
         },
         {
           "startLine": 1662,
-          "endLine": 1701,
+          "endLine": 1700,
           "eventNumber": 42
         },
         {
           "startLine": 2046,
-          "endLine": 2105,
+          "endLine": 2104,
           "eventNumber": 50
         }
       ]
@@ -64,20 +64,29 @@
       "sourceLineRanges": [
         {
           "startLine": 630,
-          "endLine": 681,
+          "endLine": 680,
           "eventNumber": 16
         },
         {
           "startLine": 755,
-          "endLine": 789,
+          "endLine": 788,
           "eventNumber": 20
         },
         {
           "startLine": 1025,
-          "endLine": 1085,
+          "endLine": 1084,
           "eventNumber": 26
         }
       ]
     }
-  ]
+  ],
+  "extractionVersion": "pdftotext 25.03.0",
+  "excerptConstruction": {
+    "prefixStartLine": 1,
+    "prefixEndLine": 3,
+    "prefixSeparator": "\n\n",
+    "sectionSeparator": "\n",
+    "suffix": "\n",
+    "lineNumbering": "1-based inclusive; split on LF"
+  }
 }
