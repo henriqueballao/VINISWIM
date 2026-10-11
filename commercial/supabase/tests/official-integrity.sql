@@ -11,6 +11,8 @@ BEGIN
  THEN RAISE EXCEPTION 'Official deletion protection is missing'; END IF;
  FOREACH t IN ARRAY ARRAY['historical_discovery_cache','historical_document_text_cache',
   'historical_source_documents','history_debug_probe','official_meet_document_catalog'] LOOP
+  IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid=('public.'||t)::regclass)
+  THEN RAISE EXCEPTION 'Internal evidence cache lacks RLS: %',t; END IF;
   FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP
    FOREACH p IN ARRAY ARRAY['INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'] LOOP
     IF has_table_privilege(r,('public.'||t)::regclass,p)
