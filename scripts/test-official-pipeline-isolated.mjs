@@ -35,7 +35,7 @@ for(const [externalId,[currentCount,historicalCount,total]] of Object.entries(ex
   const workerRpc=async(name,args)=>{
    if(name==='persist_official_meet_batch')return rpc(name,args);
    if(name==='load_official_import_context')return {data:JSON.parse(query(`SET ROLE service_role;SELECT load_official_import_context(${sql(args.p_job_id)},${sql(args.p_lease_token)});`))};
-   if(name==='finish_official_import_failure')return {data:JSON.parse(query(`SET ROLE service_role;SELECT finish_official_import_failure(${sql(args.p_job_id)},${sql(args.p_lease_token)},${sql(args.p_failure_code)},${sql(args.p_message)},${args.p_retryable?'true':'false'});`))};
+   if(name==='finish_official_import_failure')return {data:JSON.parse(query(`SET ROLE service_role;SELECT finish_official_import_failure(${sql(args.p_job_id)},${sql(args.p_lease_token)},${sql(args.p_failure_code)},${sql(args.p_message)},${args.p_retryable?'true':'false'},${sql(JSON.stringify(args.p_details||{}))}::jsonb);`))};
    throw Error('Unexpected worker RPC '+name);
   };
   const first=await processClaimedOfficialJob({job,rpc:workerRpc,extractPdf:extractOfficialPdfJs,now:()=>new Date('2026-10-11T17:48:13.000Z'),fetchImpl:async url=>{const meta=archived.captures.find(c=>c.url===url&&c.file);if(!meta)throw Error('Missing original '+url);return new Response(await fs.readFile(`${root}/${meta.file}`),{headers:{'content-type':meta.file.endsWith('.html')?'text/html':'application/pdf'}});}});
@@ -48,7 +48,12 @@ for(const [externalId,[currentCount,historicalCount,total]] of Object.entries(ex
   const second=await commitOfficialBatch({rpc,job:secondJob,prepared});assert.equal(second.inserted,0);assert.equal(second.duplicated,first.inserted);assert.equal(second.entriesUpdated,0);
   const persisted=JSON.parse(query(`SELECT json_agg(json_build_array(r.official_event_number,r.official_round,r.official_sex,r.result_date,r.course,e.label,r.time_ms,r.status) ORDER BY r.official_event_number::integer) FROM results r JOIN events e ON e.id=r.event_id JOIN meets m ON m.id=r.meet_id WHERE r.athlete_id=${sql(athlete.id)} AND m.external_id=${sql(meetId)};`));
   assert.deepEqual(persisted,prepared.scan.results.map(signature).sort((a,b)=>Number(a[0])-Number(b[0])));
-  proof.push({externalId,meetId,first,second,workerContextAndCaptureTested:true,independentExtractorsAgree:true,persistedMatchesOriginal:true});
+  const entrySignature=r=>[r.externalEventId,r.round,r.sex,r.eventDate,r.course,r.event,r.seedTimeMs??null,r.heat,r.lane,new Date(r.scheduledAt).toISOString()];
+  const persistedEntries=JSON.parse(query(`SELECT coalesce(json_agg(json_build_array(e.official_event_number,e.official_round,e.official_sex,e.official_event_date,e.official_course,v.label,e.seed_time_ms,e.heat,e.lane,to_char(e.scheduled_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))),'[]'::json) FROM official_meet_entries e JOIN events v ON v.id=e.event_id JOIN meets m ON m.id=e.meet_id WHERE e.athlete_id=${sql(athlete.id)} AND m.external_id=${sql(meetId)};`));
+  const ordered=rows=>rows.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  assert.deepEqual(ordered(persistedEntries),ordered(prepared.scan.entries.map(entrySignature)),'SQL seeding differs from original in time/heat/lane/date/pool/race');
+  assert.deepEqual(ordered(prepared.scan.entries.map(entrySignature)),ordered(oracle.scan.entries.map(entrySignature)),'Independent extractors disagree on official seeding');
+  proof.push({externalId,meetId,first,second,workerContextAndCaptureTested:true,independentExtractorsAgree:true,persistedMatchesOriginal:true,persistedSeedingMatchesOriginal:true});
  }
  assert.equal(Number(query(`SELECT count(*) FROM results WHERE athlete_id=${sql(athlete.id)}`)),total);
 }
