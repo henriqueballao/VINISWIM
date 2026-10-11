@@ -38,7 +38,8 @@ export function retryDecision(failure,attempts,{maxAttempts=5,baseDelayMs=60000,
  return {status:'pending',delayMs:Math.min(maxDelayMs,baseDelayMs*2**(attempt-1))};
 }
 
-export function retryState(failure,attempts=0){
- return {status:"pending",attempts:Number(attempts)||0,lastError:null,failureCode:failure?.code||null};
+export function retryState(failure,attempts=1,options={}){
+ if(!failure?.code)throw new TypeError('failure code is required');
+ const decision=retryDecision(failure,attempts,options);
+ return {...decision,attempts,lastError:String(options.lastError||failure.message||failure.code),failureCode:failure.code};
 }
-
