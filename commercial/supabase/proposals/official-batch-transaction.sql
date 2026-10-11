@@ -41,7 +41,7 @@ DECLARE
  meet_id uuid;event_id uuid;doc_id uuid;row_id uuid;existing public.results%ROWTYPE;old_entry public.meet_entries%ROWTYPE;
  d jsonb;r jsonb;metadata jsonb;raw bytea;identity_key text;source_code text;external_id text;
  start_date date;end_date date;race_date date;pool public.swim_course;
- inserted integer:=0;duplicated integer:=0;conflicts integer:=0;entries_inserted integer:=0;entries_updated integer:=0;
+ inserted integer:=0;duplicated integer:=0;conflicts integer:=0;entries_inserted integer:=0;entries_updated integer:=0;entries_duplicated integer:=0;
  outcome text;counters jsonb;
 BEGIN
  -- Shared request first, then job: cancellation must take this same request
@@ -117,8 +117,10 @@ BEGIN
       VALUES(j.id,a.id,identity_key,doc_id,to_jsonb(old_entry),r) ON CONFLICT DO NOTHING;
      CONTINUE;
     END IF;
-    UPDATE public.meet_entries SET heat=coalesce(heat,(r->>'heat')::integer),lane=coalesce(lane,(r->>'lane')::integer),scheduled_at=coalesce(scheduled_at,(r->>'scheduledAt')::timestamptz),seed_time_ms=coalesce(seed_time_ms,(r->>'seedTimeMs')::integer) WHERE id=row_id;
-    entries_updated=entries_updated+1;
+    IF old_entry.heat IS NULL OR old_entry.lane IS NULL OR old_entry.scheduled_at IS NULL OR (old_entry.seed_time_ms IS NULL AND r->>'seedTimeMs' IS NOT NULL) THEN
+     UPDATE public.meet_entries SET heat=coalesce(heat,(r->>'heat')::integer),lane=coalesce(lane,(r->>'lane')::integer),scheduled_at=coalesce(scheduled_at,(r->>'scheduledAt')::timestamptz),seed_time_ms=coalesce(seed_time_ms,(r->>'seedTimeMs')::integer) WHERE id=row_id;
+     entries_updated=entries_updated+1;
+    ELSE entries_duplicated=entries_duplicated+1; END IF;
    ELSE
     INSERT INTO public.meet_entries(meet_id,athlete_id,event_id,source_id,external_id,seed_time_ms,heat,lane,scheduled_at,entry_status,official_event_number,official_round,official_sex,official_event_date,official_course)
      VALUES(meet_id,a.id,event_id,j.source_id,identity_key,(r->>'seedTimeMs')::integer,(r->>'heat')::integer,(r->>'lane')::integer,(r->>'scheduledAt')::timestamptz,'seeded',r->>'externalEventId',r->>'round',r->>'sex',race_date,pool) RETURNING id INTO row_id;
@@ -151,7 +153,7 @@ BEGIN
   ELSE RAISE EXCEPTION 'INVALID_CANDIDATE_KIND'; END IF;
  END LOOP;
  outcome=CASE WHEN conflicts>0 THEN 'conflicting_official_publications' WHEN jsonb_array_length(p_batch->'results')=0 THEN 'no_result_publication' ELSE 'official_results_persisted' END;
- counters=jsonb_build_object('inserted',inserted,'duplicated',duplicated,'conflicts',conflicts,'entriesInserted',entries_inserted,'entriesUpdated',entries_updated);
+ counters=jsonb_build_object('inserted',inserted,'duplicated',duplicated,'conflicts',conflicts,'entriesInserted',entries_inserted,'entriesUpdated',entries_updated,'entriesDuplicated',entries_duplicated);
  INSERT INTO public.official_import_batches(job_id,lease_token,athlete_id,outcome,counters) VALUES(j.id,p_lease_token,a.id,outcome,counters);
  UPDATE public.import_v2_jobs SET status=CASE WHEN conflicts>0 THEN 'blocked' ELSE 'completed' END,
   records_found=jsonb_array_length(p_batch->'results')+jsonb_array_length(p_batch->'entries'),records_inserted=inserted,records_duplicated=duplicated,

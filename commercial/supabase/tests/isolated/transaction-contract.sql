@@ -16,7 +16,7 @@ CREATE TABLE athlete_identifiers(athlete_id uuid REFERENCES athletes(id),source_
 CREATE TABLE athlete_source_configs(athlete_id uuid REFERENCES athletes(id),source_id uuid REFERENCES sources(id),external_id text,active boolean);
 CREATE TABLE events(id uuid PRIMARY KEY,label text NOT NULL,active boolean NOT NULL);
 CREATE TABLE meets(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),source_id uuid REFERENCES sources(id),external_id text,name text NOT NULL,start_date date NOT NULL,end_date date,course swim_course,official_url text,UNIQUE(source_id,external_id));
-CREATE TABLE refresh_requests(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),athlete_id uuid REFERENCES athletes(id),requested_by uuid NOT NULL,cancel_requested_at timestamptz,terminal_status text);
+CREATE TABLE refresh_requests(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),athlete_id uuid REFERENCES athletes(id),requested_by uuid NOT NULL,cancel_requested_at timestamptz,terminal_status text,updated_at timestamptz DEFAULT now(),completed_job_count integer,failed_job_count integer,finalized_at timestamptz);
 CREATE TABLE import_v2_jobs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),request_id uuid REFERENCES refresh_requests(id),athlete_id uuid REFERENCES athletes(id),source_id uuid REFERENCES sources(id),status text NOT NULL DEFAULT 'pending',attempts integer NOT NULL DEFAULT 0,priority integer NOT NULL DEFAULT 10,locked_at timestamptz,last_run_at timestamptz,next_run_at timestamptz DEFAULT now(),failure_code text,last_error text,records_found integer DEFAULT 0,records_inserted integer DEFAULT 0,records_duplicated integer DEFAULT 0,created_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now(),CONSTRAINT import_v2_jobs_status_check CHECK(status IN ('pending','running','completed','failed','cancelled')));
 CREATE TABLE results(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),athlete_id uuid REFERENCES athletes(id),meet_id uuid REFERENCES meets(id),event_id uuid REFERENCES events(id),result_date date,course swim_course,time_ms integer CHECK(time_ms IS NULL OR time_ms>0),status result_status NOT NULL,origin result_origin NOT NULL,source_id uuid REFERENCES sources(id),external_id text,is_official boolean NOT NULL,result_fingerprint text);
 CREATE UNIQUE INDEX results_source_external_uidx ON results(source_id,external_id) WHERE source_id IS NOT NULL AND external_id IS NOT NULL;
@@ -27,6 +27,9 @@ CREATE UNIQUE INDEX meet_entries_natural_uidx ON meet_entries(meet_id,athlete_id
 \ir ../../proposals/official-event-integrity.sql
 \ir ../../proposals/official-worker-leases.sql
 \ir ../../proposals/official-batch-transaction.sql
+CREATE TABLE monitor_jobs(request_id uuid,status text,locked_at timestamptz,next_run_at timestamptz,updated_at timestamptz);
+CREATE TABLE historical_archive_jobs(request_id uuid,status text,heartbeat_at timestamptz,finished_at timestamptz,updated_at timestamptz);
+\ir ../../proposals/official-request-cancellation.sql
 GRANT USAGE ON SCHEMA public,extensions TO service_role;
 GRANT SELECT,INSERT,UPDATE ON ALL TABLES IN SCHEMA public TO service_role;
 ALTER TABLE results ENABLE ROW LEVEL SECURITY;
@@ -68,10 +71,15 @@ BEGIN
  BEGIN
   PERFORM persist_official_meet_batch(j.id,gen_random_uuid(),b);RAISE EXCEPTION 'Wrong token accepted';
  EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'STALE_WORKER_LEASE' THEN RAISE; END IF; END;
- UPDATE refresh_requests SET cancel_requested_at=now() WHERE id=j.request_id;
+ PERFORM set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000032',true);
+ BEGIN
+  PERFORM cancel_result_refresh_request(j.request_id);RAISE EXCEPTION 'Cross-account cancellation accepted';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'REQUEST_ACCESS_DENIED' THEN RAISE; END IF; END;
+ PERFORM set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000031',true);
+ PERFORM cancel_result_refresh_request(j.request_id);
  BEGIN
   PERFORM persist_official_meet_batch(j.id,j.lease_token,b);RAISE EXCEPTION 'Cancelled request wrote';
- EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'REQUEST_CANCELLED_OR_TERMINAL' THEN RAISE; END IF; END;
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'STALE_WORKER_LEASE' THEN RAISE; END IF; END;
  UPDATE import_v2_jobs SET status='cancelled' WHERE id=j.id;
  j=pg_temp.new_job();
  BEGIN
@@ -92,11 +100,32 @@ BEGIN
  IF (SELECT count(*) FROM results)<>before_count THEN RAISE EXCEPTION 'Batch not atomic'; END IF;
  IF has_function_privilege('anon','persist_official_meet_batch(uuid,uuid,jsonb)','EXECUTE') OR has_function_privilege('authenticated','persist_official_meet_batch(uuid,uuid,jsonb)','EXECUTE') THEN RAISE EXCEPTION 'Browser has privileged RPC'; END IF;
 END $$;
+DO $$
+DECLARE j import_v2_jobs;b jsonb;r jsonb;answer jsonb;
+BEGIN
+ -- Abandon the invalid synthetic job from the rollback test.
+ UPDATE import_v2_jobs SET status='cancelled' WHERE status='running';
+ b=pg_temp.batch();r=(b->'results'->0)-'resultDate'-'status'-'timeMs';
+ r=r||jsonb_build_object('kind','seeded_entry','eventDate','2026-10-10','seedTimeMs',20000,'heat',1,'lane',0,'scheduledAt','2026-10-10T12:00:00Z','sourceBlock','SYNTHETIC seeded athlete 700001');
+ b=jsonb_set(jsonb_set(b,'{results}','[]'),'{entries}',jsonb_build_array(r));
+ j=pg_temp.new_job();answer=persist_official_meet_batch(j.id,j.lease_token,b);
+ IF (answer->>'entriesInserted')::integer<>1 OR (SELECT lane FROM meet_entries)<>0 THEN RAISE EXCEPTION 'Complete lane-zero seeding not persisted'; END IF;
+ IF (SELECT count(*) FROM results)<>2 THEN RAISE EXCEPTION 'Seed became official result'; END IF;
+ j=pg_temp.new_job();answer=persist_official_meet_batch(j.id,j.lease_token,b);
+ IF (answer->>'entriesDuplicated')::integer<>1 OR (answer->>'entriesUpdated')::integer<>0 OR (SELECT count(*) FROM meet_entries)<>1 THEN RAISE EXCEPTION 'Seeding reimport not idempotent'; END IF;
+ j=pg_temp.new_job();answer=persist_official_meet_batch(j.id,j.lease_token,jsonb_set(b,'{entries,0,seedTimeMs}','null'));
+ IF (SELECT seed_time_ms FROM meet_entries)<>20000 THEN RAISE EXCEPTION 'Missing seed erased valid inscription'; END IF;
+ j=pg_temp.new_job();answer=persist_official_meet_batch(j.id,j.lease_token,jsonb_set(b,'{entries,0,lane}','2'));
+ IF (answer->>'conflicts')::integer<>1 OR (SELECT lane FROM meet_entries)<>0 THEN RAISE EXCEPTION 'Contradiction overwrote seeding'; END IF;
+ b=pg_temp.batch();b=jsonb_set(jsonb_set(jsonb_set(b,'{results,0,status}','"dsq"'),'{results,0,timeMs}','null'),'{results,0,externalEventId}','"99"');
+ j=pg_temp.new_job();answer=persist_official_meet_batch(j.id,j.lease_token,b);
+ IF NOT EXISTS(SELECT 1 FROM results WHERE status='dsq' AND time_ms IS NULL) THEN RAISE EXCEPTION 'DSQ did not persist separately'; END IF;
+END $$;
 BEGIN;
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claim.sub='00000000-0000-4000-8000-000000000031';
 DO $$ BEGIN
- IF (SELECT count(*) FROM results)<>1 THEN RAISE EXCEPTION 'RLS exposes other account results'; END IF;
+ IF (SELECT count(*) FROM results)<>2 OR EXISTS(SELECT 1 FROM results WHERE athlete_id<>'00000000-0000-4000-8000-000000000011') THEN RAISE EXCEPTION 'RLS exposes other account results'; END IF;
 END $$;
 ROLLBACK;
 SELECT set_config('test.synthetic_batch',pg_temp.batch()::text,false);
