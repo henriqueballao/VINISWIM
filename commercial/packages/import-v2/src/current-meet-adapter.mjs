@@ -28,11 +28,11 @@ export function scanCurrentMeet({meetId,identity,documents,allowedHosts}){
    const key=officialResultKey(result),previous=results.get(key);
    // Conflicting publications require reconciliation, never arbitrary overwrite.
    if(previous&&(previous.timeMs!==result.timeMs||previous.status!==result.status)){
-    diagnostics.push({sourceUrl,code:'conflicting_official_publications',key});results.delete(key);continue;
+    diagnostics.push({sourceUrl,code:'conflicting_official_publications',key});results.set(key,null);continue;
    }
    if(!diagnostics.some(d=>d.code==='conflicting_official_publications'&&d.key===key))results.set(key,result);
   }
  }
  const status=diagnostics.length?'partial':results.size?'results_parsed':entries.size?'no_result_publication':'identity_not_found';
- return {status,entries:[...entries.values()],results:[...results.values()],diagnostics,writes:0};
+ return {status,entries:[...entries.values()],results:[...results.values()].filter(Boolean),diagnostics,writes:0};
 }
