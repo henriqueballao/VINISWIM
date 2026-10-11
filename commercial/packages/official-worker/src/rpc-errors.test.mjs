@@ -32,4 +32,6 @@ test('a code-only SDK error retains its diagnostic and cannot become a retry loo
  assert.ok(error.message.includes('STALE_WORKER_LEASE'));assert.equal(staleWorkerError(error),true);assert.equal(uncertainCommitResponse(error),false);
  const unicode=new OfficialRpcError('synthetic',{code:'P0001',message:'🌊'.repeat(5000),details:'🌊'.repeat(5000),hint:'🌊'.repeat(5000)});
  assert.ok(new TextEncoder().encode(JSON.stringify(rpcFailureDetails(unicode))).length<8192);
+ const denied=new OfficialRpcError('synthetic',{code:'',message:'REQUEST_ACCESS_REVOKED'},{status:503});
+ assert.equal(uncertainCommitResponse(denied),false);assert.deepEqual(classifyOfficialRpcFailure(denied),{code:'access_denied',retryable:false});
 });

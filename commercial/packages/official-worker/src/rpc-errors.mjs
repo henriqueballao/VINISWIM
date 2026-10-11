@@ -32,6 +32,7 @@ export function rpcFailureDetails(error){
 // Replay ONLY the exact same batch when a transport response is uncertain.
 // Known DB responses (including deadlock/serialization errors) use job backoff.
 export function uncertainCommitResponse(error){
+ if(matches(error,[...staleCodes,...deniedCodes,...identityCodes,...unsupportedCodes,...validationCodes]))return false;
  if(error instanceof OfficialRpcError){
   if(error.code)return false;
   return error.httpStatus===0&&/fetch failed|failed to fetch|network|ECONNRESET|ETIMEDOUT|connection closed|abort|timeout/i.test(error.databaseMessage)
