@@ -44,6 +44,6 @@ export function parseSeededStartlist({text,identity,sourceUrl,retrievedAt,rawHas
    entries.push({kind:'seeded_entry',athleteExternalId:id,externalEventId:header[1],round:'Final Direta',sex:header[2].toLowerCase(),event:`${header[3]} ${header[4]}`,eventDate:date,course:meet.meet.course,seedTimeMs:row[5]==='NT'?null:parseTime(row[5]),heat,lane,scheduledAt,sourceUrl,retrievedAt,rawHash,parserVersion:'swimsystem-seeded-v1',sourceBlock:`${header[0].trim()}\nSérie ${heat} ${time}\n${line.trim()}`});
   }
  }
- const unique=new Map();for(const entry of entries)unique.set(`${entry.athleteExternalId}|${entry.externalEventId}|${entry.round}|${entry.sex}|${entry.eventDate}`,entry);
+ const unique=new Map();for(const entry of entries)unique.set(JSON.stringify([entry.athleteExternalId,entry.externalEventId,entry.round,entry.sex,entry.eventDate,entry.heat,entry.lane,entry.scheduledAt,entry.seedTimeMs]),entry);
  return [...unique.values()];
 }

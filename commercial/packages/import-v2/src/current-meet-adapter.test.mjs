@@ -49,3 +49,11 @@ test('tenant and meet binding are mandatory',()=>{
  const mismatch=scanCurrentMeet({...input,expectedMeet:{...input.expectedMeet,course:'SCM'}});
  assert.equal(mismatch.entries.length,0);assert.equal(mismatch.results.length,0);
 });
+
+test('contradictory seeded documents cannot arbitrarily replace heats or lanes',async()=>{
+ const original=documents[0];
+ const changed=await replay(manifest.documents[0],original.text.replace(/(Série\s+1\s+de\s+\d+\s+)16:59/,'$1'+'17:00'));
+ const scan=scanCurrentMeet({...input,documents:[original,changed,original]});
+ assert.equal(scan.status,'partial');assert.equal(scan.entries.some(e=>e.event==='100 Costas'),false);
+ assert.ok(scan.diagnostics.some(d=>d.code==='conflicting_official_seedings'));
+});

@@ -32,7 +32,11 @@ export function scanCurrentMeet({meetId,identity,documents,allowedHosts,scope,ex
   for(const parsed of parseSeededStartlist(args)){
    if(expectedMeet&&(parsed.eventDate<expectedMeet.startDate||parsed.eventDate>expectedMeet.endDate||parsed.course!==expectedMeet.course)){diagnostics.push({sourceUrl,code:'inconsistent_meet_evidence'});continue;}
    const entry={...parsed,...scope,sourceCode:'swimsystem',externalMeetId:meetId};
-   entries.set(officialResultKey({...entry,resultDate:entry.eventDate}),entry);
+   const key=officialResultKey({...entry,resultDate:entry.eventDate}),previous=entries.get(key);
+   if(previous&&['heat','lane','scheduledAt','seedTimeMs'].some(k=>previous[k]!==entry[k])){
+    diagnostics.push({sourceUrl,code:'conflicting_official_seedings',key});entries.set(key,null);continue;
+   }
+   if(!entries.has(key))entries.set(key,entry);
   }
   for(const candidate of parseModernResultBook(args)){
    const validation=validateResultCandidate(candidate);
@@ -47,5 +51,5 @@ export function scanCurrentMeet({meetId,identity,documents,allowedHosts,scope,ex
   }
  }
  const status=diagnostics.length?'partial':results.size?'results_parsed':entries.size?'no_result_publication':'identity_not_found';
- return {status,entries:[...entries.values()],results:[...results.values()].filter(Boolean),diagnostics,writes:0};
+ return {status,entries:[...entries.values()].filter(Boolean),results:[...results.values()].filter(Boolean),diagnostics,writes:0};
 }
