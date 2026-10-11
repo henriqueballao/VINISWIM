@@ -16,7 +16,7 @@ CREATE TABLE public.official_import_conflicts (
  UNIQUE(job_id,identity_key,document_id)
 );
 CREATE TABLE public.official_entry_evidence (
- entry_id uuid NOT NULL REFERENCES public.meet_entries(id) ON DELETE CASCADE,
+ entry_id uuid NOT NULL REFERENCES public.official_meet_entries(id),
  document_id uuid NOT NULL REFERENCES public.official_import_documents(id),
  parser_version text NOT NULL,source_block text NOT NULL,captured_at timestamptz NOT NULL,
  PRIMARY KEY(entry_id,document_id)
@@ -39,7 +39,7 @@ RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,publi
 <<batch>>
 DECLARE
  j public.import_v2_jobs%ROWTYPE;rr public.refresh_requests%ROWTYPE;a public.athletes%ROWTYPE;
- meet_id uuid;event_id uuid;doc_id uuid;row_id uuid;existing public.results%ROWTYPE;old_entry public.meet_entries%ROWTYPE;
+ meet_id uuid;event_id uuid;doc_id uuid;row_id uuid;existing public.results%ROWTYPE;old_entry public.official_meet_entries%ROWTYPE;
  d jsonb;r jsonb;metadata jsonb;raw bytea;identity_key text;source_code text;external_id text;
  start_date date;end_date date;race_date date;pool public.swim_course;
  inserted integer:=0;duplicated integer:=0;conflicts integer:=0;entries_inserted integer:=0;entries_updated integer:=0;entries_duplicated integer:=0;
@@ -124,7 +124,7 @@ BEGIN
   IF r->>'kind'='seeded_entry' THEN
    IF r->>'heat' IS NULL OR (r->>'heat')::integer<1 OR r->>'lane' IS NULL OR (r->>'lane')::integer NOT BETWEEN 0 AND 9
     OR r->>'scheduledAt' IS NULL OR ((r->>'scheduledAt')::timestamptz AT TIME ZONE 'America/Sao_Paulo')::date<>race_date THEN RAISE EXCEPTION 'INCOMPLETE_SEEDING'; END IF;
-   SELECT * INTO old_entry FROM public.meet_entries WHERE meet_id=batch.meet_id AND athlete_id=a.id AND meet_entries.event_id=batch.event_id
+   SELECT * INTO old_entry FROM public.official_meet_entries WHERE meet_id=batch.meet_id AND athlete_id=a.id AND official_meet_entries.event_id=batch.event_id
     AND official_event_number=r->>'externalEventId' AND official_round=r->>'round' AND official_sex=r->>'sex' AND official_event_date=race_date AND official_course=pool FOR UPDATE;
    IF FOUND THEN
     row_id=old_entry.id;
@@ -137,11 +137,11 @@ BEGIN
      CONTINUE;
     END IF;
     IF old_entry.heat IS NULL OR old_entry.lane IS NULL OR old_entry.scheduled_at IS NULL OR (old_entry.seed_time_ms IS NULL AND r->>'seedTimeMs' IS NOT NULL) THEN
-     UPDATE public.meet_entries SET heat=coalesce(heat,(r->>'heat')::integer),lane=coalesce(lane,(r->>'lane')::integer),scheduled_at=coalesce(scheduled_at,(r->>'scheduledAt')::timestamptz),seed_time_ms=coalesce(seed_time_ms,(r->>'seedTimeMs')::integer) WHERE id=row_id;
+     UPDATE public.official_meet_entries SET heat=coalesce(heat,(r->>'heat')::integer),lane=coalesce(lane,(r->>'lane')::integer),scheduled_at=coalesce(scheduled_at,(r->>'scheduledAt')::timestamptz),seed_time_ms=coalesce(seed_time_ms,(r->>'seedTimeMs')::integer),updated_at=now() WHERE id=row_id;
      entries_updated=entries_updated+1;
     ELSE entries_duplicated=entries_duplicated+1; END IF;
    ELSE
-    INSERT INTO public.meet_entries(meet_id,athlete_id,event_id,source_id,external_id,seed_time_ms,heat,lane,scheduled_at,entry_status,official_event_number,official_round,official_sex,official_event_date,official_course)
+    INSERT INTO public.official_meet_entries(meet_id,athlete_id,event_id,source_id,external_id,seed_time_ms,heat,lane,scheduled_at,entry_status,official_event_number,official_round,official_sex,official_event_date,official_course)
      VALUES(meet_id,a.id,event_id,j.source_id,identity_key,(r->>'seedTimeMs')::integer,(r->>'heat')::integer,(r->>'lane')::integer,(r->>'scheduledAt')::timestamptz,'seeded',r->>'externalEventId',r->>'round',r->>'sex',race_date,pool) RETURNING id INTO row_id;
     entries_inserted=entries_inserted+1;
    END IF;

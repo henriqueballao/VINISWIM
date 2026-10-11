@@ -8,6 +8,7 @@ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(
 GRANT USAGE ON SCHEMA auth TO authenticated;
 \ir published-core-schema.sql
 \ir ../../proposals/official-event-integrity.sql
+\ir ../../proposals/official-entry-read-model.sql
 \ir ../../proposals/official-result-timeline.sql
 \ir ../../proposals/official-worker-leases.sql
 \ir ../../proposals/official-worker-context.sql
@@ -123,14 +124,14 @@ BEGIN
  r=r||jsonb_build_object('kind','seeded_entry','eventDate','2026-10-10','seedTimeMs',20000,'heat',1,'lane',0,'scheduledAt','2026-10-10T12:00:00Z','sourceBlock','SYNTHETIC seeded athlete 700001');
  b=jsonb_set(jsonb_set(b,'{results}','[]'),'{entries}',jsonb_build_array(r));
  j=pg_temp.new_job();answer=persist_official_meet_batch(j.id,j.lease_token,b);
- IF (answer->>'entriesInserted')::integer<>1 OR (SELECT lane FROM meet_entries)<>0 THEN RAISE EXCEPTION 'Complete lane-zero seeding not persisted'; END IF;
+ IF (answer->>'entriesInserted')::integer<>1 OR (SELECT lane FROM official_meet_entries)<>0 THEN RAISE EXCEPTION 'Complete lane-zero seeding not persisted'; END IF;
  IF (SELECT count(*) FROM results)<>2 THEN RAISE EXCEPTION 'Seed became official result'; END IF;
  j=pg_temp.new_job();answer=persist_official_meet_batch(j.id,j.lease_token,b);
- IF (answer->>'entriesDuplicated')::integer<>1 OR (answer->>'entriesUpdated')::integer<>0 OR (SELECT count(*) FROM meet_entries)<>1 THEN RAISE EXCEPTION 'Seeding reimport not idempotent'; END IF;
+ IF (answer->>'entriesDuplicated')::integer<>1 OR (answer->>'entriesUpdated')::integer<>0 OR (SELECT count(*) FROM official_meet_entries)<>1 THEN RAISE EXCEPTION 'Seeding reimport not idempotent'; END IF;
  j=pg_temp.new_job();answer=persist_official_meet_batch(j.id,j.lease_token,jsonb_set(b,'{entries,0,seedTimeMs}','null'));
- IF (SELECT seed_time_ms FROM meet_entries)<>20000 THEN RAISE EXCEPTION 'Missing seed erased valid inscription'; END IF;
+ IF (SELECT seed_time_ms FROM official_meet_entries)<>20000 THEN RAISE EXCEPTION 'Missing seed erased valid inscription'; END IF;
  j=pg_temp.new_job();answer=persist_official_meet_batch(j.id,j.lease_token,jsonb_set(b,'{entries,0,lane}','2'));
- IF (answer->>'conflicts')::integer<>1 OR (SELECT lane FROM meet_entries)<>0 THEN RAISE EXCEPTION 'Contradiction overwrote seeding'; END IF;
+ IF (answer->>'conflicts')::integer<>1 OR (SELECT lane FROM official_meet_entries)<>0 THEN RAISE EXCEPTION 'Contradiction overwrote seeding'; END IF;
  b=pg_temp.batch();b=jsonb_set(jsonb_set(jsonb_set(b,'{results,0,status}','"dsq"'),'{results,0,timeMs}','null'),'{results,0,externalEventId}','"99"');
  j=pg_temp.new_job();answer=persist_official_meet_batch(j.id,j.lease_token,b);
  IF NOT EXISTS(SELECT 1 FROM results WHERE status='dsq' AND time_ms IS NULL) THEN RAISE EXCEPTION 'DSQ did not persist separately'; END IF;
@@ -285,5 +286,40 @@ BEGIN
  DELETE FROM results WHERE id=manual;GET DIAGNOSTICS changed=ROW_COUNT;
  IF changed<>1 THEN RAISE EXCEPTION 'Owner cannot delete manual result'; END IF;
  IF EXISTS(SELECT 1 FROM v_result_timeline WHERE athlete_id<>'00000000-0000-4000-8000-000000000011') OR NOT EXISTS(SELECT 1 FROM v_result_timeline WHERE official_event_number IS NOT NULL) THEN RAISE EXCEPTION 'Timeline drops descriptors or exposes another tenant'; END IF;
+END $$;
+ROLLBACK;
+
+-- Unchanged legacy upsert contract under the actual service role, on two
+-- accounts, while one account also has an attested official race.
+BEGIN;
+SET LOCAL ROLE service_role;
+INSERT INTO meet_entries(meet_id,athlete_id,event_id,source_id,seed_time_ms,heat,lane)
+SELECT meet_id,a.id,event_id,e.source_id,30000,1,1 FROM official_meet_entries e
+ CROSS JOIN athletes a WHERE e.athlete_id='00000000-0000-4000-8000-000000000011'
+ AND a.id IN ('00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000012')
+ON CONFLICT(meet_id,athlete_id,event_id) DO UPDATE SET seed_time_ms=excluded.seed_time_ms;
+INSERT INTO meet_entries(meet_id,athlete_id,event_id,source_id,seed_time_ms,heat,lane)
+SELECT meet_id,a.id,event_id,e.source_id,31000,1,1 FROM official_meet_entries e
+ CROSS JOIN athletes a WHERE e.athlete_id='00000000-0000-4000-8000-000000000011'
+ AND a.id IN ('00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000012')
+ON CONFLICT(meet_id,athlete_id,event_id) DO UPDATE SET seed_time_ms=excluded.seed_time_ms;
+DO $$ BEGIN
+ IF (SELECT count(*) FROM meet_entries)<>2 OR EXISTS(SELECT 1 FROM meet_entries WHERE seed_time_ms<>31000) THEN RAISE EXCEPTION 'Legacy write failed for separate accounts'; END IF;
+ IF (SELECT seed_time_ms FROM official_meet_entries WHERE athlete_id='00000000-0000-4000-8000-000000000011')<>20000 THEN RAISE EXCEPTION 'Legacy write overwrote attested seed'; END IF;
+ BEGIN
+  UPDATE official_meet_entries SET lane=3 WHERE athlete_id='00000000-0000-4000-8000-000000000011';RAISE EXCEPTION 'Legacy writer edited attested entry';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'LEGACY_OFFICIAL_WRITER_FENCED' THEN RAISE; END IF; END;
+END $$;
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-4000-8000-000000000031';
+DO $$ BEGIN
+ IF (SELECT count(*) FROM v_meet_entry_timeline)<>1 OR EXISTS(SELECT 1 FROM v_meet_entry_timeline WHERE entry_origin<>'official' OR athlete_id<>'00000000-0000-4000-8000-000000000011' OR meets->>'id' IS NULL OR official_event_number IS NULL) THEN RAISE EXCEPTION 'Official read model lost race, duplicates legacy, or crosses account'; END IF;
+ BEGIN
+  UPDATE official_meet_entries SET lane=3;RAISE EXCEPTION 'Browser edited official seeding';
+ EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+END $$;
+SET LOCAL request.jwt.claim.sub='00000000-0000-4000-8000-000000000032';
+DO $$ BEGIN
+ IF (SELECT count(*) FROM v_meet_entry_timeline)<>1 OR EXISTS(SELECT 1 FROM v_meet_entry_timeline WHERE entry_origin<>'legacy' OR athlete_id<>'00000000-0000-4000-8000-000000000012') OR EXISTS(SELECT 1 FROM official_meet_entries) THEN RAISE EXCEPTION 'Legacy-only account read crosses tenant'; END IF;
 END $$;
 ROLLBACK;
