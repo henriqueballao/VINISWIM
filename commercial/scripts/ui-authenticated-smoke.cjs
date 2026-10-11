@@ -24,6 +24,7 @@ const tables={
    const context=await browser.newContext({viewport:{width:size.width,height:size.height},serviceWorkers:'block'});
    const page=await context.newPage();
    const errors=[],writes=[];
+   let accountReadFailure=false;
    page.on('pageerror',e=>errors.push(e.message));
    await page.route('**/*',async route=>{
     const req=route.request(),url=new URL(req.url());
@@ -35,6 +36,7 @@ const tables={
     if(path==='/auth/v1/user'&&req.method()==='GET')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(user)});
     if(path.startsWith('/rest/v1/')&&req.method()==='GET'){
       const table=decodeURIComponent(path.split('/').pop());
+      if(table==='account_members'&&accountReadFailure)return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'SYNTHETIC unavailable account read'})});
       const data=Object.hasOwn(tables,table)?tables[table]:[];
       return route.fulfill({status:200,contentType:'application/json',headers:{'content-range':'0-0/1'},body:JSON.stringify(data)});
     }
@@ -73,6 +75,7 @@ const tables={
     await page.getByRole('heading',{name:label,exact:true}).first().waitFor();
    };
    await clickNav('Resultados');
+   assert.equal(await page.getByRole('button',{name:'Excluir',exact:true}).count(),0,'Official results must not offer delete actions');
    await page.getByRole('button',{name:'Localizar atleta'}).click();
    await page.getByText('Nadador Sintetico').waitFor();
    assert.equal(await page.getByRole('button',{name:'Confirmar e buscar provas'}).count(),1);
@@ -84,6 +87,14 @@ const tables={
    assert.ok(bodyWidth<=size.width+2,'Horizontal overflow '+size.name+': '+bodyWidth);
    assert.deepEqual(errors,[],'JS errors '+size.name);
    assert.deepEqual(writes,[],'Unexpected write requests '+size.name);
+   accountReadFailure=true;
+   await page.reload();
+   await page.getByRole('alert').filter({hasText:'Não foi possível carregar sua conta'}).waitFor();
+   assert.equal(await page.getByRole('heading',{name:'Sem conta vinculada'}).count(),0,'A failed read must not masquerade as an unlinked account');
+   accountReadFailure=false;
+   await page.getByRole('button',{name:'Tentar novamente'}).click();
+   await page.getByRole('heading',{name:'Visão Geral'}).waitFor();
+   assert.deepEqual(writes,[],'Retry must remain read-only');
    console.log('PASS synthetic authenticated dashboard/navigation '+size.name);
    await context.close();
   }

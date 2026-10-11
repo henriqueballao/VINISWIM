@@ -184,6 +184,7 @@ function Kpi({k,v,s,onClick}:{k:string,v:any,s?:string,onClick?:()=>void}){retur
 
 export default function App(){
  const identityRun=useRef(0)
+ const [identityError,setIdentityError]=useState('')
  const athleteLoader=useRef(createScopedLoader())
  const [session,setSession]=useState<any>(null),[authReady,setAuthReady]=useState(false),[identityLoading,setIdentityLoading]=useState(false),[identityLoaded,setIdentityLoaded]=useState(false),[needsInitialAthlete,setNeedsInitialAthlete]=useState(false),[recovery,setRecovery]=useState(()=>new URLSearchParams(window.location.search).get('reset')==='1'),[inviteToken,setInviteToken]=useState<string|null>(()=>new URLSearchParams(window.location.search).get('invite')),[inviteNotice,setInviteNotice]=useState<{type:'success'|'error',message:string}|null>(null),[page,setPage]=useState<Page>('dashboard'),[open,setOpen]=useState(false),[actionsOpen,setActionsOpen]=useState(false),[profile,setProfile]=useState<any>(null),[account,setAccount]=useState<any>(null),[memberships,setMemberships]=useState<any[]>([]),[myRole,setMyRole]=useState(''),[athletes,setAthletes]=useState<any[]>([]),[athleteId,setAthleteId]=useState(localStorage.getItem('viniswim-athlete')||''),[events,setEvents]=useState<any[]>([]),[results,setResults]=useState<any[]>([]),[overview,setOverview]=useState<any>(null),[pbs,setPbs]=useState<any[]>([]),[meets,setMeets]=useState<any[]>([]),[entries,setEntries]=useState<any[]>([]),[audit,setAudit]=useState<any[]>([]),[sources,setSources]=useState<any[]>([]),[sourceConfigs,setSourceConfigs]=useState<any[]>([]),[searchSources,setSearchSources]=useState<string[]>([]),[monitorJobs,setMonitorJobs]=useState<any[]>([]),[archiveJobs,setArchiveJobs]=useState<any[]>([]),[modal,setModal]=useState<any>(null),[athleteModal,setAthleteModal]=useState(false),[meetModal,setMeetModal]=useState(false),[tutorial,setTutorial]=useState(false),[alertsModal,setAlertsModal]=useState(false),[auditModal,setAuditModal]=useState(false),[filters,setFilters]=useState({event:[] as string[],course:[] as string[],category:[] as string[],origin:[] as string[]}),[refreshMsg,setRefreshMsg]=useState(''),[activeRequest,setActiveRequest]=useState<any>(null),[lastSuccessfulSync,setLastSuccessfulSync]=useState<string|null>(null),[resultFilter,setResultFilterState]=useState<string[]|null>(null)
  const [loadedAthleteScope,setLoadedAthleteScope]=useState(''),[athleteLoadError,setAthleteLoadError]=useState('')
@@ -229,15 +230,17 @@ export default function App(){
  }
  async function loadIdentity(){
   const run=++identityRun.current
-  setIdentityLoading(true);setIdentityLoaded(false);setNeedsInitialAthlete(false)
+  setIdentityLoading(true);setIdentityLoaded(false);setNeedsInitialAthlete(false);setIdentityError('')
   try{
    const uid=session.user.id
-   const [{data:p},{data:ms},{data:e}]=await Promise.all([
+   const replies=await Promise.all([
     supabase.from('profiles').select('*').eq('id',uid).maybeSingle(),
     supabase.from('account_members').select('account_id,role,accounts(*)').eq('user_id',uid).eq('status','active').order('created_at'),
     supabase.from('events').select('*').order('sort_order')
    ])
    if(run!==identityRun.current)return
+   for(const reply of replies)if(reply.error)throw reply.error
+   const [{data:p},{data:ms},{data:e}]=replies
    setProfile(p);setEvents(e||[])
    const list=ms||[]
    setMemberships(list)
@@ -248,8 +251,9 @@ export default function App(){
    if(current?.account_id)localStorage.setItem('viniswim-account',current.account_id)
    let nextAthletes:any[]=[]
    if(current?.account_id){
-    const {data:a}=await supabase.from('athletes').select('*').eq('account_id',current.account_id).eq('active',true).order('created_at')
+    const {data:a,error}=await supabase.from('athletes').select('*').eq('account_id',current.account_id).eq('active',true).order('created_at')
     if(run!==identityRun.current)return
+    if(error)throw error
     nextAthletes=a||[]
     setAthletes(nextAthletes)
     if(!athleteId&&nextAthletes[0])setAthleteId(nextAthletes[0].id)
@@ -259,6 +263,8 @@ export default function App(){
    }
    if(run!==identityRun.current)return
    setNeedsInitialAthlete(!!current?.account_id&&nextAthletes.length===0)
+  }catch(error){
+   if(run===identityRun.current)setIdentityError('Não foi possível carregar sua conta. Tente novamente.')
   }finally{
    if(run===identityRun.current){setIdentityLoading(false);setIdentityLoaded(true)}
   }
@@ -308,6 +314,7 @@ export default function App(){
  if(!session&&inviteToken)return <InviteAuth token={inviteToken} onAuthenticated={s=>{identityRun.current++;setNeedsInitialAthlete(false);setIdentityLoaded(false);setSession(s)}}/>
  if(!session)return <Auth onAuthenticated={s=>{identityRun.current++;setNeedsInitialAthlete(false);setIdentityLoaded(false);setSession(s)}}/>
  if(identityLoading||!identityLoaded)return <div className="loading">Preparando sua conta VINISWIM...</div>
+ if(identityError)return <div className="empty"><p role="alert">{identityError}</p><button className="btn" onClick={()=>void loadIdentity()}>Tentar novamente</button><button className="btn" onClick={logout}>Sair</button></div>
  if(!account)return <div className="empty"><h2>Sem conta vinculada</h2><p>{inviteNotice?.type==='error'?inviteNotice.message:'Sua conta ainda não está vinculada a nenhuma família no VINISWIM. Se você recebeu um convite, abra o link novamente.'}</p><button className="btn" onClick={logout}>Sair</button></div>
  if(needsInitialAthlete)return <><AthleteModal accountId={account.id} onClose={()=>{}} onSaved={loadIdentity}/></>
  if(athleteScope&&loadedAthleteScope!==athleteScope)return <div className="loading"><p role={athleteLoadError?'alert':'status'}>{athleteLoadError||'Carregando dados do atleta...'}</p>{athleteLoadError&&<button className="btn" onClick={()=>void loadAthlete()}>Tentar novamente</button>}<button className="btn" onClick={logout}>Sair</button></div>
