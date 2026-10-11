@@ -16,7 +16,7 @@ export class SourceAccessError extends Error {
 // Fetch the original publication directly. extractPdf must be an authorized local
 // byte extractor; this module never sends protected URLs to a reader proxy.
 export async function captureOfficialDocument({url,allowedHosts,fetchImpl=fetch,extractPdf,now=()=>new Date(),timeoutMs=15000,maxBytes=20*1024*1024}){
- const check=(value)=>{const u=new URL(value);if(u.protocol!=='https:'||u.username||u.password||!allowedHosts.includes(u.hostname))throw new SourceAccessError('Unapproved official document URL',{httpStatus:403});return u;};
+ const check=(value)=>{const u=new URL(value);if(u.protocol!=='https:'||u.port||u.username||u.password||!allowedHosts.includes(u.hostname))throw new SourceAccessError('Unapproved official document URL',{httpStatus:403});return u;};
  let target=check(url),response;
  const requestedUrl=target.href,redirectChain=[];
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);

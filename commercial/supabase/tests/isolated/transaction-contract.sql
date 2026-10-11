@@ -237,3 +237,26 @@ BEGIN
  UPDATE import_v2_jobs SET status='cancelled' WHERE status IN ('pending','running');
  IF has_function_privilege('authenticated','enqueue_official_subscribed_meets(integer)','EXECUTE') THEN RAISE EXCEPTION 'Browser can run global monitor'; END IF;
 END $$;
+
+-- SYNTHETIC Vault/network contracts. The mocked net.http_post never makes HTTP.
+CREATE SCHEMA vault;CREATE SCHEMA net;
+CREATE TABLE vault.decrypted_secrets(name text,decrypted_secret text);
+CREATE TABLE isolated_http_requests(id bigint GENERATED ALWAYS AS IDENTITY,url text,body jsonb,headers jsonb,timeout_milliseconds integer);
+CREATE FUNCTION net.http_post(url text,body jsonb,headers jsonb,timeout_milliseconds integer) RETURNS bigint LANGUAGE plpgsql AS $$
+DECLARE request bigint;
+BEGIN
+ IF current_database()<>'viniswim_isolated_test' THEN RAISE EXCEPTION 'Synthetic network must never run in production'; END IF;
+ INSERT INTO isolated_http_requests(url,body,headers,timeout_milliseconds) VALUES(url,body,headers,timeout_milliseconds) RETURNING id INTO request;RETURN request;
+END $$;
+\ir ../../proposals/official-scheduler-auth.sql
+DO $$
+DECLARE answer jsonb;
+BEGIN
+ BEGIN
+  PERFORM dispatch_official_import_worker();RAISE EXCEPTION 'Unconfigured worker dispatched';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'OFFICIAL_WORKER_TOKEN_NOT_CONFIGURED' THEN RAISE; END IF; END;
+ INSERT INTO vault.decrypted_secrets VALUES('viniswim_official_import_worker_token',repeat('a',64));
+ answer=dispatch_official_import_worker();
+ IF answer->>'outcome'<>'http_request_queued' OR answer::text LIKE '%Bearer%' OR NOT EXISTS(SELECT 1 FROM isolated_http_requests WHERE headers->>'Authorization'='Bearer '||repeat('a',64)) THEN RAISE EXCEPTION 'Scheduler auth missing or secret leaked into outcome'; END IF;
+ IF has_function_privilege('authenticated','read_official_worker_token()','EXECUTE') OR has_function_privilege('anon','dispatch_official_import_worker()','EXECUTE') THEN RAISE EXCEPTION 'Browser can read worker secret or dispatch'; END IF;
+END $$;
