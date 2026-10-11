@@ -23,7 +23,7 @@ CREATE TABLE public.official_entry_evidence (
 );
 CREATE TABLE public.official_import_batches (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),job_id uuid NOT NULL REFERENCES public.import_v2_jobs(id),
- lease_token uuid NOT NULL,athlete_id uuid NOT NULL REFERENCES public.athletes(id),
+ lease_token uuid NOT NULL,batch_hash text NOT NULL CHECK(batch_hash ~ '^[a-f0-9]{64}$'),athlete_id uuid NOT NULL REFERENCES public.athletes(id),
  outcome text NOT NULL,counters jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(job_id,lease_token)
 );
 ALTER TABLE public.official_import_documents ENABLE ROW LEVEL SECURITY;
@@ -43,7 +43,7 @@ DECLARE
  d jsonb;r jsonb;metadata jsonb;raw bytea;identity_key text;source_code text;external_id text;
  start_date date;end_date date;race_date date;pool public.swim_course;
  inserted integer:=0;duplicated integer:=0;conflicts integer:=0;entries_inserted integer:=0;entries_updated integer:=0;entries_duplicated integer:=0;
- outcome text;counters jsonb;
+ outcome text;counters jsonb;receipt public.official_import_batches%ROWTYPE;payload_hash text;identity_count integer;
 BEGIN
  -- Shared request first, then job: cancellation must take this same request
  -- lock before touching any job. No network operation occurs in this transaction.
@@ -51,17 +51,30 @@ BEGIN
  IF NOT FOUND THEN RAISE EXCEPTION 'JOB_NOT_FOUND'; END IF;
  SELECT * INTO rr FROM public.refresh_requests WHERE id=j.request_id FOR UPDATE;
  SELECT * INTO j FROM public.import_v2_jobs WHERE id=p_job_id FOR UPDATE;
+ payload_hash=encode(extensions.digest(convert_to(p_batch::text,'UTF8'),'sha256'),'hex');
+ SELECT * INTO receipt FROM public.official_import_batches WHERE job_id=j.id AND lease_token=p_lease_token;
+ IF FOUND THEN
+  IF receipt.batch_hash IS DISTINCT FROM payload_hash THEN RAISE EXCEPTION 'RECEIPT_PAYLOAD_MISMATCH'; END IF;
+  RETURN receipt.counters||jsonb_build_object('outcome',receipt.outcome,'receiptReplay',true);
+ END IF;
  IF j.worker_version<>'official-v3' OR j.status<>'running' OR j.lease_token IS DISTINCT FROM p_lease_token
   OR j.lease_expires_at IS NULL OR j.lease_expires_at<=now() THEN RAISE EXCEPTION 'STALE_WORKER_LEASE'; END IF;
  IF rr.cancel_requested_at IS NOT NULL OR rr.terminal_status IS NOT NULL THEN RAISE EXCEPTION 'REQUEST_CANCELLED_OR_TERMINAL'; END IF;
- SELECT * INTO a FROM public.athletes WHERE id=j.athlete_id;
+ SELECT * INTO a FROM public.athletes WHERE id=j.athlete_id FOR SHARE;
  IF NOT FOUND OR rr.athlete_id<>a.id OR (p_batch->>'athleteId')::uuid IS DISTINCT FROM a.id
   OR (p_batch->>'accountId')::uuid IS DISTINCT FROM a.account_id THEN RAISE EXCEPTION 'TENANT_SCOPE_MISMATCH'; END IF;
- IF NOT EXISTS(SELECT 1 FROM public.account_members WHERE account_id=a.account_id AND user_id=rr.requested_by AND status='active') THEN RAISE EXCEPTION 'REQUEST_ACCESS_REVOKED'; END IF;
+ PERFORM 1 FROM public.account_members WHERE account_id=a.account_id AND user_id=rr.requested_by AND status='active' FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'REQUEST_ACCESS_REVOKED'; END IF;
  SELECT code INTO source_code FROM public.sources WHERE id=j.source_id AND active AND official;
  IF source_code IS DISTINCT FROM 'swimsystem' THEN RAISE EXCEPTION 'UNSUPPORTED_OFFICIAL_SOURCE'; END IF;
  external_id=p_batch->>'athleteExternalId';
- IF external_id IS NULL OR external_id !~ '^[0-9]+$' OR NOT EXISTS(
+ PERFORM 1 FROM public.athlete_identifiers WHERE athlete_id=a.id AND source_id=j.source_id AND active AND verified FOR SHARE;
+ PERFORM 1 FROM public.athlete_source_configs WHERE athlete_id=a.id AND source_id=j.source_id AND active FOR SHARE;
+ SELECT count(DISTINCT ids.external_id) INTO identity_count FROM (
+  SELECT external_id FROM public.athlete_identifiers WHERE athlete_id=a.id AND source_id=j.source_id AND active AND verified
+  UNION ALL SELECT external_id FROM public.athlete_source_configs WHERE athlete_id=a.id AND source_id=j.source_id AND active
+ ) ids WHERE ids.external_id IS NOT NULL AND trim(ids.external_id)<>'';
+ IF external_id IS NULL OR external_id !~ '^[0-9]+$' OR identity_count<>1 OR NOT EXISTS(
   SELECT 1 FROM public.athlete_identifiers WHERE athlete_id=a.id AND source_id=j.source_id AND active AND verified AND athlete_identifiers.external_id=p_batch->>'athleteExternalId'
   UNION ALL SELECT 1 FROM public.athlete_source_configs WHERE athlete_id=a.id AND source_id=j.source_id AND active AND athlete_source_configs.external_id=p_batch->>'athleteExternalId'
  ) THEN RAISE EXCEPTION 'SOURCE_IDENTITY_NOT_VERIFIED'; END IF;
@@ -155,7 +168,7 @@ BEGIN
  END LOOP;
  outcome=CASE WHEN conflicts>0 THEN 'conflicting_official_publications' WHEN jsonb_array_length(p_batch->'results')=0 THEN 'no_result_publication' ELSE 'official_results_persisted' END;
  counters=jsonb_build_object('inserted',inserted,'duplicated',duplicated,'conflicts',conflicts,'entriesInserted',entries_inserted,'entriesUpdated',entries_updated,'entriesDuplicated',entries_duplicated);
- INSERT INTO public.official_import_batches(job_id,lease_token,athlete_id,outcome,counters) VALUES(j.id,p_lease_token,a.id,outcome,counters);
+ INSERT INTO public.official_import_batches(job_id,lease_token,batch_hash,athlete_id,outcome,counters) VALUES(j.id,p_lease_token,payload_hash,a.id,outcome,counters);
  UPDATE public.import_v2_jobs SET status=CASE WHEN conflicts>0 THEN 'blocked' ELSE 'completed' END,
   records_found=jsonb_array_length(p_batch->'results')+jsonb_array_length(p_batch->'entries'),records_inserted=inserted,records_duplicated=duplicated,
   failure_code=CASE WHEN outcome='official_results_persisted' THEN NULL ELSE outcome END,last_error=CASE WHEN outcome='official_results_persisted' THEN NULL ELSE outcome END,

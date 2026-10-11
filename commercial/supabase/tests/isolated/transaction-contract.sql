@@ -62,6 +62,12 @@ DECLARE j import_v2_jobs;b jsonb;outcome jsonb;before_count integer;
 BEGIN
  j=pg_temp.new_job();b=pg_temp.batch();outcome=persist_official_meet_batch(j.id,j.lease_token,b);
  IF (outcome->>'inserted')::integer<>1 THEN RAISE EXCEPTION 'Initial insert failed'; END IF;
+ outcome=persist_official_meet_batch(j.id,j.lease_token,b);
+ IF outcome->>'receiptReplay'<>'true' OR (SELECT count(*) FROM official_import_batches)<>1 THEN RAISE EXCEPTION 'Lost-response retry duplicated batch'; END IF;
+ BEGIN
+  PERFORM persist_official_meet_batch(j.id,j.lease_token,jsonb_set(b,'{results,0,timeMs}','12346'));RAISE EXCEPTION 'Receipt accepted changed payload';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'RECEIPT_PAYLOAD_MISMATCH' THEN RAISE; END IF; END;
+
  j=pg_temp.new_job();outcome=persist_official_meet_batch(j.id,j.lease_token,b);
  IF (outcome->>'duplicated')::integer<>1 OR (SELECT count(*) FROM results)<>1 OR (SELECT count(*) FROM result_sources)<>1 THEN RAISE EXCEPTION 'Reimport not idempotent'; END IF;
  j=pg_temp.new_job();outcome=persist_official_meet_batch(j.id,j.lease_token,jsonb_set(b,'{results,0,timeMs}','12346'));
@@ -85,6 +91,11 @@ BEGIN
  EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'STALE_WORKER_LEASE' THEN RAISE; END IF; END;
  UPDATE import_v2_jobs SET status='cancelled' WHERE id=j.id;
  j=pg_temp.new_job();
+ INSERT INTO athlete_source_configs VALUES(j.athlete_id,j.source_id,'700099',true);
+ BEGIN
+  PERFORM persist_official_meet_batch(j.id,j.lease_token,b);RAISE EXCEPTION 'Ambiguous active source identity accepted';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'SOURCE_IDENTITY_NOT_VERIFIED' THEN RAISE; END IF; END;
+ DELETE FROM athlete_source_configs WHERE external_id='700099';
  BEGIN
   PERFORM persist_official_meet_batch(j.id,j.lease_token,jsonb_set(b,'{documents,0,rawHash}',to_jsonb(repeat('0',64))));RAISE EXCEPTION 'Forged hash accepted';
  EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'CAPTURE_BYTES_MISMATCH' THEN RAISE; END IF; END;
