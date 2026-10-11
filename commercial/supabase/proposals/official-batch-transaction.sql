@@ -85,6 +85,9 @@ BEGIN
  IF start_date IS NULL OR end_date IS NULL OR end_date<start_date OR pool IS NULL OR coalesce(length(trim(metadata->>'name')),0)=0
   OR (metadata->>'externalMeetId') IS NULL OR (metadata->>'externalMeetId') !~ '^[a-f0-9-]{36}$'
   OR (metadata->>'officialUrl') IS DISTINCT FROM 'https://www.swimsystem.app/meets/sw/'||(metadata->>'externalMeetId') THEN RAISE EXCEPTION 'INVALID_OFFICIAL_MEET'; END IF;
+ IF j.job_type<>'current_meet' OR j.cursor->>'scope' IS DISTINCT FROM 'targeted_meet'
+  OR j.cursor->>'external_meet_id' IS DISTINCT FROM metadata->>'externalMeetId'
+  OR j.cursor->>'official_url' IS DISTINCT FROM metadata->>'officialUrl' THEN RAISE EXCEPTION 'JOB_MEET_SCOPE_MISMATCH'; END IF;
  FOR d IN SELECT value FROM jsonb_array_elements(p_batch->'documents') LOOP
   IF (d->>'rawHash') IS NULL OR (d->>'rawHash') !~ '^[a-f0-9]{64}$'
    OR (d->>'url') IS NULL OR (d->>'url') !~ ('^https://sportstimingbrasil-swimsystem[.]supabase[.]co/storage/v1/object/public/reports/meet-documents/'||(metadata->>'externalMeetId')||'/[a-f0-9-]+[.]pdf$')
@@ -173,6 +176,7 @@ BEGIN
   records_found=jsonb_array_length(p_batch->'results')+jsonb_array_length(p_batch->'entries'),records_inserted=inserted,records_duplicated=duplicated,
   failure_code=CASE WHEN outcome='official_results_persisted' THEN NULL ELSE outcome END,last_error=CASE WHEN outcome='official_results_persisted' THEN NULL ELSE outcome END,
   locked_at=NULL,lease_token=NULL,lease_expires_at=NULL,next_run_at=NULL,updated_at=now() WHERE id=j.id;
+ PERFORM public.finalize_official_import_request(j.request_id);
  RETURN counters||jsonb_build_object('outcome',outcome);
 END $$;
 REVOKE ALL ON FUNCTION public.persist_official_meet_batch(uuid,uuid,jsonb) FROM PUBLIC,anon,authenticated;

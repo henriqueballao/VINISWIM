@@ -2,10 +2,11 @@ name: Official database contract (isolated)
 on:
   push:
     branches: ['fix/official-import-audit-20261011']
-    paths: ['commercial/supabase/proposals/**', 'commercial/supabase/tests/isolated/**', '.github/workflows/official-database-contract.yml', 'scripts/test-isolated-concurrency.mjs']
+    paths: ['commercial/supabase/proposals/**', 'commercial/supabase/tests/isolated/**', '.github/workflows/official-database-contract.yml', 'scripts/test-isolated-concurrency.mjs', 'scripts/test-official-pipeline-isolated.mjs']
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
   database-contract:
     strategy:
@@ -33,3 +34,26 @@ jobs:
         env:
           PGPASSWORD: SYNTHETIC-CI-ONLY
         run: node scripts/test-isolated-concurrency.mjs
+      - uses: actions/setup-node@v4
+        if: matrix.contract == 'transaction'
+        with:
+          node-version: '22'
+      - name: Install original-document test dependencies
+        if: matrix.contract == 'transaction'
+        working-directory: commercial
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Install independent Poppler extractor
+        if: matrix.contract == 'transaction'
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - uses: actions/download-artifact@v4
+        if: matrix.contract == 'transaction'
+        with:
+          name: official-current-and-historical-readonly
+          run-id: 38161104219
+          github-token: ${{ github.token }}
+          path: current-and-historical-originals
+      - name: Original publications through real isolated PostgreSQL transaction
+        if: matrix.contract == 'transaction'
+        env:
+          PGPASSWORD: SYNTHETIC-CI-ONLY
+        run: node scripts/test-official-pipeline-isolated.mjs current-and-historical-originals
