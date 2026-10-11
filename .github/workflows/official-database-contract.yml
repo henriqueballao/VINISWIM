@@ -8,6 +8,9 @@ permissions:
   contents: read
 jobs:
   database-contract:
+    strategy:
+      matrix:
+        contract: [event, lease]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -23,4 +26,4 @@ jobs:
       - name: Reproduce published constraints and verify candidate repair
         env:
           PGPASSWORD: SYNTHETIC-CI-ONLY
-        run: psql -h localhost -U postgres -d viniswim_isolated_test -v ON_ERROR_STOP=1 -f commercial/supabase/tests/isolated/event-contract.sql
+        run: psql -h localhost -U postgres -d viniswim_isolated_test -v ON_ERROR_STOP=1 -f commercial/supabase/tests/isolated/${{ matrix.contract }}-contract.sql
