@@ -2,6 +2,7 @@
   "version": "4",
   "specifiers": {
     "npm:@supabase/supabase-js@2.57.4": "2.57.4",
+    "npm:@types/node@*": "22.5.4",
     "npm:parse5@7.3.0": "7.3.0",
     "npm:unpdf@1.8.1": "1.8.1"
   },
