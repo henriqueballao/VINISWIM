@@ -43,7 +43,7 @@ export async function captureOfficialDocument({url,allowedHosts,fetchImpl=fetch,
   const mime=response.headers.get('content-type')?.split(';')[0].trim()||'';
   const isPdf=new TextDecoder().decode(bytes.slice(0,5))==='%PDF-';
   let text;
-  if(isPdf){if(!extractPdf)throw new SourceAccessError('Authorized PDF extractor is unavailable',{formatUnrecognized:true});text=await extractPdf(bytes);}
+  if(isPdf){if(!extractPdf)throw new SourceAccessError('Authorized PDF extractor is unavailable',{formatUnrecognized:true});text=await extractPdf(bytes.slice());}
   else if(['text/plain','text/html'].includes(mime))text=new TextDecoder().decode(bytes);
   else throw new SourceAccessError('Official document format is unrecognized',{formatUnrecognized:true});
   if(/cf-chl-|<title>\s*(?:just a moment|attention required)|verify you are human/i.test(text))throw new SourceAccessError('Official source requires anti-bot validation',{antiBot:true,sourceUrl:target.href});

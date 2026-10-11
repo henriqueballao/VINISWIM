@@ -41,7 +41,7 @@ export function parseSeededStartlist({text,identity,sourceUrl,retrievedAt,rawHas
    if(!row||row[3]!==id||heat===null||time===null)continue;
    const lane=Number(row[1]);if(lane>9||heat<1)continue;
    const scheduledAt=scheduledInstant(date,time,timeZone);
-   entries.push({kind:'seeded_entry',athleteExternalId:id,externalEventId:header[1],round:'Final Direta',sex:header[2].toLowerCase(),event:`${header[3]} ${header[4]}`,eventDate:date,course:meet.meet.course,seedTimeMs:row[5]==='NT'?null:parseTime(row[5]),heat,lane,scheduledAt,sourceUrl,retrievedAt,rawHash,parserVersion:'swimsystem-seeded-v1',sourceBlock:`${header[0].trim()}\nSérie ${heat} ${time}\n${line.trim()}`});
+   entries.push({kind:'seeded_entry',athleteExternalId:id,externalEventId:header[1],round:'Final Direta',sex:header[2].toLowerCase(),event:`${header[3]} ${header[4]}`,eventDate:date,course:meet.meet.course,seedTimeMs:row[5]==='NT'?null:parseTime(row[5]),heat,lane,scheduledAt,sourceUrl,retrievedAt,rawHash,parserVersion:'swimsystem-seeded-v2',sourceBlock:`${header[0].trim()}\nSérie ${heat} ${time}\n${line.trim()}`});
   }
  }
  const unique=new Map();for(const entry of entries)unique.set(JSON.stringify([entry.athleteExternalId,entry.externalEventId,entry.round,entry.sex,entry.eventDate,entry.heat,entry.lane,entry.scheduledAt,entry.seedTimeMs]),entry);

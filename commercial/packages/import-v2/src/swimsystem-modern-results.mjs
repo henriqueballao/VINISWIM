@@ -47,7 +47,7 @@ export function parseModernResultBook({text,identity,meet,sourceUrl,retrievedAt}
    out.push({
      sourceCode:meet.sourceCode,externalMeetId:meet.externalMeetId,externalEventId:h[1],round:h[2].replace(/\s+/g," "),sex:h[3].toLowerCase(),event:h[4]+" "+h[5],
      resultDate,course:ev.meet.course,timeMs,status,
-     sourceUrl,sourceBlock:row.text.slice(0,240),parserVersion:"swimsystem-modern-results-v1",
+     sourceUrl,sourceBlock:row.text.slice(0,240),parserVersion:"swimsystem-modern-results-v2",
      retrievedAt,athleteExternalId:id,meetStartDate:ev.meet.startDate,meetEndDate:ev.meet.endDate
    });
  }

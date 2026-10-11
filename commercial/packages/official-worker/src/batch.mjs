@@ -1,3 +1,4 @@
+import {Buffer} from 'node:buffer';
 import {scanCurrentMeet} from '../../import-v2/src/current-meet-adapter.mjs';
 import {verifiedCaptureEvidence} from '../../import-v2/src/official-document.mjs';
 

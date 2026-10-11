@@ -1,0 +1,43 @@
+name: Official Edge extractor and reproducible build candidate
+on:
+  push:
+    branches: ['fix/official-import-audit-20261011']
+    paths: ['commercial/packages/official-worker/**', 'scripts/test-js-pdf-extractor.mjs', '.github/workflows/official-edge-candidate.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  javascript-extractor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate candidate lockfile without lifecycle scripts
+        working-directory: commercial
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Install exact locked dependency graph without lifecycle scripts
+        working-directory: commercial
+        run: npm ci --ignore-scripts
+      - name: Validate frontend build from locked graph
+        working-directory: commercial
+        run: npm run build:web
+      - uses: actions/download-artifact@v4
+        with:
+          name: official-import-live-readonly
+          run-id: 38148027929
+          github-token: ${{ github.token }}
+          path: original-capture
+      - name: Validate original publications with JavaScript PDF extractor
+        run: node scripts/test-js-pdf-extractor.mjs original-capture
+      - name: Preserve lock and candidate build (no deploy)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: official-edge-build-candidate
+          path: |
+            commercial/package-lock.json
+            commercial/apps/web/dist
+          retention-days: 30
