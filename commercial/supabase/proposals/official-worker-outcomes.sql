@@ -19,7 +19,7 @@ END $$;
 REVOKE ALL ON FUNCTION public.finalize_official_import_request(uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.finalize_official_import_request(uuid) TO service_role;
 
-CREATE OR REPLACE FUNCTION public.finish_official_import_failure(p_job_id uuid,p_lease_token uuid,p_failure_code text,p_message text,p_retryable boolean)
+CREATE OR REPLACE FUNCTION public.finish_official_import_failure(p_job_id uuid,p_lease_token uuid,p_failure_code text,p_message text,p_retryable boolean,p_details jsonb DEFAULT '{}'::jsonb)
 RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,public AS $$
 DECLARE j public.import_v2_jobs%ROWTYPE;rr public.refresh_requests%ROWTYPE;next_status text;delay_seconds integer;
 BEGIN
@@ -29,10 +29,11 @@ BEGIN
  SELECT * INTO j FROM public.import_v2_jobs WHERE id=p_job_id FOR UPDATE;
  IF j.worker_version<>'official-v3' OR j.status<>'running' OR j.lease_token IS DISTINCT FROM p_lease_token OR j.lease_expires_at IS NULL OR j.lease_expires_at<=now() THEN RAISE EXCEPTION 'STALE_WORKER_LEASE'; END IF;
  IF rr.cancel_requested_at IS NOT NULL OR rr.terminal_status IS NOT NULL THEN RAISE EXCEPTION 'REQUEST_CANCELLED_OR_TERMINAL'; END IF;
+ IF jsonb_typeof(p_details) IS DISTINCT FROM 'object' OR octet_length(p_details::text)>8192 THEN RAISE EXCEPTION 'INVALID_FAILURE_DETAILS'; END IF;
  IF p_failure_code IS NULL OR p_failure_code NOT IN ('authentication_required','anti_bot_blocked','access_denied','identity_not_found','format_unrecognized','tls_error','timeout','document_missing','html_changed','parser_no_match','http_error','unknown','database_error','conflicting_official_publications','inconsistent_meet_evidence','unsupported_job_type') THEN RAISE EXCEPTION 'INVALID_FAILURE_CODE'; END IF;
  next_status=CASE WHEN NOT coalesce(p_retryable,false) OR p_failure_code IN ('authentication_required','anti_bot_blocked','access_denied','identity_not_found','format_unrecognized','conflicting_official_publications','inconsistent_meet_evidence','unsupported_job_type') THEN 'blocked' WHEN j.attempts>=5 THEN 'failed' ELSE 'pending' END;
  delay_seconds=least(3600,60*(2^greatest(j.attempts-1,0))::integer);
- UPDATE public.import_v2_jobs SET status=next_status,failure_code=p_failure_code,last_error=left(coalesce(nullif(p_message,''),p_failure_code),1000),
+ UPDATE public.import_v2_jobs SET status=next_status,failure_code=p_failure_code,failure_details=p_details,last_error=left(coalesce(nullif(p_message,''),p_failure_code),1000),
   next_run_at=CASE WHEN next_status='pending' THEN now()+make_interval(secs=>delay_seconds) ELSE NULL END,
   locked_at=NULL,lease_token=NULL,lease_expires_at=NULL,updated_at=now() WHERE id=j.id;
  UPDATE public.official_meet_subscriptions SET last_checked_at=now(),last_outcome=p_failure_code,last_error=left(coalesce(nullif(p_message,''),p_failure_code),1000),
@@ -41,6 +42,6 @@ BEGIN
  PERFORM public.finalize_official_import_request(j.request_id);
  RETURN jsonb_build_object('status',next_status,'failureCode',p_failure_code,'retryAfterSeconds',CASE WHEN next_status='pending' THEN delay_seconds ELSE NULL END);
 END $$;
-REVOKE ALL ON FUNCTION public.finish_official_import_failure(uuid,uuid,text,text,boolean) FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.finish_official_import_failure(uuid,uuid,text,text,boolean) TO service_role;
+REVOKE ALL ON FUNCTION public.finish_official_import_failure(uuid,uuid,text,text,boolean,jsonb) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.finish_official_import_failure(uuid,uuid,text,text,boolean,jsonb) TO service_role;
 COMMIT;

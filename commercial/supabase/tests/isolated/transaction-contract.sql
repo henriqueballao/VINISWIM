@@ -194,13 +194,16 @@ BEGIN
  j=pg_temp.new_job();UPDATE refresh_requests SET job_count=1 WHERE id=j.request_id;
  answer=finish_official_import_failure(j.id,j.lease_token,'authentication_required','Official source HTTP 401',true);
  IF answer->>'status'<>'blocked' OR (SELECT terminal_status FROM refresh_requests WHERE id=j.request_id)<>'failed' OR (SELECT last_error FROM import_v2_jobs WHERE id=j.id)<>'Official source HTTP 401' THEN RAISE EXCEPTION '401 hidden or retried'; END IF;
+ j=pg_temp.new_job();answer=finish_official_import_failure(j.id,j.lease_token,'database_error','SYNTHETIC serialization failure',true,jsonb_build_object('sqlstate','40001','message','SYNTHETIC serialization failure','cause',jsonb_build_object('code','40001')));
+ IF answer->>'status'<>'pending' OR (SELECT failure_details->>'sqlstate' FROM import_v2_jobs WHERE id=j.id)<>'40001' OR (SELECT failure_details#>>'{cause,code}' FROM import_v2_jobs WHERE id=j.id)<>'40001' THEN RAISE EXCEPTION 'Database failure lost code/cause or did not back off'; END IF;
+ UPDATE import_v2_jobs SET status='cancelled' WHERE id=j.id;
  j=pg_temp.new_job();answer=finish_official_import_failure(j.id,j.lease_token,'document_missing','Official PDF HTTP 404',true);
  IF answer->>'status'<>'pending' OR (answer->>'retryAfterSeconds')::integer<>60 THEN RAISE EXCEPTION '404 did not back off'; END IF;
  UPDATE import_v2_jobs SET attempts=4,next_run_at=now() WHERE id=j.id;
  SELECT * INTO j FROM claim_official_import_jobs(1);
  answer=finish_official_import_failure(j.id,j.lease_token,'timeout','timeout retained',true);
  IF answer->>'status'<>'failed' OR (SELECT attempts FROM import_v2_jobs WHERE id=j.id)<>5 THEN RAISE EXCEPTION 'Retries exceeded limit'; END IF;
- IF has_function_privilege('authenticated','finish_official_import_failure(uuid,uuid,text,text,boolean)','EXECUTE') THEN RAISE EXCEPTION 'Browser can finalize worker'; END IF;
+ IF has_function_privilege('authenticated','finish_official_import_failure(uuid,uuid,text,text,boolean,jsonb)','EXECUTE') THEN RAISE EXCEPTION 'Browser can finalize worker'; END IF;
 END $$;
 
 DO $$

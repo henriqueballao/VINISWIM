@@ -1,6 +1,7 @@
 import {Buffer} from 'node:buffer';
 import {scanCurrentMeet} from '../../import-v2/src/current-meet-adapter.mjs';
 import {verifiedCaptureEvidence} from '../../import-v2/src/official-document.mjs';
+import {OfficialRpcError} from './rpc-errors.mjs';
 
 // Server-only boundary. No raw caller-provided candidates or hashes are accepted.
 // Scope must come from the claimed job; the SQL transaction rechecks it.
@@ -22,7 +23,7 @@ export function buildOfficialBatch({job,athlete,identity,meet,documents,allowedH
 export async function commitOfficialBatch({rpc,job,prepared}){
  if(!prepared.accepted)throw new Error('Rejected scan cannot reach persistence');
  const result=await rpc('persist_official_meet_batch',{p_job_id:job.id,p_lease_token:job.lease_token,p_batch:prepared.batch});
- if(result?.error)throw new Error(`Official transaction failed: ${result.error.code||'database_error'}`);
- if(!result?.data?.outcome)throw new Error('Official transaction returned no auditable outcome');
+ if(result?.error)throw new OfficialRpcError('persist_official_meet_batch',result.error,{status:result.status});
+ if(!result?.data?.outcome)throw new OfficialRpcError('persist_official_meet_batch',{code:'INVALID_RPC_RESPONSE',message:'Official transaction returned no auditable outcome'});
  return result.data;
 }

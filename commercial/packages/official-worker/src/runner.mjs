@@ -1,11 +1,11 @@
 import {authorizeWorkerRequest} from './authorization.mjs';
 import {discoverOfficialMeet} from './discovery.mjs';
 import {captureOfficialDocument,SourceAccessError} from '../../import-v2/src/official-document.mjs';
-import {classifyImportFailure} from '../../import-v2/src/failure-states.mjs';
 import {buildOfficialBatch,commitOfficialBatch} from './batch.mjs';
+import {OfficialRpcError,classifyOfficialRpcFailure,rpcFailureDetails,staleWorkerError,uncertainCommitResponse} from './rpc-errors.mjs';
 export const OFFICIAL_HOSTS=Object.freeze(['www.swimsystem.app','swimsystem.app','sportstimingbrasil-swimsystem.supabase.co']);
-const stale=error=>/STALE_WORKER_LEASE|REQUEST_CANCELLED_OR_TERMINAL/.test(error?.message||'');
-async function checkedRpc(rpc,name,args){const response=await rpc(name,args);if(response?.error)throw new Error(`${name}: ${response.error.message||response.error.code||'database_error'}`);if(response?.data===undefined||response?.data===null)throw new Error(`${name}: missing RPC response`);return response.data;}
+const stale=staleWorkerError;
+async function checkedRpc(rpc,name,args){const response=await rpc(name,args);if(response?.error)throw new OfficialRpcError(name,response.error,{status:response.status});if(response?.data===undefined||response?.data===null)throw new OfficialRpcError(name,{code:'INVALID_RPC_RESPONSE',message:'missing RPC response'});return response.data;}
 export async function processClaimedOfficialJob({job,rpc,extractPdf,fetchImpl=fetch,now=()=>new Date()}){
  const context=()=>checkedRpc(rpc,'load_official_import_context',{p_job_id:job.id,p_lease_token:job.lease_token});
  try{
@@ -20,21 +20,22 @@ export async function processClaimedOfficialJob({job,rpc,extractPdf,fetchImpl=fe
   if(!prepared.accepted){const code=prepared.scan.status==='identity_not_found'?'identity_not_found':prepared.scan.diagnostics[0]?.code||'format_unrecognized';throw new SourceAccessError(`Official scan rejected: ${code}`,{formatUnrecognized:true,scanCode:code});}
   let result;
   try{result=await commitOfficialBatch({rpc,job,prepared});}
-  catch{ // A lost commit response is replayed with the exact same lease/payload.
+  catch(error){ // Only an uncertain transport response warrants immediate replay.
+   if(!uncertainCommitResponse(error))throw error;
    // SQL returns its durable receipt; an invalid batch still fails atomically.
    result=await commitOfficialBatch({rpc,job,prepared});
   }
   return {jobId:job.id,requestId:job.request_id,status:result.conflicts?'blocked':'completed',...result};
  }catch(error){
   if(stale(error))return {jobId:job.id,requestId:job.request_id,status:'cancelled_or_stale',code:'worker_lease_unavailable'};
-  let failure=error.failure||classifyImportFailure({error});
+  let failure=error.failure||classifyOfficialRpcFailure(error)||{code:'unknown',retryable:false};
   const message=String(error.message||error);
   if(/SOURCE_IDENTITY_MISSING_OR_AMBIGUOUS/.test(message))failure={code:'identity_not_found',retryable:false};
   else if(/UNSUPPORTED_JOB_TYPE|UNSUPPORTED_OFFICIAL_SOURCE/.test(message))failure={code:'unsupported_job_type',retryable:false};
   else if(/REQUEST_ACCESS_REVOKED/.test(message))failure={code:'access_denied',retryable:false};
   else if(['identity_not_found','conflicting_official_publications','inconsistent_meet_evidence'].includes(error.scanCode))failure={code:error.scanCode,retryable:false};
   // Failure to record failure is an operational error; never silently swallow it.
-  try{const outcome=await checkedRpc(rpc,'finish_official_import_failure',{p_job_id:job.id,p_lease_token:job.lease_token,p_failure_code:failure.code,p_message:message,p_retryable:failure.retryable});return {jobId:job.id,requestId:job.request_id,...outcome};}
+  try{const outcome=await checkedRpc(rpc,'finish_official_import_failure',{p_job_id:job.id,p_lease_token:job.lease_token,p_failure_code:failure.code,p_message:message,p_retryable:failure.retryable,p_details:rpcFailureDetails(error)});return {jobId:job.id,requestId:job.request_id,...outcome};}
   catch(recordError){if(stale(recordError))return {jobId:job.id,requestId:job.request_id,status:'cancelled_or_stale',code:'worker_lease_unavailable'};throw new AggregateError([error,recordError],'Official worker could not record its failure');}
  }
 }

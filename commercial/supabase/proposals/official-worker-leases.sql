@@ -4,7 +4,8 @@ BEGIN;
 ALTER TABLE public.import_v2_jobs
  ADD COLUMN worker_version text NOT NULL DEFAULT 'legacy-v2' CHECK(worker_version IN ('legacy-v2','official-v3')),
  ADD COLUMN lease_token uuid,
- ADD COLUMN lease_expires_at timestamptz;
+ ADD COLUMN lease_expires_at timestamptz,
+ ADD COLUMN failure_details jsonb NOT NULL DEFAULT '{}'::jsonb CHECK(jsonb_typeof(failure_details)='object' AND octet_length(failure_details::text)<=8192);
 
 CREATE OR REPLACE FUNCTION public.claim_official_import_jobs(p_limit integer DEFAULT 1)
 RETURNS SETOF public.import_v2_jobs LANGUAGE plpgsql SECURITY INVOKER

@@ -2,7 +2,7 @@ name: Adversarial review of 5775834 (unresolved contracts)
 on:
   push:
     branches: ['fix/official-import-audit-20261011']
-    paths: ['docs/audit/2026-10-11/repros/**', '.github/workflows/adversarial-review-5775834.yml']
+    paths: ['docs/audit/2026-10-11/repros/**', 'commercial/packages/official-worker/**', 'commercial/supabase/proposals/**', 'commercial/supabase/tests/isolated/**', '.github/workflows/adversarial-review-5775834.yml']
   workflow_dispatch:
 permissions:
   contents: read
