@@ -219,7 +219,7 @@ END $$;
 DO $$
 DECLARE answer jsonb;subscription uuid;usr uuid:='00000000-0000-4000-8000-000000000031';
 BEGIN
- PERFORM set_config('request.jwt.claim.sub',usr,true);
+ PERFORM set_config('request.jwt.claim.sub',usr::text,true);
  PERFORM request_official_meet_import('00000000-0000-4000-8000-000000000011','https://www.swimsystem.app/meets/sw/aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa');
  SELECT id INTO subscription FROM official_meet_subscriptions WHERE athlete_id='00000000-0000-4000-8000-000000000011';
  UPDATE official_meet_subscriptions SET next_scan_at=now() WHERE id=subscription;
