@@ -51,9 +51,9 @@ BEGIN
   INSERT INTO public.import_v2_jobs(status) VALUES('invented-success');
   RAISE EXCEPTION 'Unknown job state accepted';
  EXCEPTION WHEN check_violation THEN NULL; END;
- INSERT INTO public.results(time_ms,official_identity_key,origin,is_official,source_id) VALUES(12345,repeat('a',64),'official',true,gen_random_uuid());
+ INSERT INTO public.results(time_ms,official_identity_key,origin,is_official,source_id,official_event_number,official_round,official_sex) VALUES(12345,repeat('a',64),'official',true,gen_random_uuid(),'16','Final Direta','masculino');
  BEGIN
-  INSERT INTO public.results(time_ms,official_identity_key,origin,is_official,source_id) VALUES(12346,repeat('a',64),'official',true,gen_random_uuid());
+  INSERT INTO public.results(time_ms,official_identity_key,origin,is_official,source_id,official_event_number,official_round,official_sex) VALUES(12346,repeat('a',64),'official',true,gen_random_uuid(),'16','Final Direta','masculino');
   RAISE EXCEPTION 'Corrected time created duplicate identity';
  EXCEPTION WHEN unique_violation THEN NULL; END;
  BEGIN

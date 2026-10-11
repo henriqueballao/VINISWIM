@@ -31,7 +31,10 @@ CREATE UNIQUE INDEX meet_entries_official_identity_uidx ON public.meet_entries
 -- These fields are only for the new attested transaction path. Legacy
 -- fingerprints and rows stay intact until reconciliation/cutover is verified.
 ALTER TABLE public.results ADD COLUMN official_identity_key text,
- ADD CONSTRAINT results_attested_identity_official_only CHECK (official_identity_key IS NULL OR (origin='official' AND is_official=true AND source_id IS NOT NULL AND official_identity_key ~ '^[a-f0-9]{64}$'));
+ ADD COLUMN official_event_number text,
+ ADD COLUMN official_round text,
+ ADD COLUMN official_sex text,
+ ADD CONSTRAINT results_attested_identity_official_only CHECK (official_identity_key IS NULL OR (origin='official' AND is_official=true AND source_id IS NOT NULL AND official_identity_key ~ '^[a-f0-9]{64}$' AND official_event_number IS NOT NULL AND official_event_number ~ '^[0-9]+$' AND official_round IS NOT NULL AND length(trim(official_round))>0 AND official_sex IS NOT NULL AND official_sex IN ('masculino','feminino')));
 CREATE UNIQUE INDEX results_official_identity_uidx ON public.results(official_identity_key)
  WHERE official_identity_key IS NOT NULL;
 COMMIT;

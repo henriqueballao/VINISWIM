@@ -145,8 +145,8 @@ BEGIN
     END IF;
     duplicated=duplicated+1;
    ELSE
-    INSERT INTO public.results(athlete_id,meet_id,event_id,result_date,course,time_ms,status,origin,source_id,external_id,is_official,result_fingerprint,official_identity_key)
-     VALUES(a.id,meet_id,event_id,race_date,pool,(r->>'timeMs')::integer,(r->>'status')::public.result_status,'official',j.source_id,identity_key,true,identity_key,identity_key) RETURNING id INTO row_id;
+    INSERT INTO public.results(athlete_id,meet_id,event_id,result_date,course,time_ms,status,origin,source_id,external_id,is_official,result_fingerprint,official_identity_key,official_event_number,official_round,official_sex)
+     VALUES(a.id,meet_id,event_id,race_date,pool,(r->>'timeMs')::integer,(r->>'status')::public.result_status,'official',j.source_id,identity_key,true,identity_key,identity_key,r->>'externalEventId',r->>'round',r->>'sex') RETURNING id INTO row_id;
     inserted=inserted+1;
    END IF;
    INSERT INTO public.result_sources(result_id,source_id,source_url,external_id,retrieved_at,raw_hash,metadata)
