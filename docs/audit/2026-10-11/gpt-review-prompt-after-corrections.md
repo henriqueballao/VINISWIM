@@ -3,12 +3,15 @@
 Atue como revisor técnico adversarial do VINISWIM. Consulte diretamente o repositório henriqueballao/VINISWIM, branch fix/official-import-audit-20261011, PR draft #17. Não aceite relato do Codex como comprovação de produção.
 
 Leia primeiro:
+- docs/audit/2026-10-11/adversarial-review-5775834.md e adversarial-review-5775834-evidence.json (reconsulta de produção e contraprovas R1/R2; 252 resultados legados, não zero atualmente);
 - docs/audit/2026-10-11/independent-review-and-codex-actions.md (revisão original, commit 28212ec);
 - docs/audit/2026-10-11/codex-corrections-after-independent-review.md;
 - docs/audit/2026-10-11/post-review-evidence.json;
 - diff atual main...fix/official-import-audit-20261011.
 
 Verifique código, SQL, testes e logs citados. A branch contém propostas NÃO APLICADAS e uma Edge candidata NÃO PUBLICADA. As três migrations de segurança anteriores já aplicadas não devem ser reaplicadas. Não faça merge, deploy, limpeza, fusão de atletas nem alterações de infraestrutura durante esta revisão.
+
+Confronte também o workflow adversarial 38172476437: as três assertions de propagação de mensagens RPC e o upsert legado após a proposta de índices falharam. Verifique as correções necessárias sem retirar ou enfraquecer esses contratos. A revisão do Codex sobre sua própria candidata não constitui parecer externo independente.
 
 Confirme ou refute, com localização e teste reproduzível:
 1. Mapa GitHub Pages / versus /app/, origem dos bytes publicados, consumidores ativos do Railway e state.json. STATE_API_URL não é utilizada pelo servidor V41 auditado; não invente seu destino nem divulgue segredos.
