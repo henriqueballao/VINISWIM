@@ -2,7 +2,7 @@ name: Official Edge extractor and reproducible build candidate
 on:
   push:
     branches: ['fix/official-import-audit-20261011']
-    paths: ['commercial/packages/official-worker/**', 'scripts/test-js-pdf-extractor.mjs', '.github/workflows/official-edge-candidate.yml']
+    paths: ['commercial/packages/official-worker/**', 'scripts/test-js-pdf-extractor.mjs', 'scripts/capture-official-meets-readonly.mjs', '.github/workflows/official-edge-candidate.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,6 +21,8 @@ jobs:
       - name: Install exact locked dependency graph without lifecycle scripts
         working-directory: commercial
         run: npm ci --ignore-scripts
+      - name: Worker contracts
+        run: node --test commercial/packages/official-worker/src/*.test.mjs
       - name: Validate frontend build from locked graph
         working-directory: commercial
         run: npm run build:web
@@ -41,3 +43,11 @@ jobs:
             commercial/package-lock.json
             commercial/apps/web/dist
           retention-days: 30
+      - name: Capture current and configured historical publications (public read only)
+        run: node scripts/capture-official-meets-readonly.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: official-current-and-historical-readonly
+          path: official-meet-captures
+          retention-days: 90
