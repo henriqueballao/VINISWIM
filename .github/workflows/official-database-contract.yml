@@ -9,6 +9,7 @@ permissions:
 jobs:
   database-contract:
     strategy:
+      fail-fast: false
       matrix:
         contract: [event, lease, transaction]
     runs-on: ubuntu-latest

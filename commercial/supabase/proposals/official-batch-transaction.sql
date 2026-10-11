@@ -36,6 +36,7 @@ GRANT SELECT,INSERT ON public.official_import_documents,public.official_import_c
 CREATE OR REPLACE FUNCTION public.persist_official_meet_batch(p_job_id uuid,p_lease_token uuid,p_batch jsonb)
 RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,public,extensions AS $$
 #variable_conflict use_column
+<<batch>>
 DECLARE
  j public.import_v2_jobs%ROWTYPE;rr public.refresh_requests%ROWTYPE;a public.athletes%ROWTYPE;
  meet_id uuid;event_id uuid;doc_id uuid;row_id uuid;existing public.results%ROWTYPE;old_entry public.meet_entries%ROWTYPE;
@@ -105,7 +106,7 @@ BEGIN
   IF r->>'kind'='seeded_entry' THEN
    IF r->>'heat' IS NULL OR (r->>'heat')::integer<1 OR r->>'lane' IS NULL OR (r->>'lane')::integer NOT BETWEEN 0 AND 9
     OR r->>'scheduledAt' IS NULL OR ((r->>'scheduledAt')::timestamptz AT TIME ZONE 'America/Sao_Paulo')::date<>race_date THEN RAISE EXCEPTION 'INCOMPLETE_SEEDING'; END IF;
-   SELECT * INTO old_entry FROM public.meet_entries WHERE meet_id=persist_official_meet_batch.meet_id AND athlete_id=a.id AND meet_entries.event_id=persist_official_meet_batch.event_id
+   SELECT * INTO old_entry FROM public.meet_entries WHERE meet_id=batch.meet_id AND athlete_id=a.id AND meet_entries.event_id=batch.event_id
     AND official_event_number=r->>'externalEventId' AND official_round=r->>'round' AND official_sex=r->>'sex' AND official_event_date=race_date AND official_course=pool FOR UPDATE;
    IF FOUND THEN
     row_id=old_entry.id;
