@@ -33,6 +33,7 @@ CREATE UNIQUE INDEX meet_entries_natural_uidx ON meet_entries(meet_id,athlete_id
 CREATE TABLE monitor_jobs(request_id uuid,status text,locked_at timestamptz,next_run_at timestamptz,updated_at timestamptz,last_error text);
 CREATE TABLE historical_archive_jobs(request_id uuid,status text,heartbeat_at timestamptz,finished_at timestamptz,updated_at timestamptz,started_at timestamptz,last_error text);
 \ir ../../proposals/official-request-cancellation.sql
+\ir ../../proposals/official-monitoring.sql
 \ir ../../proposals/official-targeted-request.sql
 \ir ../../proposals/official-progress-view.sql
 \ir published-triggers.sql
@@ -213,4 +214,26 @@ BEGIN
  answer=finish_official_import_failure(j.id,j.lease_token,'timeout','timeout retained',true);
  IF answer->>'status'<>'failed' OR (SELECT attempts FROM import_v2_jobs WHERE id=j.id)<>5 THEN RAISE EXCEPTION 'Retries exceeded limit'; END IF;
  IF has_function_privilege('authenticated','finish_official_import_failure(uuid,uuid,text,text,boolean)','EXECUTE') THEN RAISE EXCEPTION 'Browser can finalize worker'; END IF;
+END $$;
+
+DO $$
+DECLARE answer jsonb;subscription uuid;usr uuid:='00000000-0000-4000-8000-000000000031';
+BEGIN
+ PERFORM set_config('request.jwt.claim.sub',usr,true);
+ PERFORM request_official_meet_import('00000000-0000-4000-8000-000000000011','https://www.swimsystem.app/meets/sw/aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa');
+ SELECT id INTO subscription FROM official_meet_subscriptions WHERE athlete_id='00000000-0000-4000-8000-000000000011';
+ UPDATE official_meet_subscriptions SET next_scan_at=now() WHERE id=subscription;
+ answer=enqueue_official_subscribed_meets();
+ IF (answer->>'deferred')::integer<>1 OR (answer->>'enqueued')::integer<>0 THEN RAISE EXCEPTION 'Monitor duplicated active import'; END IF;
+ UPDATE import_v2_jobs SET status='cancelled' WHERE athlete_id='00000000-0000-4000-8000-000000000011' AND status IN ('pending','running');
+ UPDATE official_meet_subscriptions SET next_scan_at=now() WHERE id=subscription;
+ answer=enqueue_official_subscribed_meets();
+ IF (answer->>'enqueued')::integer<>1 THEN RAISE EXCEPTION 'Monitor does not queue without user click'; END IF;
+ UPDATE account_members SET status='revoked' WHERE user_id=usr;
+ UPDATE official_meet_subscriptions SET next_scan_at=now() WHERE id=subscription;
+ answer=enqueue_official_subscribed_meets();
+ IF (answer->>'revoked')::integer<>1 OR (SELECT active FROM official_meet_subscriptions WHERE id=subscription) THEN RAISE EXCEPTION 'Monitor ignored revoked authorization'; END IF;
+ UPDATE account_members SET status='active' WHERE user_id=usr;
+ UPDATE import_v2_jobs SET status='cancelled' WHERE status IN ('pending','running');
+ IF has_function_privilege('authenticated','enqueue_official_subscribed_meets(integer)','EXECUTE') THEN RAISE EXCEPTION 'Browser can run global monitor'; END IF;
 END $$;

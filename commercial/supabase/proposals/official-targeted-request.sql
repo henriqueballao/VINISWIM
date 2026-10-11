@@ -19,6 +19,9 @@ BEGIN
  INSERT INTO public.refresh_requests(athlete_id,requested_by,source_codes,job_count) VALUES(p_athlete_id,auth.uid(),ARRAY['swimsystem'],1) RETURNING id INTO request;
  INSERT INTO public.import_v2_jobs(request_id,athlete_id,source_id,job_type,worker_version,priority,cursor)
  VALUES(request,p_athlete_id,source,'current_meet','official-v3',0,jsonb_build_object('scope','targeted_meet','external_meet_id',meet_external,'official_url',p_meet_url)) RETURNING id INTO job;
+ INSERT INTO public.official_meet_subscriptions(athlete_id,source_id,meet_external_id,official_url,requested_by)
+ VALUES(p_athlete_id,source,meet_external,p_meet_url,auth.uid())
+ ON CONFLICT(athlete_id,source_id,meet_external_id) DO UPDATE SET active=true,requested_by=excluded.requested_by,next_scan_at=now()+interval '15 minutes',updated_at=now();
  RETURN jsonb_build_object('request_id',request,'job_id',job,'status','pending');
 END $$;
 REVOKE ALL ON FUNCTION public.request_official_meet_import(uuid,text) FROM PUBLIC,anon;

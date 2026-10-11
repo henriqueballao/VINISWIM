@@ -35,6 +35,9 @@ BEGIN
  UPDATE public.import_v2_jobs SET status=next_status,failure_code=p_failure_code,last_error=left(coalesce(nullif(p_message,''),p_failure_code),1000),
   next_run_at=CASE WHEN next_status='pending' THEN now()+make_interval(secs=>delay_seconds) ELSE NULL END,
   locked_at=NULL,lease_token=NULL,lease_expires_at=NULL,updated_at=now() WHERE id=j.id;
+ UPDATE public.official_meet_subscriptions SET last_checked_at=now(),last_outcome=p_failure_code,last_error=left(coalesce(nullif(p_message,''),p_failure_code),1000),
+  next_scan_at=CASE WHEN next_status='blocked' THEN now()+interval '1 day' ELSE now()+make_interval(secs=>delay_seconds) END,updated_at=now()
+ WHERE athlete_id=j.athlete_id AND source_id=j.source_id AND meet_external_id=j.cursor->>'external_meet_id';
  PERFORM public.finalize_official_import_request(j.request_id);
  RETURN jsonb_build_object('status',next_status,'failureCode',p_failure_code,'retryAfterSeconds',CASE WHEN next_status='pending' THEN delay_seconds ELSE NULL END);
 END $$;
