@@ -5,6 +5,7 @@ import {captureOfficialDocument} from '../commercial/packages/import-v2/src/offi
 import {discoverOfficialMeet} from '../commercial/packages/official-worker/src/discovery.mjs';
 import {extractOfficialPdfJs} from '../commercial/packages/official-worker/src/pdf-js-extractor.mjs';
 import {extractOfficialPdf as extractOfficialPdfLocal} from '../commercial/packages/official-worker/src/pdf-extractor.mjs';
+import {processClaimedOfficialJob} from '../commercial/packages/official-worker/src/runner.mjs';
 import {buildOfficialBatch,commitOfficialBatch} from '../commercial/packages/official-worker/src/batch.mjs';
 const root=process.argv[2];if(!root)throw Error('Archived originals required');
 const sql=value=>`'${String(value).replaceAll("'","''")}'`;
@@ -31,14 +32,23 @@ for(const [externalId,[currentCount,historicalCount,total]] of Object.entries(ex
   if(!prepared.accepted){assert.equal(externalId,'393259');assert.equal(meetId,'c8587533-2e44-4b08-991f-f827170c7344');assert.equal(prepared.scan.status,'identity_not_found');query(`SET ROLE service_role;SELECT finish_official_import_failure(${sql(job.id)},${sql(job.lease_token)},'identity_not_found','Exact registration absent from published October documents',false);`);continue;}
   for(const label of new Set([...prepared.batch.entries,...prepared.batch.results].map(r=>r.event)))query(`INSERT INTO events(id,label,active) SELECT gen_random_uuid(),${sql(label)},true WHERE NOT EXISTS(SELECT 1 FROM events WHERE label=${sql(label)});`);
   const rpc=async(name,args)=>{assert.equal(name,'persist_official_meet_batch');return {data:JSON.parse(query(`SET ROLE service_role;SELECT persist_official_meet_batch(${sql(args.p_job_id)},${sql(args.p_lease_token)},${sql(JSON.stringify(args.p_batch))}::jsonb);`))};};
-  const first=await commitOfficialBatch({rpc,job,prepared});assert.equal(first.inserted,meetId.startsWith('c858')?currentCount:historicalCount);
-  const receipt=await commitOfficialBatch({rpc,job,prepared});assert.equal(receipt.receiptReplay,true);
+  const workerRpc=async(name,args)=>{
+   if(name==='persist_official_meet_batch')return rpc(name,args);
+   if(name==='load_official_import_context')return {data:JSON.parse(query(`SET ROLE service_role;SELECT load_official_import_context(${sql(args.p_job_id)},${sql(args.p_lease_token)});`))};
+   if(name==='finish_official_import_failure')return {data:JSON.parse(query(`SET ROLE service_role;SELECT finish_official_import_failure(${sql(args.p_job_id)},${sql(args.p_lease_token)},${sql(args.p_failure_code)},${sql(args.p_message)},${args.p_retryable?'true':'false'});`))};
+   throw Error('Unexpected worker RPC '+name);
+  };
+  const first=await processClaimedOfficialJob({job,rpc:workerRpc,extractPdf:extractOfficialPdfJs,now:()=>new Date('2026-10-11T17:48:13.000Z'),fetchImpl:async url=>{const meta=archived.captures.find(c=>c.url===url&&c.file);if(!meta)throw Error('Missing original '+url);return new Response(await fs.readFile(`${root}/${meta.file}`),{headers:{'content-type':meta.file.endsWith('.html')?'text/html':'application/pdf'}});}});
+  assert.equal(first.status,'completed',JSON.stringify(first));assert.equal(first.inserted,meetId.startsWith('c858')?currentCount:historicalCount);
+
+  const storedBatch=JSON.parse(query(`SELECT counters FROM official_import_batches WHERE job_id=${sql(job.id)};`));assert.equal(storedBatch.inserted,first.inserted);
+  // Durable receipt replay is asserted with the exact payload in the SQL suite.
   const again=JSON.parse(query(`SET ROLE authenticated;SELECT set_config('request.jwt.claim.sub',${sql(user)},false);SELECT request_official_meet_import(${sql(athlete.id)},${sql(discovered.meet.officialUrl)});`).split('\n').at(-1));
   const secondJob=JSON.parse(query(`SET ROLE service_role;SELECT row_to_json(j) FROM claim_official_import_jobs(1) j;`).split('\n').at(-1));assert.equal(secondJob.id,again.job_id);
   const second=await commitOfficialBatch({rpc,job:secondJob,prepared});assert.equal(second.inserted,0);assert.equal(second.duplicated,first.inserted);assert.equal(second.entriesUpdated,0);
   const persisted=JSON.parse(query(`SELECT json_agg(json_build_array(r.official_event_number,r.official_round,r.official_sex,r.result_date,r.course,e.label,r.time_ms,r.status) ORDER BY r.official_event_number::integer) FROM results r JOIN events e ON e.id=r.event_id JOIN meets m ON m.id=r.meet_id WHERE r.athlete_id=${sql(athlete.id)} AND m.external_id=${sql(meetId)};`));
   assert.deepEqual(persisted,prepared.scan.results.map(signature).sort((a,b)=>Number(a[0])-Number(b[0])));
-  proof.push({externalId,meetId,first,second,receiptReplay:true,independentExtractorsAgree:true,persistedMatchesOriginal:true});
+  proof.push({externalId,meetId,first,second,workerContextAndCaptureTested:true,independentExtractorsAgree:true,persistedMatchesOriginal:true});
  }
  assert.equal(Number(query(`SELECT count(*) FROM results WHERE athlete_id=${sql(athlete.id)}`)),total);
 }

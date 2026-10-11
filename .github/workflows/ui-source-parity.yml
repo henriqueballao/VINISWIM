@@ -61,7 +61,7 @@ jobs:
           PY
       - name: Install dependencies (no deployment)
         working-directory: commercial
-        run: npm install --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Type-check and build React source
         working-directory: commercial
         run: npm run build:web
@@ -100,9 +100,11 @@ jobs:
       - name: Install isolated browser smoke dependencies
         working-directory: commercial
         run: |
-          npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.58.2
-          npx playwright install --with-deps chromium
+          npm install --prefix /tmp/viniswim-ui-smoke --no-save --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          /tmp/viniswim-ui-smoke/node_modules/.bin/playwright install --with-deps chromium
       - name: Browser smoke tests (synthetic, read-only)
+        env:
+          NODE_PATH: /tmp/viniswim-ui-smoke/node_modules
         working-directory: commercial
         shell: bash
         run: |
@@ -124,4 +126,5 @@ jobs:
           path: commercial/apps/web/dist/
           if-no-files-found: error
           retention-days: 7
+
 

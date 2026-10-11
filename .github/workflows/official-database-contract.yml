@@ -45,13 +45,9 @@ jobs:
       - name: Install independent Poppler extractor
         if: matrix.contract == 'transaction'
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
-      - uses: actions/download-artifact@v4
+      - name: Verify and unpack committed current/historical original publications
         if: matrix.contract == 'transaction'
-        with:
-          name: official-current-and-historical-readonly
-          run-id: 38161104219
-          github-token: ${{ github.token }}
-          path: current-and-historical-originals
+        run: python3 scripts/unpack-official-fixture.py 20261011-1748 current-and-historical-originals
       - name: Original publications through real isolated PostgreSQL transaction
         if: matrix.contract == 'transaction'
         env:

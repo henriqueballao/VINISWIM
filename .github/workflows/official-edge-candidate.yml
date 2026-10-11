@@ -23,21 +23,17 @@ jobs:
       - name: Validate frontend build from locked graph
         working-directory: commercial
         run: npm run build:web
-      - uses: actions/download-artifact@v4
-        with:
-          name: official-import-live-readonly
-          run-id: 38148027929
-          github-token: ${{ github.token }}
-          path: original-capture
+      - name: Verify and unpack committed original publications
+        run: python3 scripts/unpack-official-fixture.py 20261011-1439 original-capture
       - name: Validate original publications with JavaScript PDF extractor
         run: node scripts/test-js-pdf-extractor.mjs original-capture
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.1.4
       - name: Type-check unpublished Edge entry point
-        run: deno check --config commercial/supabase/functions/official-import-runner/deno.json commercial/supabase/functions/official-import-runner/index.ts
+        run: deno check --frozen --config commercial/supabase/functions/official-import-runner/deno.json commercial/supabase/functions/official-import-runner/index.ts
       - name: Verify actual Deno extraction runtime with original PDFs
-        run: deno run --config commercial/supabase/functions/official-import-runner/deno.json --allow-read --allow-env --allow-sys scripts/test-deno-pdf-extractor.mjs original-capture
+        run: deno run --frozen --config commercial/supabase/functions/official-import-runner/deno.json --allow-read --allow-env --allow-sys scripts/test-deno-pdf-extractor.mjs original-capture
       - name: Preserve lock and candidate build (no deploy)
         uses: actions/upload-artifact@v4
         if: always()
