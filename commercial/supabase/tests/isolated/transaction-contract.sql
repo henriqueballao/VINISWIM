@@ -8,6 +8,7 @@ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(
 GRANT USAGE ON SCHEMA auth TO authenticated;
 \ir published-core-schema.sql
 \ir ../../proposals/official-event-integrity.sql
+\ir ../../proposals/official-result-timeline.sql
 \ir ../../proposals/official-worker-leases.sql
 \ir ../../proposals/official-worker-context.sql
 \ir ../../proposals/official-worker-outcomes.sql
@@ -262,3 +263,27 @@ BEGIN
  EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'OFFICIAL_RESULT_DELETE_REQUIRES_CONTROLLED_AUDIT' THEN RAISE; END IF; END;
  -- Direct cleanup/restore is deliberately not granted through this guard.
 END $$;
+
+BEGIN;
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-4000-8000-000000000031';
+DO $$
+DECLARE manual uuid;changed integer;official uuid;
+BEGIN
+ SELECT id INTO official FROM results WHERE athlete_id='00000000-0000-4000-8000-000000000011' AND is_official LIMIT 1;
+ UPDATE results SET time_ms=99999 WHERE id=official;GET DIAGNOSTICS changed=ROW_COUNT;
+ IF changed<>0 THEN RAISE EXCEPTION 'Browser edited an official result'; END IF;
+ DELETE FROM results WHERE id=official;GET DIAGNOSTICS changed=ROW_COUNT;
+ IF changed<>0 THEN RAISE EXCEPTION 'Browser deleted an official result'; END IF;
+ INSERT INTO results(athlete_id,event_id,result_date,course,time_ms,origin,is_official,created_by)
+ VALUES('00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000041','2026-10-10','LCM',88888,'manual',false,auth.uid()) RETURNING id INTO manual;
+ UPDATE results SET time_ms=77777 WHERE id=manual;GET DIAGNOSTICS changed=ROW_COUNT;
+ IF changed<>1 THEN RAISE EXCEPTION 'Owner cannot edit manual result'; END IF;
+ BEGIN
+  UPDATE results SET athlete_id='00000000-0000-4000-8000-000000000012' WHERE id=manual;RAISE EXCEPTION 'Manual result crossed tenant';
+ EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ DELETE FROM results WHERE id=manual;GET DIAGNOSTICS changed=ROW_COUNT;
+ IF changed<>1 THEN RAISE EXCEPTION 'Owner cannot delete manual result'; END IF;
+ IF EXISTS(SELECT 1 FROM v_result_timeline WHERE athlete_id<>'00000000-0000-4000-8000-000000000011') OR NOT EXISTS(SELECT 1 FROM v_result_timeline WHERE official_event_number IS NOT NULL) THEN RAISE EXCEPTION 'Timeline drops descriptors or exposes another tenant'; END IF;
+END $$;
+ROLLBACK;
