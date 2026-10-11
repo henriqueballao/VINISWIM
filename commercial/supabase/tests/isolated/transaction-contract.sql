@@ -34,6 +34,7 @@ CREATE TABLE monitor_jobs(request_id uuid,status text,locked_at timestamptz,next
 CREATE TABLE historical_archive_jobs(request_id uuid,status text,heartbeat_at timestamptz,finished_at timestamptz,updated_at timestamptz,started_at timestamptz,last_error text);
 \ir ../../proposals/official-request-cancellation.sql
 \ir ../../proposals/official-monitoring.sql
+\ir ../../proposals/official-legacy-writer-fence.sql
 \ir ../../proposals/official-targeted-request.sql
 \ir ../../proposals/official-progress-view.sql
 \ir published-triggers.sql
@@ -259,4 +260,21 @@ BEGIN
  answer=dispatch_official_import_worker();
  IF answer->>'outcome'<>'http_request_queued' OR answer::text LIKE '%Bearer%' OR NOT EXISTS(SELECT 1 FROM isolated_http_requests WHERE headers->>'Authorization'='Bearer '||repeat('a',64)) THEN RAISE EXCEPTION 'Scheduler auth missing or secret leaked into outcome'; END IF;
  IF has_function_privilege('authenticated','read_official_worker_token()','EXECUTE') OR has_function_privilege('anon','dispatch_official_import_worker()','EXECUTE') THEN RAISE EXCEPTION 'Browser can read worker secret or dispatch'; END IF;
+END $$;
+
+DO $$
+DECLARE before_count integer;
+BEGIN
+ UPDATE official_meet_subscriptions SET active=true WHERE athlete_id='00000000-0000-4000-8000-000000000011';
+ before_count=(SELECT count(*) FROM results);
+ BEGIN
+  INSERT INTO results(athlete_id,event_id,result_date,course,time_ms,status,origin,source_id,is_official)
+  VALUES('00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000041','2026-10-10','LCM',99999,'valid','official','00000000-0000-4000-8000-000000000001',true);
+  RAISE EXCEPTION 'Legacy official writer repopulated enrolled athlete';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'LEGACY_OFFICIAL_WRITER_FENCED' THEN RAISE; END IF; END;
+ IF (SELECT count(*) FROM results)<>before_count THEN RAISE EXCEPTION 'Legacy fence is not atomic'; END IF;
+ BEGIN
+  DELETE FROM results WHERE athlete_id='00000000-0000-4000-8000-000000000011';RAISE EXCEPTION 'Enrolled official result deleted';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'OFFICIAL_RESULT_DELETE_REQUIRES_CONTROLLED_AUDIT' THEN RAISE; END IF; END;
+ -- Direct cleanup/restore is deliberately not granted through this guard.
 END $$;
