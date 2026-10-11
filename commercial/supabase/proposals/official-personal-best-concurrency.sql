@@ -41,6 +41,6 @@ begin
 
   return coalesce(new,old);
 end;
-$function$
+$function$;
 COMMIT;
 

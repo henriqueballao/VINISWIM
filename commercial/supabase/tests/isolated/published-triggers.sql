@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION app.set_updated_at()
  RETURNS trigger
  LANGUAGE plpgsql
  SET search_path TO 'pg_catalog'
-AS $function$ begin new.updated_at=now(); return new; end $function$
+AS $function$ begin new.updated_at=now(); return new; end $function$;
 
 CREATE OR REPLACE FUNCTION public.finalize_refresh_request_if_terminal()
  RETURNS trigger
@@ -57,7 +57,7 @@ begin
 
   return new;
 end
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION app.audit_result_change()
  RETURNS trigger
@@ -89,7 +89,7 @@ begin
 
   return coalesce(new,old);
 end;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION app.refresh_personal_best()
  RETURNS trigger
@@ -129,7 +129,7 @@ begin
 
   return coalesce(new,old);
 end;
-$function$
+$function$;
 
 CREATE TRIGGER import_v2_jobs_set_updated_at BEFORE UPDATE ON public.import_v2_jobs FOR EACH ROW EXECUTE FUNCTION app.set_updated_at();
 CREATE TRIGGER trg_finalize_import_v2_jobs AFTER INSERT OR UPDATE OF status, request_id ON public.import_v2_jobs FOR EACH ROW EXECUTE FUNCTION finalize_refresh_request_if_terminal();

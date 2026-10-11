@@ -45,6 +45,6 @@ begin
 
   return new;
 end
-$function$
+$function$;
 COMMIT;
 
