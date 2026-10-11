@@ -1,5 +1,14 @@
 import {classifyImportFailure} from './failure-states.mjs';
 
+const captures=new WeakMap();
+
+// Only the byte-capture boundary can attest provenance. Copies/JSON supplied by
+// clients are not attested; persistence receives a fresh copy of original bytes.
+export function verifiedCaptureEvidence(document){
+ const stored=captures.get(document);
+ return stored?{...stored,bytes:stored.bytes.slice()}:null;
+}
+
 export class SourceAccessError extends Error {
  constructor(message,details={}){super(message);this.name='SourceAccessError';Object.assign(this,details);this.failure=classifyImportFailure({...details,message});}
 }
@@ -38,7 +47,9 @@ export async function captureOfficialDocument({url,allowedHosts,fetchImpl=fetch,
   if(/cf-chl-|<title>\s*(?:just a moment|attention required)|verify you are human/i.test(text))throw new SourceAccessError('Official source requires anti-bot validation',{antiBot:true,sourceUrl:target.href});
   if(/object not found/i.test(text)&&text.length<2000)throw new SourceAccessError('Official document object not found',{httpStatus:404,sourceUrl:target.href});
   if(!text.trim())throw new SourceAccessError('Empty extracted official document',{formatUnrecognized:true});
-  return {url:target.href,retrievedAt:now().toISOString(),rawHash,mime,bytes,text};
+  const document=Object.freeze({url:target.href,retrievedAt:now().toISOString(),rawHash,mime,bytes:bytes.slice(),text});
+  captures.set(document,{url:document.url,retrievedAt:document.retrievedAt,rawHash,mime,bytes:bytes.slice(),text});
+  return document;
  }catch(error){if(error instanceof SourceAccessError)throw error;throw new SourceAccessError(String(error?.message||error),{sourceUrl:target.href});}
  finally{clearTimeout(timer);}
 }

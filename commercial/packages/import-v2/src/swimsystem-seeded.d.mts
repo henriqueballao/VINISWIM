@@ -2,6 +2,8 @@ export interface SeededEntry {
  readonly kind: 'seeded_entry';
  athleteExternalId: string;
  externalEventId: string;
+ round: string;
+ sex: string;
  event: string;
  eventDate: string;
  course: 'SCM' | 'LCM';
@@ -23,3 +25,5 @@ export function parseSeededStartlist(input: {
  rawHash: string;
  timeZone?: string;
 }): SeededEntry[];
+
+export function scheduledInstant(date: string, time: string, timeZone: string): string;
