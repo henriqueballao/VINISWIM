@@ -2,7 +2,7 @@ name: Official Edge extractor and reproducible build candidate
 on:
   push:
     branches: ['fix/official-import-audit-20261011']
-    paths: ['commercial/packages/official-worker/**', 'scripts/test-js-pdf-extractor.mjs', 'scripts/capture-official-meets-readonly.mjs', '.github/workflows/official-edge-candidate.yml']
+    paths: ['commercial/packages/official-worker/**', 'commercial/supabase/functions/official-import-runner/**', 'scripts/test-deno-pdf-extractor.mjs', 'scripts/test-js-pdf-extractor.mjs', 'scripts/capture-official-meets-readonly.mjs', '.github/workflows/official-edge-candidate.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,10 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Generate candidate lockfile without lifecycle scripts
-        working-directory: commercial
-        run: npm install --package-lock-only --ignore-scripts
-      - name: Install exact locked dependency graph without lifecycle scripts
+      - name: Install committed locked dependency graph without lifecycle scripts
         working-directory: commercial
         run: npm ci --ignore-scripts
       - name: Worker contracts
@@ -34,6 +31,13 @@ jobs:
           path: original-capture
       - name: Validate original publications with JavaScript PDF extractor
         run: node scripts/test-js-pdf-extractor.mjs original-capture
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.1.4
+      - name: Type-check unpublished Edge entry point
+        run: deno check --config commercial/supabase/functions/official-import-runner/deno.json commercial/supabase/functions/official-import-runner/index.ts
+      - name: Verify actual Deno extraction runtime with original PDFs
+        run: deno run --config commercial/supabase/functions/official-import-runner/deno.json --allow-read --allow-env --allow-sys scripts/test-deno-pdf-extractor.mjs original-capture
       - name: Preserve lock and candidate build (no deploy)
         uses: actions/upload-artifact@v4
         if: always()
@@ -41,6 +45,7 @@ jobs:
           name: official-edge-build-candidate
           path: |
             commercial/package-lock.json
+            commercial/supabase/functions/official-import-runner/deno.lock
             commercial/apps/web/dist
           retention-days: 30
       - name: Capture current and configured historical publications (public read only)

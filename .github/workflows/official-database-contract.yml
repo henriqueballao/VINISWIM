@@ -41,7 +41,7 @@ jobs:
       - name: Install original-document test dependencies
         if: matrix.contract == 'transaction'
         working-directory: commercial
-        run: npm install --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Install independent Poppler extractor
         if: matrix.contract == 'transaction'
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
