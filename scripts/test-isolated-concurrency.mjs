@@ -12,7 +12,7 @@ assert.equal(await checked('SELECT current_database()'),'viniswim_isolated_test'
 const athlete='00000000-0000-4000-8000-000000000011',user='00000000-0000-4000-8000-000000000031',source='00000000-0000-4000-8000-000000000001';
 async function job(n){
  const id=`10000000-0000-4000-8000-${String(n).padStart(12,'0')}`,request=`20000000-0000-4000-8000-${String(n).padStart(12,'0')}`,token=`30000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
- await checked(`INSERT INTO refresh_requests(id,athlete_id,requested_by) VALUES('${request}','${athlete}','${user}'); INSERT INTO import_v2_jobs(id,request_id,athlete_id,source_id,worker_version,status,lease_token,lease_expires_at) VALUES('${id}','${request}','${athlete}','${source}','official-v3','running','${token}',now()+interval '2 minutes');`);
+ await checked(`INSERT INTO refresh_requests(id,athlete_id,requested_by) VALUES('${request}','${athlete}','${user}'); INSERT INTO import_v2_jobs(id,request_id,athlete_id,source_id,worker_version,status,lease_token,lease_expires_at,job_type,cursor) VALUES('${id}','${request}','${athlete}','${source}','official-v3','running','${token}',now()+interval '2 minutes','current_meet','{"scope":"targeted_meet","external_meet_id":"aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa","official_url":"https://www.swimsystem.app/meets/sw/aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"}');`);
  return {id,request,token};
 }
 const commit=(j,event)=>`SELECT persist_official_meet_batch('${j.id}','${j.token}',jsonb_set(payload,'{results,0,externalEventId}','"${event}"')) FROM isolated_test_payload;`;

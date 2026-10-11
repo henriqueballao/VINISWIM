@@ -13,11 +13,11 @@ function query(statement){return execFileSync('psql',['-h','127.0.0.1','-U','pos
 assert.equal(query('SELECT current_database()'),'viniswim_isolated_test');
 const archived=JSON.parse(await fs.readFile(`${root}/report.json`,'utf8')),allowedHosts=['www.swimsystem.app','sportstimingbrasil-swimsystem.supabase.co'];
 const account='00000000-0000-4000-8000-000000000701',user='00000000-0000-4000-8000-000000000702',source='00000000-0000-4000-8000-000000000001';
-query(`INSERT INTO account_members VALUES(${sql(account)},${sql(user)},'active');`);
+query(`INSERT INTO accounts(id) VALUES(${sql(account)});INSERT INTO auth.users(id) VALUES(${sql(user)});INSERT INTO account_members(account_id,user_id,status,role) VALUES(${sql(account)},${sql(user)},'active','owner');`);
 const expected={422692:[4,5,9],399680:[5,6,11],393259:[0,6,6]},proof=[];
 for(const [externalId,[currentCount,historicalCount,total]] of Object.entries(expected)){
  const athlete={id:`00000000-0000-4000-8000-000000${externalId.padStart(6,'0')}`,account_id:account};
- query(`INSERT INTO athletes VALUES(${sql(athlete.id)},${sql(account)});INSERT INTO athlete_identifiers VALUES(${sql(athlete.id)},${sql(source)},${sql(externalId)},true,true);`);
+ query(`INSERT INTO athletes(id,account_id,full_name) VALUES(${sql(athlete.id)},${sql(account)},'SYNTHETIC ACCOUNT TEST');INSERT INTO athlete_identifiers(athlete_id,source_id,external_id,active,verified,status) VALUES(${sql(athlete.id)},${sql(source)},${sql(externalId)},true,true,'verified');`);
  for(const meetId of ['c8587533-2e44-4b08-991f-f827170c7344','9b002997-591e-4f74-8492-ef595b4705c0']){
   async function capture(meta,extractPdf){const bytes=await fs.readFile(`${root}/${meta.file}`);assert.equal(createHash('sha256').update(bytes).digest('hex'),meta.rawHash);return captureOfficialDocument({url:meta.url,allowedHosts,fetchImpl:async()=>new Response(bytes,{headers:{'content-type':meta.file.endsWith('.html')?'text/html':'application/pdf'}}),extractPdf,now:()=>new Date(meta.retrievedAt)});}
   const pageMeta=archived.captures.find(c=>c.file===`${meetId}-page.html`),page=await capture(pageMeta),discovered=discoverOfficialMeet(page),js=[],poppler=[];
@@ -30,7 +30,7 @@ for(const [externalId,[currentCount,historicalCount,total]] of Object.entries(ex
   const signature=r=>[r.externalEventId,r.round,r.sex,r.resultDate,r.course,r.event,r.timeMs,r.status];
   assert.equal(prepared.accepted,oracle.accepted);assert.deepEqual(prepared.scan.results.map(signature),oracle.scan.results.map(signature),'Independent extractors disagree on official swims');
   if(!prepared.accepted){assert.equal(externalId,'393259');assert.equal(meetId,'c8587533-2e44-4b08-991f-f827170c7344');assert.equal(prepared.scan.status,'identity_not_found');query(`SET ROLE service_role;SELECT finish_official_import_failure(${sql(job.id)},${sql(job.lease_token)},'identity_not_found','Exact registration absent from published October documents',false);`);continue;}
-  for(const label of new Set([...prepared.batch.entries,...prepared.batch.results].map(r=>r.event)))query(`INSERT INTO events(id,label,active) SELECT gen_random_uuid(),${sql(label)},true WHERE NOT EXISTS(SELECT 1 FROM events WHERE label=${sql(label)});`);
+  for(const label of new Set([...prepared.batch.entries,...prepared.batch.results].map(r=>r.event))){const [distance,stroke]=label.split(' '),strokes={Livre:'freestyle',Costas:'backstroke',Peito:'breaststroke',Borboleta:'butterfly',Medley:'medley'};assert.ok(strokes[stroke]);query(`INSERT INTO events(id,distance_m,stroke,label,active) SELECT gen_random_uuid(),${Number(distance)},${sql(strokes[stroke])},${sql(label)},true WHERE NOT EXISTS(SELECT 1 FROM events WHERE label=${sql(label)});`);};
   const rpc=async(name,args)=>{assert.equal(name,'persist_official_meet_batch');return {data:JSON.parse(query(`SET ROLE service_role;SELECT persist_official_meet_batch(${sql(args.p_job_id)},${sql(args.p_lease_token)},${sql(JSON.stringify(args.p_batch))}::jsonb);`))};};
   const workerRpc=async(name,args)=>{
    if(name==='persist_official_meet_batch')return rpc(name,args);
