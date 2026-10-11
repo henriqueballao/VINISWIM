@@ -2,7 +2,7 @@
 // Keep the original cause; never reconstruct a semantic error from SQLSTATE.
 export class OfficialRpcError extends Error {
  constructor(rpcName,error,{status=0}={}){
-  const message=String(error?.message||'Missing database diagnostic');
+  const message=String(error?.message||error?.code||'Missing database diagnostic');
   super(`${rpcName}: ${message}`,{cause:error});
   this.name='OfficialRpcError';this.rpcName=rpcName;
   this.code=String(error?.code||'');this.databaseMessage=message;

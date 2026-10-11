@@ -1,5 +1,5 @@
--- Candidate NOT APPLIED. Scope is athletes with an authorized active official
--- subscription; unrelated tenants are untouched. Legacy writers lack the current
+-- Candidate NOT APPLIED. Scope is athletes enrolled in an official subscription,
+-- including paused subscriptions; unrelated tenants are untouched. Legacy writers lack the current
 -- job/lease context and cannot repopulate official results for enrolled athletes.
 BEGIN;
 CREATE OR REPLACE FUNCTION public.guard_enrolled_official_result_write()
@@ -9,9 +9,9 @@ BEGIN
  athlete=CASE WHEN TG_OP='DELETE' THEN OLD.athlete_id ELSE NEW.athlete_id END;
  IF TG_OP='UPDATE' THEN
   IF OLD.athlete_id IS DISTINCT FROM NEW.athlete_id AND (OLD.is_official OR OLD.origin='official')
-   AND EXISTS(SELECT 1 FROM public.official_meet_subscriptions WHERE athlete_id IN (OLD.athlete_id,NEW.athlete_id) AND active) THEN RAISE EXCEPTION 'OFFICIAL_RESULT_REASSIGNMENT_FORBIDDEN'; END IF;
+   AND EXISTS(SELECT 1 FROM public.official_meet_subscriptions WHERE athlete_id IN (OLD.athlete_id,NEW.athlete_id)) THEN RAISE EXCEPTION 'OFFICIAL_RESULT_REASSIGNMENT_FORBIDDEN'; END IF;
  END IF;
- IF NOT EXISTS(SELECT 1 FROM public.official_meet_subscriptions WHERE athlete_id=athlete AND active) THEN RETURN CASE WHEN TG_OP='DELETE' THEN OLD ELSE NEW END; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.official_meet_subscriptions WHERE athlete_id=athlete) THEN RETURN CASE WHEN TG_OP='DELETE' THEN OLD ELSE NEW END; END IF;
  IF TG_OP='DELETE' THEN
   IF OLD.is_official OR OLD.origin='official' THEN RAISE EXCEPTION 'OFFICIAL_RESULT_DELETE_REQUIRES_CONTROLLED_AUDIT'; END IF;
   RETURN OLD;

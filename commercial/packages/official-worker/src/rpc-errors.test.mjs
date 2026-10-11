@@ -27,3 +27,9 @@ test('network uncertainty is explicit; an arbitrary programming error is not a l
  assert.equal(uncertainCommitResponse(new Error('bad programming contract')),false);
  const error=new OfficialRpcError('synthetic',{code:'INVALID_RPC_RESPONSE',message:'missing result'});assert.deepEqual(classifyOfficialRpcFailure(error),{code:'database_error',retryable:false});
 });
+test('a code-only SDK error retains its diagnostic and cannot become a retry loop',()=>{
+ const error=new OfficialRpcError('synthetic',{code:'STALE_WORKER_LEASE'});
+ assert.ok(error.message.includes('STALE_WORKER_LEASE'));assert.equal(staleWorkerError(error),true);assert.equal(uncertainCommitResponse(error),false);
+ const unicode=new OfficialRpcError('synthetic',{code:'P0001',message:'🌊'.repeat(5000),details:'🌊'.repeat(5000),hint:'🌊'.repeat(5000)});
+ assert.ok(new TextEncoder().encode(JSON.stringify(rpcFailureDetails(unicode))).length<8192);
+});

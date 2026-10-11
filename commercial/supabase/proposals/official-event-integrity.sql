@@ -1,8 +1,6 @@
 -- Candidate only: NOT APPLIED to production. Promote via Supabase CLI after
 -- coordinated worker/frontend cutover and full-schema integration tests.
 BEGIN;
-ALTER TABLE public.meet_entries DROP CONSTRAINT meet_entries_lane_check;
-ALTER TABLE public.meet_entries ADD CONSTRAINT meet_entries_lane_check CHECK (lane IS NULL OR lane >= 0);
 ALTER TABLE public.import_v2_jobs DROP CONSTRAINT import_v2_jobs_status_check;
 ALTER TABLE public.import_v2_jobs ADD CONSTRAINT import_v2_jobs_status_check
  CHECK (status IN ('pending','running','completed','failed','cancelled','blocked'));

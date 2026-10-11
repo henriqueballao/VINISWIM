@@ -309,6 +309,10 @@ ON CONFLICT(meet_id,athlete_id,event_id) DO UPDATE SET seed_time_ms=excluded.see
 DO $$ BEGIN
  IF (SELECT count(*) FROM meet_entries)<>2 OR EXISTS(SELECT 1 FROM meet_entries WHERE seed_time_ms<>31000) THEN RAISE EXCEPTION 'Legacy write failed for separate accounts'; END IF;
  IF (SELECT seed_time_ms FROM official_meet_entries WHERE athlete_id='00000000-0000-4000-8000-000000000011')<>20000 THEN RAISE EXCEPTION 'Legacy write overwrote attested seed'; END IF;
+ UPDATE official_meet_subscriptions SET active=false WHERE athlete_id='00000000-0000-4000-8000-000000000011';
+ BEGIN
+  UPDATE results SET time_ms=99999 WHERE athlete_id='00000000-0000-4000-8000-000000000011' AND is_official;RAISE EXCEPTION 'Pausing subscription reopened official result writes';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'LEGACY_OFFICIAL_WRITER_FENCED' THEN RAISE; END IF; END;
  BEGIN
   UPDATE official_meet_entries SET lane=3 WHERE athlete_id='00000000-0000-4000-8000-000000000011';RAISE EXCEPTION 'Legacy writer edited attested entry';
  EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'LEGACY_OFFICIAL_WRITER_FENCED' THEN RAISE; END IF; END;
