@@ -24,7 +24,7 @@ jobs:
           supabase start --help
           mkdir native-api-e2e
           supabase init --workdir native-api-e2e
-          supabase start --workdir native-api-e2e --exclude studio,imgproxy,edge-runtime,logflare,vector,supavisor,realtime,storage-api
+          supabase start --workdir native-api-e2e --exclude studio,imgproxy,edge-runtime,logflare,vector,supavisor,realtime,storage-api > /tmp/native-start.log 2>&1
       - name: Load only loopback credentials without printing them
         run: |
           python3 - <<'PY'
