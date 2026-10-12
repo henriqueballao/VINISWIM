@@ -365,6 +365,7 @@ ROLLBACK;
 
 -- SYNTHETIC shared meet fence: even paused subscriptions reject legacy metadata.
 BEGIN;
+GRANT DELETE ON public.meets TO service_role;
 UPDATE official_meet_subscriptions SET active=false WHERE athlete_id='00000000-0000-4000-8000-000000000011';
 SELECT set_config('viniswim.official_job_id','',true),set_config('viniswim.official_lease_token','',true);
 SET LOCAL ROLE service_role;

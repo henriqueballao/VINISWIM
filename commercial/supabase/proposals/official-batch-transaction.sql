@@ -106,8 +106,6 @@ BEGIN
  INSERT INTO public.meets(source_id,external_id,name,start_date,end_date,course,official_url)
  VALUES(j.source_id,metadata->>'externalMeetId',metadata->>'name',start_date,end_date,pool,metadata->>'officialUrl')
  ON CONFLICT(source_id,external_id) DO UPDATE SET name=excluded.name,start_date=excluded.start_date,end_date=excluded.end_date,course=excluded.course,official_url=excluded.official_url RETURNING id INTO meet_id;
- PERFORM set_config('viniswim.official_job_id',j.id::text,true);
- PERFORM set_config('viniswim.official_lease_token',p_lease_token::text,true);
  FOR r IN SELECT value FROM jsonb_array_elements((p_batch->'entries')||(p_batch->'results')) ORDER BY value->>'event',value->>'externalEventId',value->>'round',value->>'sex',coalesce(value->>'resultDate',value->>'eventDate'),value->>'kind' LOOP
   IF (r->>'athleteId')::uuid IS DISTINCT FROM a.id OR (r->>'accountId')::uuid IS DISTINCT FROM a.account_id
    OR (r->>'athleteExternalId') IS DISTINCT FROM external_id OR (r->>'externalMeetId') IS DISTINCT FROM metadata->>'externalMeetId'

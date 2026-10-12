@@ -24,7 +24,8 @@ const tables={
    const context=await browser.newContext({viewport:{width:size.width,height:size.height},serviceWorkers:'block'});
    const page=await context.newPage();
    const errors=[],writes=[];
-   let accountReadFailure=false;
+   let accountReadFailure=false,manualMock=false,manualFailure=true;
+   const manualCalls=[],manualRows=[];
    page.on('pageerror',e=>errors.push(e.message));
    await page.route('**/*',async route=>{
     const req=route.request(),url=new URL(req.url());
@@ -37,7 +38,7 @@ const tables={
     if(path.startsWith('/rest/v1/')&&req.method()==='GET'){
       const table=decodeURIComponent(path.split('/').pop());
       if(table==='account_members'&&accountReadFailure)return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'SYNTHETIC unavailable account read'})});
-      const data=Object.hasOwn(tables,table)?tables[table]:[];
+      const data=table==='v_meet_entry_timeline'?[...tables[table],...manualRows]:Object.hasOwn(tables,table)?tables[table]:[];
       return route.fulfill({status:200,contentType:'application/json',headers:{'content-range':'0-0/1'},body:JSON.stringify(data)});
     }
     // Supabase RPC transport is POST even for read-only operations.
@@ -46,6 +47,14 @@ const tables={
       const readOnly={'list_account_members':[],'list_account_invites':[],'account_limits':{},'is_platform_admin':false,'discover_athlete_source_candidates':{candidates:[{external_id:'000001',external_name:'Nadador Sintetico',birth_year:2015,evidence_count:3,evidence_url:'https://swimsystem.swimtimebrasil.com/11111/ResultList_1.pdf'}],source:'swimsystem'}};
       const name=path.split('/').pop();
       if(Object.hasOwn(readOnly,name))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(readOnly[name])});
+      if(name==='create_manual_meet_entry'&&manualMock){
+       const payload=req.postDataJSON();manualCalls.push(payload);
+       if(manualFailure)return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'SYNTHETIC manual RPC unavailable'})});
+       const manualMeet={id:'99999999-9999-4999-8999-999999999991',name:payload.p_name,start_date:payload.p_date,course:payload.p_course,status:'scheduled'};
+       const entry={id:'99999999-9999-4999-8999-999999999992',meet_id:manualMeet.id,athlete_id:athleteId,event_id:eventId,entry_origin:'manual',seed_time_ms:payload.p_seed_time_ms,heat:payload.p_heat,lane:payload.p_lane,meets:manualMeet};
+       manualRows.push(entry);
+       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({entry_id:entry.id,meet_id:manualMeet.id,entry_origin:'manual'})});
+      }
     }
     writes.push(req.method()+' '+path);
     return route.fulfill({status:403,contentType:'application/json',body:JSON.stringify({message:'Synthetic test blocks all mutations'})});
@@ -95,6 +104,31 @@ const tables={
    await page.getByRole('button',{name:'Tentar novamente'}).click();
    await page.getByRole('heading',{name:'Visão Geral'}).waitFor();
    assert.deepEqual(writes,[],'Retry must remain read-only');
+   // Synthetic RPC transport only; no external mutation is allowed.
+   manualMock=true;
+   await page.getByRole('button',{name:'Novo campeonato',exact:true}).click();
+   await page.getByRole('heading',{name:'Novo campeonato manual'}).waitFor();
+   await page.getByLabel('Campeonato',{exact:true}).fill('SYNTHETIC MANUAL PLAN');
+   await page.getByLabel('Data',{exact:true}).fill('2027-01-20');
+   await page.getByLabel('Tempo de inscrição',{exact:true}).fill('invalid');
+   await page.getByRole('button',{name:'Salvar campeonato manual',exact:true}).click();
+   await page.getByText('Tempo de inscrição inválido.',{exact:true}).waitFor();
+   assert.equal(manualCalls.length,0,'Invalid seed must not reach RPC');
+   await page.getByLabel('Tempo de inscrição',{exact:true}).fill('42"07');
+   await page.getByLabel('Série',{exact:true}).fill('1');
+   await page.getByLabel('Raia',{exact:true}).fill('0');
+   await page.getByRole('button',{name:'Salvar campeonato manual',exact:true}).click();
+   await page.getByText('SYNTHETIC manual RPC unavailable',{exact:true}).waitFor();
+   assert.equal(await page.getByRole('heading',{name:'Novo campeonato manual'}).count(),1,'Failure must keep form open');
+   manualFailure=false;
+   await page.getByRole('button',{name:'Salvar campeonato manual',exact:true}).click();
+   await page.getByText('Inscrição manual',{exact:true}).waitFor();
+   assert.equal(manualCalls.length,2,'Only explicit retry may repeat a failed manual request');
+   assert.equal(manualCalls[1].p_seed_time_ms,42070);assert.equal(manualCalls[1].p_lane,0);
+   assert.equal(manualCalls[1].p_athlete_id,athleteId);
+   assert.deepEqual(writes,[],'Manual form must not issue direct table mutations');
+   assert.deepEqual(errors,[],'Manual form must not throw JS errors');
+   console.log('PASS synthetic manual plan RPC, validation, retry and label '+size.name);
    console.log('PASS synthetic authenticated dashboard/navigation '+size.name);
    await context.close();
   }
