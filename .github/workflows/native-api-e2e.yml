@@ -1,0 +1,86 @@
+name: Native local Auth and live-source pipeline (no production writes)
+on:
+  push:
+    branches: ['fix/official-import-audit-20261011']
+    paths: ['commercial/scripts/native-*.cjs', 'commercial/scripts/native-*.mjs', 'scripts/setup-native-api-fixture.py', 'scripts/build-official-migration-candidate.py', '.github/workflows/native-api-e2e.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      - name: Start disposable local Supabase services
+        run: |
+          supabase init --help
+          supabase start --help
+          mkdir native-api-e2e
+          supabase init --workdir native-api-e2e
+          supabase start --workdir native-api-e2e --exclude studio,imgproxy,edge-runtime,logflare,vector,supavisor,realtime,storage-api
+      - name: Load only loopback credentials without printing them
+        run: |
+          python3 - <<'PY'
+          import os,subprocess
+          text=subprocess.check_output(['supabase','status','--workdir','native-api-e2e','-o','env'],text=True)
+          values={}
+          for line in text.splitlines():
+           if '=' in line:
+            key,value=line.split('=',1);values[key.strip()]=value.strip().strip('"')
+          with open(os.environ['GITHUB_ENV'],'a') as out:
+           for key in ['API_URL','DB_URL','ANON_KEY','SERVICE_ROLE_KEY']:
+            value=values.get(key)
+            if not value:raise SystemExit('Missing local '+key)
+            print('::add-mask::'+value)
+            out.write(key+'='+value+'\n')
+           out.write('VITE_SUPABASE_URL='+values['API_URL']+'\n')
+           out.write('VITE_SUPABASE_PUBLISHABLE_KEY='+values['ANON_KEY']+'\n')
+          PY
+      - name: Install captured sporting contracts and full atomic candidate
+        run: |
+          python3 scripts/setup-native-api-fixture.py
+          python3 scripts/build-official-migration-candidate.py --output /tmp/native-candidate.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f /tmp/native-candidate.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "UPDATE app.official_pipeline_mode SET mode='official_only';"
+      - name: Install and build UI against local services
+        working-directory: commercial
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:web
+          node scripts/native-api-e2e.mjs seed
+          npm install --prefix /tmp/viniswim-native-browser --no-save --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          /tmp/viniswim-native-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Native browser request, live public source, native RPC persistence and UI
+        env:
+          NODE_PATH: /tmp/viniswim-native-browser/node_modules
+        working-directory: commercial
+        run: |
+          set -euo pipefail
+          npm --workspace @viniswim/web run preview -- --host 127.0.0.1 --port 4173 > /tmp/native-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/native-ui-e2e.cjs request
+          node scripts/native-api-e2e.mjs import
+          node scripts/native-ui-e2e.cjs verify
+      - name: Preserve proof only, never credentials
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-api-operational-proof
+          path: /tmp/viniswim-native-proof.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Stop disposable local services
+        if: always()
+        run: supabase stop --workdir native-api-e2e --no-backup
