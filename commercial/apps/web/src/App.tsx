@@ -356,8 +356,7 @@ export default function App(){
   if(sourceCodes.some((code:string)=>code!=='swimsystem')){setRefreshMsg('A nova importação automática está disponível para o SwimSystem. As outras fontes aguardam validação.');return}
   if(missing.length){setRefreshMsg('Confirme nome e registro federativo antes de iniciar a busca.');return}
   const {error}=await supabase.rpc('request_official_catalog_import',{p_athlete_id:athleteId})
-  if(error){setRefreshMsg('Falha ao solicitar atualização: '+error.message);return}
-  if(missing.length)setRefreshMsg('Varredura solicitada também às fontes sem registro confirmado: '+missing.map((cfg:any)=>cfg.display_name||'fonte').join(', ')+'. A execução de cada fonte informará se está preparada ou se precisa de correção no importador.')
+  if(error){setRefreshMsg(officialRequestError(error.message));return}
   await loadAthlete()
  }
  async function cancelActiveRequest(requestId:string){
@@ -836,7 +835,7 @@ function SourceConfigEditor({athleteId,cfg,onSaved,onDeleted,onMessage,isNew,onC
   if(isNew&&!label.trim()){onMessage('Informe como essa fonte deve aparecer no VINISWIM.');return}
   setBusy(true)
   const modernSource=cfg?.sources?.code==='swimsystem'||/^https:\/\/(?:www\.)?swimsystem\.app(?:\/|$)/.test(url.trim());
-  if(!modernSource){setBusy(false);onMessage('Esta fonte aguarda um adaptador validado. Nenhuma importação antiga será iniciada.');return}
+  if(!modernSource){setBusy(false);onMessage('Esta fonte ainda não está disponível para importação automática. Nenhuma busca será iniciada.');return}
   const {data,error}=await supabase.rpc('save_official_athlete_source_config',{
    p_athlete_id:athleteId,
    p_url:url.trim(),
@@ -846,7 +845,7 @@ function SourceConfigEditor({athleteId,cfg,onSaved,onDeleted,onMessage,isNew,onC
    p_config_id:cfg?.id||null
   })
   setBusy(false)
-  if(error){onMessage(error.message);return}
+  if(error){onMessage(officialRequestError(error.message));return}
   if(!data?.ok){onMessage(data?.message||'Não foi possível salvar a fonte.');return}
   onMessage('Fonte '+data.display_name+' salva.')
   await onSaved()
@@ -858,7 +857,7 @@ function SourceConfigEditor({athleteId,cfg,onSaved,onDeleted,onMessage,isNew,onC
   setBusy(true)
   const {data,error}=await supabase.rpc('delete_athlete_source_config',{p_config_id:cfg.id})
   setBusy(false)
-  if(error){onMessage(error.message);return}
+  if(error){onMessage(officialRequestError(error.message));return}
   if(!data?.ok){onMessage('Não foi possível excluir a fonte.');return}
   onMessage('Fonte excluída.')
   await onDeleted?.()

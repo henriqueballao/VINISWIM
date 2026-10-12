@@ -7,6 +7,10 @@ export function officialMeetUrl(input: string): string | null {
  } catch {return null;}
 }
 export function officialRequestError(message: string): string {
+ if(message.includes('OFFICIAL_IMPORT_MAINTENANCE'))return 'A importação está temporariamente indisponível enquanto concluímos a atualização.';
+ if(message.includes('SOURCE_IDENTITY_ALREADY_LINKED_IN_ACCOUNT'))return 'Este registro já está vinculado a outro atleta da sua conta. Use o perfil existente.';
+ if(message.includes('INVALID_OFFICIAL_SOURCE_CONFIGURATION'))return 'Confira o endereço oficial do SwimSystem, o registro e o nome do atleta.';
+ if(message.includes('SOURCE_CONFIGURATION_ACCESS_DENIED'))return 'Sua conta não pode alterar esta fonte.';
  if(message.includes('SOURCE_IDENTITY_MISSING'))return 'Configure o registro do atleta na fonte oficial antes de importar.';
  if(message.includes('SOURCE_IDENTITY_CONFLICT'))return 'Há registros conflitantes para este atleta na fonte. Revise a configuração.';
  if(message.includes('ATHLETE_ACCESS_DENIED'))return 'Sua conta não tem acesso a este atleta.';
