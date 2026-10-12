@@ -80,7 +80,7 @@ jobs:
           subprocess.run(['psql',os.environ['DB_URL'],'-v','ON_ERROR_STOP=1'],input="SELECT vault.create_secret('"+token+"','viniswim_official_import_worker_token');",text=True,check=True,stdout=subprocess.DEVNULL)
           PY
           supabase functions serve --help
-          supabase functions serve official-import-runner --workdir ../native-api-e2e --no-verify-jwt --import-map ../native-api-e2e/supabase/functions/official-import-runner/deno.json > /tmp/native-deno.log 2>&1 &
+          supabase functions serve official-import-runner --workdir ../native-api-e2e --no-verify-jwt --import-map "$GITHUB_WORKSPACE/native-api-e2e/supabase/functions/official-import-runner/deno.json" > /tmp/native-deno.log 2>&1 &
           deno_pid=$!
           trap 'kill "$preview_pid" "$deno_pid" 2>/dev/null || true' EXIT
           for i in $(seq 1 40); do
@@ -101,11 +101,18 @@ jobs:
           set -euo pipefail
           supabase stop --workdir native-api-e2e
           supabase start --workdir native-api-e2e --exclude studio,imgproxy,edge-runtime,logflare,vector,supavisor,realtime,storage-api > /tmp/native-restart.log 2>&1
+          supabase functions serve official-import-runner --workdir native-api-e2e --no-verify-jwt --import-map "$GITHUB_WORKSPACE/native-api-e2e/supabase/functions/official-import-runner/deno.json" > /tmp/native-edge-restart.log 2>&1 &
+          edge_restart_pid=$!
+          trap 'kill "$edge_restart_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:54321/functions/v1/official-import-runner | rg -q '^405$'; then break; fi
+            sleep 1
+          done
           node commercial/scripts/native-api-e2e.mjs verify-restart
           cd commercial
           npm --workspace @viniswim/web run preview -- --host 127.0.0.1 --port 4173 > /tmp/native-restarted-preview.log 2>&1 &
           preview_pid=$!
-          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          trap 'kill "$preview_pid" "$edge_restart_pid" 2>/dev/null || true' EXIT
           for i in $(seq 1 40); do
             if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi
             sleep 1

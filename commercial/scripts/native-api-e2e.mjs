@@ -89,6 +89,11 @@ if(process.argv[2]==='seed'){
  const ordered=items=>items.toSorted((a,b)=>a.id.localeCompare(b.id));assert.deepEqual(ordered(rows),ordered(proof.rows));
  const sources=await checked(admin.from('result_sources').select('result_id,source_url,raw_hash,retrieved_at').in('result_id',rows.map(r=>r.id)));
  const sorted=items=>items.toSorted((a,b)=>a.result_id.localeCompare(b.result_id));assert.deepEqual(sorted(sources),sorted(proof.sources));
+ const recoveredToken=await checked(admin.rpc('read_official_worker_token'));assert.ok(/^[a-f0-9]{64}$/.test(recoveredToken));
+ const endpoint='http://127.0.0.1:54321/functions/v1/official-import-runner';
+ const noToken=await fetch(endpoint,{method:'POST',body:'{}'});assert.equal(noToken.status,401);
+ const recoveredWorker=await fetch(endpoint,{method:'POST',headers:{authorization:'Bearer '+recoveredToken},body:'{}'});assert.equal(recoveredWorker.status,200);assert.equal((await recoveredWorker.json()).outcome,'idle');
+ proof.edgeFunctionRestartedAndAuthenticated=true;
  proof.localServicesRestarted=true;proof.persistedRowsAndSourcesUnchanged=true;
  await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify(proof));
  console.log('PASS native services restarted: Auth login, rows and source hashes recovered unchanged');
