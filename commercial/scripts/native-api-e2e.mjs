@@ -59,6 +59,7 @@ if(process.argv[2]==='seed'){
  const repeat=await checked(user.rpc('request_official_meet_import',{p_athlete_id:state.a.athleteId,p_meet_url:'https://www.swimsystem.app/meets/sw/c8587533-2e44-4b08-991f-f827170c7344'}));
  const second=await invoke(repeat.job_id);assert.equal(second.status,'completed',JSON.stringify(second));assert.equal(second.inserted,0);
  const rows=await checked(user.from('v_result_timeline').select('*').eq('athlete_id',state.a.athleteId));assert.equal(rows.length,first.inserted);assert.ok(rows.every(r=>r.is_official));
+ const eventLabels=Object.fromEntries((await checked(user.from('events').select('id,label'))).map(e=>[e.id,e.label]));
  const other=createClient(api,anon,options);await checked(other.auth.signInWithPassword({email:state.b.email,password:state.b.password}));
  const forbidden=await checked(other.from('v_result_timeline').select('*').eq('athlete_id',state.a.athleteId));assert.deepEqual(forbidden,[]);
  const direct=await user.rpc('persist_official_catalog',{p_job_id:root.id,p_lease_token:randomUUID(),p_catalog:{}});assert.ok(direct.error,'Browser cannot invoke service persistence');
@@ -79,7 +80,7 @@ if(process.argv[2]==='seed'){
  const rotation=spawnSync('psql',[process.env.DB_URL,'-v','ON_ERROR_STOP=1'],{input:"SELECT vault.update_secret(id, '"+rotated+"') FROM vault.secrets WHERE name='viniswim_official_import_worker_token';",encoding:'utf8'});assert.equal(rotation.status,0,'Local Vault rotation must succeed');
  const revoked=await fetch(endpoint,{method:'POST',headers:{authorization:'Bearer '+token},body:'{}'});assert.equal(revoked.status,401,'Warm Deno isolate must reject revoked token');
  const refreshed=await fetch(endpoint,{method:'POST',headers:{authorization:'Bearer '+rotated},body:'{}'});assert.equal(refreshed.status,200);assert.equal((await refreshed.json()).outcome,'idle');
- await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify({mode:'native-supabase-edge-auth-rest-live-source',actualDenoEntrypoint:true,supabaseCliEdgeRuntime:true,browserConfiguredSource:true,warmVaultRotationVerified:true,productionWrites:0,registration:state.registration,discovery,first,second,rows,sources,segregation:true}));
+ await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify({mode:'native-supabase-edge-auth-rest-live-source',actualDenoEntrypoint:true,supabaseCliEdgeRuntime:true,browserConfiguredSource:true,warmVaultRotationVerified:true,productionWrites:0,registration:state.registration,discovery,first,second,rows,eventLabels,sources,segregation:true}));
  console.log(JSON.stringify({mode:'native-supabase-edge-auth-rest-live-source',actualDenoEntrypoint:true,supabaseCliEdgeRuntime:true,productionWrites:0,registration:state.registration,inserted:first.inserted,reimported:second.inserted,segregation:true}));
 }else if(process.argv[2]==='verify-restart'){
  const state=JSON.parse(await fs.readFile(statePath,'utf8')),proof=JSON.parse(await fs.readFile('/tmp/viniswim-native-proof.json','utf8'));

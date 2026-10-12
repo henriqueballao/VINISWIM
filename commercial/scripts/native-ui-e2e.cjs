@@ -26,7 +26,21 @@ const {chromium}=require('playwright');const fs=require('node:fs');const assert=
    await page.locator('aside.sidebar nav button').filter({hasText:'Resultados'}).click();
    const proof=JSON.parse(fs.readFileSync('/tmp/viniswim-native-proof.json','utf8'));
    await page.getByText(proof.rows.length+' resultados oficiais registrados',{exact:true}).waitFor({timeout:30000});
-   assert.ok(await page.locator('tbody tr').count()>=proof.rows.length);
+   const displayed=await page.locator('.desktop-results tbody tr').allTextContents();assert.equal(displayed.length,proof.rows.length);
+   const cards=page.locator('.mobile-results .result-card');assert.equal(await cards.count(),proof.rows.length);
+   for(const row of proof.rows){
+    const number='#'+row.chronological_number;
+    const desktop=page.locator('.desktop-results tbody tr').filter({has:page.locator('td').filter({hasText:new RegExp('^'+number+'$')})});assert.equal(await desktop.count(),1);
+    const cells=await desktop.locator('td').allTextContents();
+    assert.equal(cells[1],row.result_date.split('-').reverse().join('/'));
+    assert.equal(cells[3],proof.eventLabels[row.event_id]);assert.equal(cells[5],row.course==='LCM'?'50 m':'25 m');assert.equal(cells[7],row.meet_name);
+    const match=cells[4].replace(/'/g,':').replace(/"/g,'.').match(/^(?:(\d+):)?(\d+)[.,](\d{2})$/);assert.ok(match,'Displayed time must have documented swim format');
+    const ms=((Number(match[1]||0)*60+Number(match[2]))*1000)+Number(match[3])*10;assert.equal(ms,row.time_ms,'Displayed time must equal native database value');
+    const card=cards.filter({has:page.locator('.result-number').filter({hasText:new RegExp('^'+number+'$')})});assert.equal(await card.count(),1);
+    assert.equal(await card.locator('.result-card-top strong').textContent(),cells[4]);assert.equal(await card.locator('.result-card-top b').textContent(),cells[3]);
+    assert.ok((await card.locator('small').textContent()).includes(cells[1]));
+   }
+
    assert.equal(await page.getByRole('button',{name:'Excluir',exact:true}).count(),0);
    assert.ok(await page.evaluate(()=>document.body.scrollWidth)<=392);
    console.log('PASS native browser presents persisted official count, mobile layout and immutable actions');
