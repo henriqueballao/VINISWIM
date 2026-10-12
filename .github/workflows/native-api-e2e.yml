@@ -2,7 +2,7 @@ name: Native local Auth and live-source pipeline (no production writes)
 on:
   push:
     branches: ['fix/official-import-audit-20261011']
-    paths: ['commercial/apps/web/src/**', 'commercial/supabase/proposals/**', 'commercial/scripts/native-*.cjs', 'commercial/scripts/native-*.mjs', 'scripts/setup-native-api-fixture.py', 'scripts/build-official-migration-candidate.py', 'commercial/supabase/functions/official-import-runner/**', 'commercial/packages/official-worker/**', '.github/workflows/native-api-e2e.yml']
+    paths: ['commercial/apps/web/src/**', 'commercial/supabase/proposals/**', 'commercial/scripts/native-*.cjs', 'commercial/scripts/native-*.mjs', 'scripts/setup-native-api-fixture.py', 'scripts/build-official-migration-candidate.py', 'scripts/package-official-edge.py', 'commercial/supabase/functions/official-import-runner/**', 'commercial/packages/official-worker/**', '.github/workflows/native-api-e2e.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -48,6 +48,8 @@ jobs:
           PY
       - name: Install captured sporting contracts and full atomic candidate
         run: |
+          python3 scripts/package-official-edge.py --functions-dir /tmp/viniswim-native-functions
+          cp -a /tmp/viniswim-native-functions native-api-e2e/supabase/functions
           python3 scripts/setup-native-api-fixture.py
           python3 scripts/build-official-migration-candidate.py --output /tmp/native-candidate.sql
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f /tmp/native-candidate.sql
@@ -77,11 +79,12 @@ jobs:
           assert len(token)==64 and all(c in '0123456789abcdef' for c in token)
           subprocess.run(['psql',os.environ['DB_URL'],'-v','ON_ERROR_STOP=1'],input="SELECT vault.create_secret('"+token+"','viniswim_official_import_worker_token');",text=True,check=True,stdout=subprocess.DEVNULL)
           PY
-          env -u OFFICIAL_IMPORT_WORKER_TOKEN deno run --frozen --config supabase/functions/official-import-runner/deno.json --allow-net --allow-env --allow-read --allow-write --allow-sys supabase/functions/official-import-runner/index.ts > /tmp/native-deno.log 2>&1 &
+          supabase functions serve --help
+          supabase functions serve official-import-runner --workdir ../native-api-e2e --no-verify-jwt --import-map ../native-api-e2e/supabase/functions/official-import-runner/deno.json > /tmp/native-deno.log 2>&1 &
           deno_pid=$!
           trap 'kill "$preview_pid" "$deno_pid" 2>/dev/null || true' EXIT
           for i in $(seq 1 40); do
-            if curl -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/ | rg -q '^405$'; then break; fi
+            if curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:54321/functions/v1/official-import-runner | rg -q '^405$'; then break; fi
             sleep 1
           done
           for i in $(seq 1 40); do
@@ -116,6 +119,7 @@ jobs:
           path: |
             /tmp/viniswim-native-proof.json
             /tmp/native-official-originals/
+            /tmp/viniswim-native-functions/official-import-runner/package-manifest.json
           if-no-files-found: warn
           retention-days: 30
       - name: Stop disposable local services

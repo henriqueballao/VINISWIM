@@ -40,7 +40,7 @@ if(process.argv[2]==='seed'){
  const root=rootJobs.find(j=>j.cursor.scope==='meet_catalog');assert.ok(root,'UI must create the catalog request through native Auth');
  await checked(admin.from('import_v2_jobs').update({priority:-100}).eq('id',root.id));
  const token=process.env.OFFICIAL_IMPORT_WORKER_TOKEN;assert.ok(/^[a-f0-9]{64}$/.test(token||''));
- const endpoint='http://127.0.0.1:8000';
+ const endpoint='http://127.0.0.1:54321/functions/v1/official-import-runner';
  const invoke=async expectedId=>{
   const response=await fetch(endpoint,{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:'{}'});
   const payload=await response.json();assert.equal(response.status,200,JSON.stringify(payload));assert.equal(payload.outcome,'jobs_processed');
@@ -80,8 +80,8 @@ if(process.argv[2]==='seed'){
  const rotation=spawnSync('psql',[process.env.DB_URL,'-v','ON_ERROR_STOP=1'],{input:"SELECT vault.update_secret(id, '"+rotated+"') FROM vault.secrets WHERE name='viniswim_official_import_worker_token';",encoding:'utf8'});assert.equal(rotation.status,0,'Local Vault rotation must succeed');
  const revoked=await fetch(endpoint,{method:'POST',headers:{authorization:'Bearer '+token},body:'{}'});assert.equal(revoked.status,401,'Warm Deno isolate must reject revoked token');
  const refreshed=await fetch(endpoint,{method:'POST',headers:{authorization:'Bearer '+rotated},body:'{}'});assert.equal(refreshed.status,200);assert.equal((await refreshed.json()).outcome,'idle');
- await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify({mode:'native-deno-http-auth-rest-live-source',actualDenoEntrypoint:true,warmVaultRotationVerified:true,productionWrites:0,registration:state.registration,discovery,first,second,rows,sources,segregation:true}));
- console.log(JSON.stringify({mode:'native-deno-http-auth-rest-live-source',actualDenoEntrypoint:true,productionWrites:0,registration:state.registration,inserted:first.inserted,reimported:second.inserted,segregation:true}));
+ await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify({mode:'native-supabase-edge-auth-rest-live-source',actualDenoEntrypoint:true,supabaseCliEdgeRuntime:true,warmVaultRotationVerified:true,productionWrites:0,registration:state.registration,discovery,first,second,rows,sources,segregation:true}));
+ console.log(JSON.stringify({mode:'native-supabase-edge-auth-rest-live-source',actualDenoEntrypoint:true,supabaseCliEdgeRuntime:true,productionWrites:0,registration:state.registration,inserted:first.inserted,reimported:second.inserted,segregation:true}));
 }else if(process.argv[2]==='verify-restart'){
  const state=JSON.parse(await fs.readFile(statePath,'utf8')),proof=JSON.parse(await fs.readFile('/tmp/viniswim-native-proof.json','utf8'));
  const user=createClient(api,anon,options);await checked(user.auth.signInWithPassword({email:state.a.email,password:state.a.password}));
