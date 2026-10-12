@@ -43,6 +43,10 @@ BEGIN
  VALUES(trim(p_name),p_date,p_course,nullif(trim(p_venue),''),nullif(trim(p_city),''),'scheduled') RETURNING id INTO meet;
  INSERT INTO public.manual_meet_entries(meet_id,athlete_id,event_id,seed_time_ms,heat,lane,created_by)
  VALUES(meet,p_athlete_id,p_event_id,p_seed_time_ms,p_heat,p_lane,auth.uid()) RETURNING id INTO entry;
+ INSERT INTO public.audit_log(account_id,athlete_id,user_id,entity_type,entity_id,action,source,new_data)
+ SELECT account_id,p_athlete_id,auth.uid(),'manual_meet_entry',entry,'insert','manual',
+  jsonb_build_object('meet_id',meet,'entry_origin','manual','seed_time_ms',p_seed_time_ms,'heat',p_heat,'lane',p_lane)
+ FROM public.athletes WHERE id=p_athlete_id;
  RETURN jsonb_build_object('meet_id',meet,'entry_id',entry,'entry_origin','manual');
 END $$;
 REVOKE ALL ON FUNCTION public.create_manual_meet_entry(uuid,uuid,text,date,public.swim_course,text,text,integer,integer,integer) FROM PUBLIC,anon,service_role;
