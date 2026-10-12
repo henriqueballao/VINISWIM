@@ -1,0 +1,155 @@
+{
+  "mode": "source-package-only-no-deploy",
+  "files": [
+    {
+      "path": "official-import-runner/index.ts",
+      "source": "commercial/supabase/functions/official-import-runner/index.ts (relative import paths relocated only)",
+      "sha256": "c2b2c47e178219a748612638bd2da058a23d84d84719c937c6e99f1c8cc41a94"
+    },
+    {
+      "path": "official-import-runner/deno.json",
+      "source": "commercial/supabase/functions/official-import-runner/deno.json",
+      "sha256": "c1aa14a8470c416b18f828db48aafefb6fb8de07c320b48e54bdd082eeebcf61"
+    },
+    {
+      "path": "official-import-runner/deno.lock",
+      "source": "commercial/supabase/functions/official-import-runner/deno.lock",
+      "sha256": "fc97aef19c58e7c8fedf5207e86bd8f777f7562a017d4ff21acfba3459e2dc8f"
+    },
+    {
+      "path": "_shared/official-worker/src/authorization.mjs",
+      "source": "commercial/packages/official-worker/src/authorization.mjs",
+      "sha256": "7a872f3a81bda4362506458dea94be2f55b219e3df0e96403042e8dc6b36ac78"
+    },
+    {
+      "path": "_shared/official-worker/src/batch.mjs",
+      "source": "commercial/packages/official-worker/src/batch.mjs",
+      "sha256": "dc3df223fc75facf5cc78c6c331613022bc3f064d814701b3040596d02d6ad52"
+    },
+    {
+      "path": "_shared/official-worker/src/catalog.mjs",
+      "source": "commercial/packages/official-worker/src/catalog.mjs",
+      "sha256": "0023b9603c2f2d5a99eef068603bf3540c94fc6cf9078b92f5ef178fececee9b"
+    },
+    {
+      "path": "_shared/official-worker/src/discovery.mjs",
+      "source": "commercial/packages/official-worker/src/discovery.mjs",
+      "sha256": "6e02d778d2578729a52e98cafa52f067da183f2fce0777d418728b448f1c89e8"
+    },
+    {
+      "path": "_shared/official-worker/src/pdf-extractor.mjs",
+      "source": "commercial/packages/official-worker/src/pdf-extractor.mjs",
+      "sha256": "4982dc66f30ee85686ded68014bd6cfd01b05dd53d432a0b35284446d3ac3db6"
+    },
+    {
+      "path": "_shared/official-worker/src/pdf-js-extractor.mjs",
+      "source": "commercial/packages/official-worker/src/pdf-js-extractor.mjs",
+      "sha256": "4d6a472e3e2bda631f8fb3bf3e62db035704f65a6e77ecd84a7168ca87de9b58"
+    },
+    {
+      "path": "_shared/official-worker/src/pdf-lines.mjs",
+      "source": "commercial/packages/official-worker/src/pdf-lines.mjs",
+      "sha256": "44abb00df880457a84b35ff76460e1654b6301bc4efab975ec6b055e28453a29"
+    },
+    {
+      "path": "_shared/official-worker/src/rpc-errors.mjs",
+      "source": "commercial/packages/official-worker/src/rpc-errors.mjs",
+      "sha256": "3fead5671777e541241136f49bbba181422fc880e7ced78f850cc697bd7d65ff"
+    },
+    {
+      "path": "_shared/official-worker/src/runner.mjs",
+      "source": "commercial/packages/official-worker/src/runner.mjs",
+      "sha256": "228203ffbcf6542103253ffe46a959dde71c87608bd3ed6a455965c3260a9e1a"
+    },
+    {
+      "path": "_shared/import-v2/src/contracts.mjs",
+      "source": "commercial/packages/import-v2/src/contracts.mjs",
+      "sha256": "bf857d20fc160c5168019e464a6cf04bc1f8748b9eda9276b1787b8752b92550"
+    },
+    {
+      "path": "_shared/import-v2/src/current-meet-adapter.mjs",
+      "source": "commercial/packages/import-v2/src/current-meet-adapter.mjs",
+      "sha256": "cfa5377acbf8dc1693179e075acf0c493e754f0110b4a49321a587788b965fa0"
+    },
+    {
+      "path": "_shared/import-v2/src/discovery.mjs",
+      "source": "commercial/packages/import-v2/src/discovery.mjs",
+      "sha256": "c2eba7fec2542d706470ccf3cf9cdcf17384208864834e4019c3907976ad60cd"
+    },
+    {
+      "path": "_shared/import-v2/src/document-scanner.mjs",
+      "source": "commercial/packages/import-v2/src/document-scanner.mjs",
+      "sha256": "1fbad2bf3c2ae7846d08aff704eccea4e4ba14aea9e743b013b2b02f6f042e8e"
+    },
+    {
+      "path": "_shared/import-v2/src/dry-run.mjs",
+      "source": "commercial/packages/import-v2/src/dry-run.mjs",
+      "sha256": "2a1ca24f5a48c7832d10fa7f291e5191237a6ba0fec58ff55a92618fd190391a"
+    },
+    {
+      "path": "_shared/import-v2/src/failure-states.mjs",
+      "source": "commercial/packages/import-v2/src/failure-states.mjs",
+      "sha256": "acbe73d0ae6025b6746709ec75054b3c9ae990b3dfa9eb6b1a37fe01434f40d0"
+    },
+    {
+      "path": "_shared/import-v2/src/fetch-readonly.mjs",
+      "source": "commercial/packages/import-v2/src/fetch-readonly.mjs",
+      "sha256": "9ff3d1d5b2452d6c491eb68b0f01eb4cd8229af147d37e0e9e742075224955c0"
+    },
+    {
+      "path": "_shared/import-v2/src/historical-dryrun.mjs",
+      "source": "commercial/packages/import-v2/src/historical-dryrun.mjs",
+      "sha256": "0ae4e967c7c9823bc06299a86c0274a4b36e2df80d8c1e13ab45a66d1f182a00"
+    },
+    {
+      "path": "_shared/import-v2/src/lifecycle.mjs",
+      "source": "commercial/packages/import-v2/src/lifecycle.mjs",
+      "sha256": "a65f68b8e28ec808234789df1a651b25956a72e466ec42e4ba1c253781cb57f0"
+    },
+    {
+      "path": "_shared/import-v2/src/live-discovery.mjs",
+      "source": "commercial/packages/import-v2/src/live-discovery.mjs",
+      "sha256": "eb3ff4377d58539d6f192a77512dfe8b6c71efd3016eeb0eb2e74af00c609c95"
+    },
+    {
+      "path": "_shared/import-v2/src/masters-parana-parser.mjs",
+      "source": "commercial/packages/import-v2/src/masters-parana-parser.mjs",
+      "sha256": "fb4cb2bb68eeb5d654c191727774fddf870e778f0727e9540fedf2c662424131"
+    },
+    {
+      "path": "_shared/import-v2/src/normalize.mjs",
+      "source": "commercial/packages/import-v2/src/normalize.mjs",
+      "sha256": "635e4fbe16aa7504b6da4d7e2b378eecd24db75c0229a24876f3f1aad34bf93e"
+    },
+    {
+      "path": "_shared/import-v2/src/official-document.mjs",
+      "source": "commercial/packages/import-v2/src/official-document.mjs",
+      "sha256": "9e01cf8537549fb4424607d67b34547669e1d8e51dcff88749f99bfe79a6245c"
+    },
+    {
+      "path": "_shared/import-v2/src/progression-parser.mjs",
+      "source": "commercial/packages/import-v2/src/progression-parser.mjs",
+      "sha256": "f9075cf3f3416cfe4167d4b5a6082199917a16b4c822081e77e11081d4c5d495"
+    },
+    {
+      "path": "_shared/import-v2/src/resultlist-parser.mjs",
+      "source": "commercial/packages/import-v2/src/resultlist-parser.mjs",
+      "sha256": "4b6ad5a2a84973556925d96cb26fcf5eca66b8113c263309f8de3421af5e6328"
+    },
+    {
+      "path": "_shared/import-v2/src/swimsystem-current.mjs",
+      "source": "commercial/packages/import-v2/src/swimsystem-current.mjs",
+      "sha256": "b43054fbf5eef720086c84e9ffe849db9bf490318f9c43b059207007fed66e79"
+    },
+    {
+      "path": "_shared/import-v2/src/swimsystem-modern-results.mjs",
+      "source": "commercial/packages/import-v2/src/swimsystem-modern-results.mjs",
+      "sha256": "157d337108393e683e8df4152b9f467a38ae6a91d8525f3aa1803b9b3d39b027"
+    },
+    {
+      "path": "_shared/import-v2/src/swimsystem-seeded.mjs",
+      "source": "commercial/packages/import-v2/src/swimsystem-seeded.mjs",
+      "sha256": "9534de29d22c85c4b3ecde7ce1d9f72a88f57501ca508fc7893e3ed5bed6e251"
+    }
+  ]
+}
