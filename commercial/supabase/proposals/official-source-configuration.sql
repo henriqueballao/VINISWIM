@@ -17,6 +17,9 @@ BEGIN
  IF source IS NULL THEN RAISE EXCEPTION 'OFFICIAL_SOURCE_UNAVAILABLE'; END IF;
  SELECT account_id INTO account FROM public.athletes WHERE id=p_athlete_id;
  PERFORM pg_advisory_xact_lock(hashtextextended('source-identity:'||account::text||':'||source::text||':'||trim(p_external_id),0));
+ -- A publication commit locks this row while verifying the registration. Wait
+ -- before checking verified identity, so a concurrent edit cannot reassign it.
+ PERFORM 1 FROM public.athlete_source_configs WHERE athlete_id=p_athlete_id AND source_id=source FOR UPDATE;
  IF EXISTS(SELECT 1 FROM public.athlete_source_configs c JOIN public.athletes a ON a.id=c.athlete_id
   WHERE a.account_id=account AND a.id<>p_athlete_id AND c.source_id=source AND c.active AND c.external_id=trim(p_external_id))
  OR EXISTS(SELECT 1 FROM public.athlete_identifiers i JOIN public.athletes a ON a.id=i.athlete_id
