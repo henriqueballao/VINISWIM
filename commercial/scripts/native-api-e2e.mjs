@@ -56,6 +56,18 @@ if(process.argv[2]==='seed'){
  const other=createClient(api,anon,options);await checked(other.auth.signInWithPassword({email:state.b.email,password:state.b.password}));
  const forbidden=await checked(other.from('v_result_timeline').select('*').eq('athlete_id',state.a.athleteId));assert.deepEqual(forbidden,[]);
  const direct=await user.rpc('persist_official_catalog',{p_job_id:root.id,p_lease_token:randomUUID(),p_catalog:{}});assert.ok(direct.error,'Browser cannot invoke service persistence');
- await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify({mode:'native-local-auth-rest-live-source',productionWrites:0,registration:state.registration,discovery,first,second,rows,segregation:true}));
+ const sources=await checked(admin.from('result_sources').select('result_id,source_url,raw_hash,retrieved_at').in('result_id',rows.map(r=>r.id)));
+ assert.equal(sources.length,rows.length);assert.ok(sources.every(s=>/^[a-f0-9]{64}$/.test(s.raw_hash)));
+ await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify({mode:'native-local-auth-rest-live-source',productionWrites:0,registration:state.registration,discovery,first,second,rows,sources,segregation:true}));
  console.log(JSON.stringify({mode:'native-local-auth-rest-live-source',productionWrites:0,registration:state.registration,inserted:first.inserted,reimported:second.inserted,segregation:true}));
-}else throw Error('Choose seed or import');
+}else if(process.argv[2]==='verify-restart'){
+ const state=JSON.parse(await fs.readFile(statePath,'utf8')),proof=JSON.parse(await fs.readFile('/tmp/viniswim-native-proof.json','utf8'));
+ const user=createClient(api,anon,options);await checked(user.auth.signInWithPassword({email:state.a.email,password:state.a.password}));
+ const rows=await checked(user.from('v_result_timeline').select('*').eq('athlete_id',state.a.athleteId));
+ const ordered=items=>items.toSorted((a,b)=>a.id.localeCompare(b.id));assert.deepEqual(ordered(rows),ordered(proof.rows));
+ const sources=await checked(admin.from('result_sources').select('result_id,source_url,raw_hash,retrieved_at').in('result_id',rows.map(r=>r.id)));
+ const sorted=items=>items.toSorted((a,b)=>a.result_id.localeCompare(b.result_id));assert.deepEqual(sorted(sources),sorted(proof.sources));
+ proof.localServicesRestarted=true;proof.persistedRowsAndSourcesUnchanged=true;
+ await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify(proof));
+ console.log('PASS native services restarted: Auth login, rows and source hashes recovered unchanged');
+}else throw Error('Choose seed, import or verify-restart');

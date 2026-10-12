@@ -73,6 +73,23 @@ jobs:
           node scripts/native-ui-e2e.cjs request
           node scripts/native-api-e2e.mjs import
           node scripts/native-ui-e2e.cjs verify
+      - name: Restart actual local services and verify persisted evidence and UI
+        env:
+          NODE_PATH: /tmp/viniswim-native-browser/node_modules
+        run: |
+          set -euo pipefail
+          supabase stop --workdir native-api-e2e
+          supabase start --workdir native-api-e2e --exclude studio,imgproxy,edge-runtime,logflare,vector,supavisor,realtime,storage-api > /tmp/native-restart.log 2>&1
+          node commercial/scripts/native-api-e2e.mjs verify-restart
+          cd commercial
+          npm --workspace @viniswim/web run preview -- --host 127.0.0.1 --port 4173 > /tmp/native-restarted-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/native-ui-e2e.cjs verify
       - name: Preserve proof only, never credentials
         if: always()
         uses: actions/upload-artifact@v4
