@@ -14,6 +14,10 @@ assert.equal(query('SELECT current_database()'),'viniswim_isolated_test');
 const archived=JSON.parse(await fs.readFile(`${root}/report.json`,'utf8')),allowedHosts=['www.swimsystem.app','sportstimingbrasil-swimsystem.supabase.co'];
 const account='00000000-0000-4000-8000-000000000701',user='00000000-0000-4000-8000-000000000702',source='00000000-0000-4000-8000-000000000001';
 query(`INSERT INTO accounts(id) VALUES(${sql(account)});INSERT INTO auth.users(id) VALUES(${sql(user)});INSERT INTO account_members(account_id,user_id,status,role) VALUES(${sql(account)},${sql(user)},'active','owner');`);
+const {gunzipSync}=await import('node:zlib');
+const catalogOriginal=gunzipSync(Buffer.from((await fs.readFile('commercial/packages/official-worker/fixtures/catalog-20261012/calendar.html.gz.base64','utf8')).trim(),'base64'));
+const catalogProvenance=JSON.parse(await fs.readFile('commercial/packages/official-worker/fixtures/catalog-20261012/provenance.json','utf8'));
+assert.equal(createHash('sha256').update(catalogOriginal).digest('hex'),catalogProvenance.rawHash);
 const expected={422692:[4,5,9],399680:[5,6,11],393259:[0,6,6]},proof=[];
 for(const [externalId,[currentCount,historicalCount,total]] of Object.entries(expected)){
  const athlete={id:`00000000-0000-4000-8000-000000${externalId.padStart(6,'0')}`,account_id:account};
@@ -23,13 +27,25 @@ for(const [externalId,[currentCount,historicalCount,total]] of Object.entries(ex
   const pageMeta=archived.captures.find(c=>c.file===`${meetId}-page.html`),page=await capture(pageMeta),discovered=discoverOfficialMeet(page),js=[],poppler=[];
   for(const doc of discovered.documents){const meta=archived.captures.find(c=>c.url===doc.url&&c.outcome==='original_captured');assert.ok(meta,'Missing original publication');js.push(await capture(meta,extractOfficialPdfJs));poppler.push(await capture(meta,extractOfficialPdfLocal));}
   const identity={externalId};
-  const request=JSON.parse(query(`SET ROLE authenticated;SELECT set_config('request.jwt.claim.sub',${sql(user)},false);SELECT request_official_meet_import(${sql(athlete.id)},${sql(discovered.meet.officialUrl)});`).split('\n').at(-1));
-  const job=JSON.parse(query(`SET ROLE service_role;SELECT row_to_json(j) FROM claim_official_import_jobs(1) j;`).split('\n').at(-1));assert.equal(job.id,request.job_id);
+  const request=JSON.parse(query(`SET ROLE authenticated;SELECT set_config('request.jwt.claim.sub',${sql(user)},false);SELECT request_official_catalog_import(${sql(athlete.id)});`).split('\n').at(-1));
+  query(`UPDATE import_v2_jobs SET priority=-100 WHERE id=${sql(request.job_id)};`);
+  const catalogJob=JSON.parse(query(`SET ROLE service_role;SELECT row_to_json(j) FROM claim_official_import_jobs(1) j;`).split('\n').at(-1));assert.equal(catalogJob.id,request.job_id);
+  const catalogRpc=async(name,args)=>{
+   if(name==='load_official_import_context')return {data:JSON.parse(query(`SET ROLE service_role;SELECT load_official_import_context(${sql(args.p_job_id)},${sql(args.p_lease_token)});`))};
+   if(name==='persist_official_catalog')return {data:JSON.parse(query(`SET ROLE service_role;SELECT persist_official_catalog(${sql(args.p_job_id)},${sql(args.p_lease_token)},${sql(JSON.stringify(args.p_catalog))}::jsonb);`))};
+   throw Error('Unexpected catalog worker RPC '+name);
+  };
+  const discovery=await processClaimedOfficialJob({job:catalogJob,rpc:catalogRpc,fetchImpl:async()=>new Response(catalogOriginal,{headers:{'content-type':'text/html'}})});
+  assert.equal(discovery.outcome,'catalog_discovered');assert.equal(discovery.enqueued,70);assert.equal(discovery.resultsInserted,0);
+  const childId=query(`SELECT j.id FROM import_v2_jobs j JOIN refresh_requests r ON r.id=j.request_id WHERE r.catalog_root_request_id=${sql(request.request_id)} AND j.cursor->>'external_meet_id'=${sql(meetId)};`);
+  assert.ok(childId);query(`UPDATE import_v2_jobs SET priority=-101 WHERE id=${sql(childId)};`);
+  const job=JSON.parse(query(`SET ROLE service_role;SELECT row_to_json(j) FROM claim_official_import_jobs(1) j;`).split('\n').at(-1));assert.equal(job.id,childId);
+  const cancelCatalog=()=>query(`SET ROLE authenticated;SELECT set_config('request.jwt.claim.sub',${sql(user)},false);SELECT cancel_result_refresh_request(${sql(request.request_id)});`);
   const prepared=buildOfficialBatch({job,athlete,identity,meet:discovered.meet,documents:js,allowedHosts});
   const oracle=buildOfficialBatch({job,athlete,identity,meet:discovered.meet,documents:poppler,allowedHosts});
   const signature=r=>[r.externalEventId,r.round,r.sex,r.resultDate,r.course,r.event,r.timeMs,r.status];
   assert.equal(prepared.accepted,oracle.accepted);assert.deepEqual(prepared.scan.results.map(signature),oracle.scan.results.map(signature),'Independent extractors disagree on official swims');
-  if(!prepared.accepted){assert.equal(externalId,'393259');assert.equal(meetId,'c8587533-2e44-4b08-991f-f827170c7344');assert.equal(prepared.scan.status,'identity_not_found');query(`SET ROLE service_role;SELECT finish_official_import_failure(${sql(job.id)},${sql(job.lease_token)},'identity_not_found','Exact registration absent from published October documents',false);`);continue;}
+  if(!prepared.accepted){assert.equal(externalId,'393259');assert.equal(meetId,'c8587533-2e44-4b08-991f-f827170c7344');assert.equal(prepared.scan.status,'identity_not_found');query(`SET ROLE service_role;SELECT finish_official_import_failure(${sql(job.id)},${sql(job.lease_token)},'identity_not_found','Exact registration absent from published October documents',false);`);cancelCatalog();continue;}
   for(const label of new Set([...prepared.batch.entries,...prepared.batch.results].map(r=>r.event))){const [distance,stroke]=label.split(' '),strokes={Livre:'freestyle',Costas:'backstroke',Peito:'breaststroke',Borboleta:'butterfly',Medley:'medley'};assert.ok(strokes[stroke]);query(`INSERT INTO events(id,distance_m,stroke,label,active) SELECT gen_random_uuid(),${Number(distance)},${sql(strokes[stroke])},${sql(label)},true WHERE NOT EXISTS(SELECT 1 FROM events WHERE label=${sql(label)});`);};
   const rpc=async(name,args)=>{assert.equal(name,'persist_official_meet_batch');return {data:JSON.parse(query(`SET ROLE service_role;SELECT persist_official_meet_batch(${sql(args.p_job_id)},${sql(args.p_lease_token)},${sql(JSON.stringify(args.p_batch))}::jsonb);`))};};
   const workerRpc=async(name,args)=>{
@@ -41,6 +57,8 @@ for(const [externalId,[currentCount,historicalCount,total]] of Object.entries(ex
   const first=await processClaimedOfficialJob({job,rpc:workerRpc,extractPdf:extractOfficialPdfJs,now:()=>new Date('2026-10-11T17:48:13.000Z'),fetchImpl:async url=>{const meta=archived.captures.find(c=>c.url===url&&c.file);if(!meta)throw Error('Missing original '+url);return new Response(await fs.readFile(`${root}/${meta.file}`),{headers:{'content-type':meta.file.endsWith('.html')?'text/html':'application/pdf'}});}});
   assert.equal(first.status,'completed',JSON.stringify(first));assert.equal(first.inserted,meetId.startsWith('c858')?currentCount:historicalCount);
 
+  assert.equal(query(`SELECT count(*) FROM official_meet_subscriptions WHERE athlete_id=${sql(athlete.id)} AND meet_external_id=${sql(meetId)} AND active;`),'1');
+  cancelCatalog(); // Other visible meets are outside this original-PDF fixture; no claim of full history.
   const storedBatch=JSON.parse(query(`SELECT counters FROM official_import_batches WHERE job_id=${sql(job.id)};`));assert.equal(storedBatch.inserted,first.inserted);
   // Durable receipt replay is asserted with the exact payload in the SQL suite.
   const again=JSON.parse(query(`SET ROLE authenticated;SELECT set_config('request.jwt.claim.sub',${sql(user)},false);SELECT request_official_meet_import(${sql(athlete.id)},${sql(discovered.meet.officialUrl)});`).split('\n').at(-1));
@@ -53,7 +71,7 @@ for(const [externalId,[currentCount,historicalCount,total]] of Object.entries(ex
   const ordered=rows=>rows.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
   assert.deepEqual(ordered(persistedEntries),ordered(prepared.scan.entries.map(entrySignature)),'SQL seeding differs from original in time/heat/lane/date/pool/race');
   assert.deepEqual(ordered(prepared.scan.entries.map(entrySignature)),ordered(oracle.scan.entries.map(entrySignature)),'Independent extractors disagree on official seeding');
-  proof.push({externalId,meetId,first,second,workerContextAndCaptureTested:true,independentExtractorsAgree:true,persistedMatchesOriginal:true,persistedSeedingMatchesOriginal:true});
+  proof.push({externalId,meetId,first,second,catalogMeetCount:70,catalogWorkerAndSqlTested:true,subscriptionCreatedFromValidatedPublication:true,workerContextAndCaptureTested:true,independentExtractorsAgree:true,persistedMatchesOriginal:true,persistedSeedingMatchesOriginal:true});
  }
  assert.equal(Number(query(`SELECT count(*) FROM results WHERE athlete_id=${sql(athlete.id)}`)),total);
 }

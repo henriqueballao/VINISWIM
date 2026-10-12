@@ -55,7 +55,12 @@ BEGIN
   IF NOT pg_try_advisory_xact_lock(hashtextextended('catalog-request:'||subscription.athlete_id::text,0)) THEN CONTINUE; END IF;
   IF NOT EXISTS(SELECT 1 FROM public.athletes a JOIN public.account_members m ON m.account_id=a.account_id
    JOIN public.sources s ON s.id=subscription.source_id WHERE a.id=subscription.athlete_id AND m.user_id=subscription.requested_by AND m.status='active' AND s.code='swimsystem' AND s.active AND s.official)
-   OR NOT EXISTS(SELECT 1 FROM public.athlete_source_configs c WHERE c.athlete_id=subscription.athlete_id AND c.source_id=subscription.source_id AND c.active AND c.external_id ~ '^[0-9]+$') THEN
+   OR (EXISTS(SELECT 1 FROM public.athlete_source_configs c WHERE c.athlete_id=subscription.athlete_id AND c.source_id=subscription.source_id)
+       AND NOT EXISTS(SELECT 1 FROM public.athlete_source_configs c WHERE c.athlete_id=subscription.athlete_id AND c.source_id=subscription.source_id AND c.active AND c.external_id ~ '^[0-9]+$'))
+   OR NOT EXISTS(
+    SELECT 1 FROM public.athlete_source_configs c WHERE c.athlete_id=subscription.athlete_id AND c.source_id=subscription.source_id AND c.active AND c.external_id ~ '^[0-9]+$'
+    UNION ALL SELECT 1 FROM public.athlete_identifiers i WHERE i.athlete_id=subscription.athlete_id AND i.source_id=subscription.source_id AND i.active AND i.verified AND i.external_id ~ '^[0-9]+$'
+   ) THEN
    UPDATE public.official_catalog_subscriptions SET active=false,updated_at=now() WHERE athlete_id=subscription.athlete_id AND source_id=subscription.source_id;
    revoked=revoked+1;CONTINUE;
   END IF;
