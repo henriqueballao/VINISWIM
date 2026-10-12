@@ -428,6 +428,10 @@ DO $$ DECLARE j import_v2_jobs;ctx jsonb;payload jsonb;outcome jsonb;raw bytea;B
  IF outcome->>'receiptReplay'<>'true' OR (SELECT count(*) FROM import_v2_jobs WHERE request_id IN(SELECT id FROM refresh_requests WHERE id=j.request_id OR catalog_root_request_id=j.request_id))<>3 THEN RAISE EXCEPTION 'CATALOG_RECEIPT_NOT_IDEMPOTENT'; END IF;
  BEGIN PERFORM persist_official_catalog(j.id,j.lease_token,jsonb_set(payload,'{rawHash}','"changed"'));RAISE EXCEPTION 'CATALOG_CHANGED_REPLAY_ACCEPTED';
  EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'RECEIPT_PAYLOAD_MISMATCH' THEN RAISE; END IF; END;
+ PERFORM set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000031',true);
+ PERFORM cancel_result_refresh_request(j.request_id);
+ IF EXISTS(SELECT 1 FROM import_v2_jobs WHERE request_id IN(SELECT id FROM refresh_requests WHERE catalog_root_request_id=j.request_id) AND status IN('pending','running'))
+ OR (SELECT terminal_status FROM refresh_requests WHERE id=j.request_id)<>'cancelled' THEN RAISE EXCEPTION 'CATALOG_CANCEL_DID_NOT_REACH_CHILDREN'; END IF;
 END $$;
 ROLLBACK;
 

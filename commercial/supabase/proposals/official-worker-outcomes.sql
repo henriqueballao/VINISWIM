@@ -14,8 +14,8 @@ BEGIN
  IF EXISTS(SELECT 1 FROM public.import_v2_jobs WHERE request_id=rr.id AND worker_version<>'official-v3') THEN RETURN; END IF;
  SELECT count(*),count(*) FILTER(WHERE status IN ('pending','running')),count(*) FILTER(WHERE status IN ('failed','blocked')),count(*) FILTER(WHERE status='completed')
  INTO total,active_count,failed_count,completed_count FROM public.import_v2_jobs WHERE request_id IN(SELECT id FROM public.refresh_requests WHERE id=rr.id OR catalog_root_request_id=rr.id);
- IF total=0 OR total<>rr.job_count OR active_count>0 THEN RETURN; END IF;
- UPDATE public.refresh_requests SET terminal_status=CASE WHEN failed_count>0 THEN 'failed' WHEN completed_count=total THEN 'completed' ELSE 'cancelled' END,
+ IF total=0 OR active_count>0 THEN RETURN; END IF;
+ UPDATE public.refresh_requests SET job_count=total,terminal_status=CASE WHEN failed_count>0 THEN 'failed' WHEN completed_count=total THEN 'completed' ELSE 'cancelled' END,
   completed_job_count=completed_count,failed_job_count=failed_count,finalized_at=now(),updated_at=now() WHERE id=rr.id;
 END $$;
 REVOKE ALL ON FUNCTION public.finalize_official_import_request(uuid) FROM PUBLIC,anon,authenticated;

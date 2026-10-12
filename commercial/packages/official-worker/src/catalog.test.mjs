@@ -13,3 +13,15 @@ test('copied provenance, unrecognized empty catalog and unsafe pagination fail e
  assert.throws(()=>canonicalCatalogUrl('https://www.swimsystem.app/meets?page=2&page=3'));
  const empty=await capture('<h1>Competições</h1>');assert.throws(()=>discoverOfficialCatalog(empty),/no recognized/);
 });
+
+test('authorized original catalog fixture verifies hash and discovers all 70 captured links',async()=>{
+ const {readFile}=await import('node:fs/promises');const {createHash}=await import('node:crypto');
+ const base=new URL('../fixtures/catalog-20261012/',import.meta.url);
+ const provenance=JSON.parse(await readFile(new URL('provenance.json',base),'utf8'));
+ const {gunzipSync}=await import('node:zlib');
+ const bytes=gunzipSync(Buffer.from((await readFile(new URL('calendar.html.gz.base64',base),'utf8')).trim(),'base64'),{maxOutputLength:4*1024*1024});
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),provenance.rawHash);assert.equal(bytes.length,provenance.bytes);
+ const document=await captureOfficialDocument({url:provenance.url,allowedHosts:['www.swimsystem.app'],fetchImpl:async()=>new Response(bytes,{headers:{'content-type':'text/html'}})});
+ const found=discoverOfficialCatalog(document);assert.deepEqual(found.meetUrls,provenance.meetUrls);assert.equal(found.meetUrls.length,70);
+ assert.ok(found.meetUrls.includes('https://www.swimsystem.app/meets/sw/c8587533-2e44-4b08-991f-f827170c7344'));
+});
