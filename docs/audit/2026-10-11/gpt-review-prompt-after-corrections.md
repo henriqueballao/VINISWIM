@@ -3,6 +3,8 @@
 Atue como revisor técnico adversarial do VINISWIM. Consulte diretamente o repositório henriqueballao/VINISWIM, branch fix/official-import-audit-20261011, PR draft #17. Não aceite relato do Codex como comprovação de produção.
 
 Leia primeiro:
+- docs/audit/2026-10-12/manual-planning-and-shared-meet.md e manual-planning-and-shared-meet-evidence.json (correções R4/metadados candidatas até 4b64896d; produção vazia);
+- docs/audit/2026-10-11/authorized-legacy-cleanup.md (limpeza autorizada 17bc962 e holds aplicados; não restaurar dados nem desbloquear importadores);
 - docs/audit/2026-10-11/independent-technical-assessment-01a5fb9.md (parecer ea19d91);
 - docs/audit/2026-10-11/corrections-after-ea19d91.md e corrections-after-ea19d91-evidence.json (correções candidatas até ce3e097d, sem deploy);
 - docs/audit/2026-10-11/adversarial-review-5775834.md e adversarial-review-5775834-evidence.json (reconsulta de produção e contraprovas R1/R2; 252 resultados legados, não zero atualmente);

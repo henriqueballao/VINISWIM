@@ -1,0 +1,251 @@
+{
+  "date": "2026-10-12",
+  "implementation": "4b64896d53a21465f56b77d2d0791f8b823627c8",
+  "commits": [
+    "aca19accf8d6282495db7b835e4b32d2096929c8",
+    "d50dec149ebd12081caa8812f65acb99972562e8",
+    "9b879007637c720cc38133184f740cb411d2ffcb",
+    "c5e45ec8ecb321d623085c848375278cc579ce45",
+    "4b64896d53a21465f56b77d2d0791f8b823627c8"
+  ],
+  "production": {
+    "capturedAt": "2026-10-12T01:20:45.497472+00:00",
+    "results": 0,
+    "entries": 0,
+    "personalBests": 0,
+    "resultSources": 0,
+    "holds": 5,
+    "activeImportCrons": 0
+  },
+  "productionWritesThisStage": 0,
+  "deployed": false,
+  "merged": false,
+  "draft": true,
+  "runs": [
+    {
+      "id": 38190706932,
+      "sha": "c5e45ec8ecb321d623085c848375278cc579ce45",
+      "scope": "isolated PostgreSQL event,lease,transaction,manual RPC,RLS,audit,rollback,concurrency,archived-original replay",
+      "conclusion": "success"
+    },
+    {
+      "id": 38190707025,
+      "sha": "c5e45ec8ecb321d623085c848375278cc579ce45",
+      "scope": "unchanged adversarial repros",
+      "conclusion": "success"
+    },
+    {
+      "id": 38190774929,
+      "sha": "4b64896d53a21465f56b77d2d0791f8b823627c8",
+      "scope": "Node domain,React build,synthetic authenticated desktop/mobile browser including manual RPC",
+      "conclusion": "success"
+    },
+    {
+      "id": 38190774909,
+      "sha": "4b64896d53a21465f56b77d2d0791f8b823627c8",
+      "scope": "import-v2 regression",
+      "conclusion": "success"
+    }
+  ],
+  "archivedOriginalsIsolatedProof": {
+    "mode": "official-originals-to-isolated-postgres-not-production",
+    "proof": [
+      {
+        "externalId": "393259",
+        "meetId": "9b002997-591e-4f74-8492-ef595b4705c0",
+        "first": {
+          "jobId": "8b8481e0-435a-4ed9-ac12-4df2451ef49b",
+          "requestId": "93a5e81d-f19c-4cbd-a88b-657d138290a1",
+          "status": "completed",
+          "outcome": "official_results_persisted",
+          "inserted": 6,
+          "conflicts": 0,
+          "duplicated": 0,
+          "entriesUpdated": 0,
+          "entriesInserted": 6,
+          "entriesDuplicated": 0
+        },
+        "second": {
+          "outcome": "official_results_persisted",
+          "inserted": 0,
+          "conflicts": 0,
+          "duplicated": 6,
+          "entriesUpdated": 0,
+          "entriesInserted": 0,
+          "entriesDuplicated": 6
+        },
+        "workerContextAndCaptureTested": true,
+        "independentExtractorsAgree": true,
+        "persistedMatchesOriginal": true,
+        "persistedSeedingMatchesOriginal": true
+      },
+      {
+        "externalId": "399680",
+        "meetId": "c8587533-2e44-4b08-991f-f827170c7344",
+        "first": {
+          "jobId": "d1766777-e2a7-4486-bdd6-e05bcca88b5d",
+          "requestId": "ebd76eb1-0969-47dd-a511-6e8be3e41fed",
+          "status": "completed",
+          "outcome": "official_results_persisted",
+          "inserted": 5,
+          "conflicts": 0,
+          "duplicated": 0,
+          "entriesUpdated": 0,
+          "entriesInserted": 5,
+          "entriesDuplicated": 0
+        },
+        "second": {
+          "outcome": "official_results_persisted",
+          "inserted": 0,
+          "conflicts": 0,
+          "duplicated": 5,
+          "entriesUpdated": 0,
+          "entriesInserted": 0,
+          "entriesDuplicated": 5
+        },
+        "workerContextAndCaptureTested": true,
+        "independentExtractorsAgree": true,
+        "persistedMatchesOriginal": true,
+        "persistedSeedingMatchesOriginal": true
+      },
+      {
+        "externalId": "399680",
+        "meetId": "9b002997-591e-4f74-8492-ef595b4705c0",
+        "first": {
+          "jobId": "ad0312fd-6970-46d2-97d6-49e0a8ac8207",
+          "requestId": "9e46e819-37d0-4982-aedf-2e5f0bb6f2be",
+          "status": "completed",
+          "outcome": "official_results_persisted",
+          "inserted": 6,
+          "conflicts": 0,
+          "duplicated": 0,
+          "entriesUpdated": 0,
+          "entriesInserted": 6,
+          "entriesDuplicated": 0
+        },
+        "second": {
+          "outcome": "official_results_persisted",
+          "inserted": 0,
+          "conflicts": 0,
+          "duplicated": 6,
+          "entriesUpdated": 0,
+          "entriesInserted": 0,
+          "entriesDuplicated": 6
+        },
+        "workerContextAndCaptureTested": true,
+        "independentExtractorsAgree": true,
+        "persistedMatchesOriginal": true,
+        "persistedSeedingMatchesOriginal": true
+      },
+      {
+        "externalId": "422692",
+        "meetId": "c8587533-2e44-4b08-991f-f827170c7344",
+        "first": {
+          "jobId": "adea6630-b140-4cc4-9f73-219dcfc04b45",
+          "requestId": "62aebca1-8c53-4972-b235-40a293fe3065",
+          "status": "completed",
+          "outcome": "official_results_persisted",
+          "inserted": 4,
+          "conflicts": 0,
+          "duplicated": 0,
+          "entriesUpdated": 0,
+          "entriesInserted": 4,
+          "entriesDuplicated": 0
+        },
+        "second": {
+          "outcome": "official_results_persisted",
+          "inserted": 0,
+          "conflicts": 0,
+          "duplicated": 4,
+          "entriesUpdated": 0,
+          "entriesInserted": 0,
+          "entriesDuplicated": 4
+        },
+        "workerContextAndCaptureTested": true,
+        "independentExtractorsAgree": true,
+        "persistedMatchesOriginal": true,
+        "persistedSeedingMatchesOriginal": true
+      },
+      {
+        "externalId": "422692",
+        "meetId": "9b002997-591e-4f74-8492-ef595b4705c0",
+        "first": {
+          "jobId": "664ecd13-889c-48ea-9dcf-79d88cb17267",
+          "requestId": "6cfb7b14-14a3-42c7-94ce-1e7a99011185",
+          "status": "completed",
+          "outcome": "official_results_persisted",
+          "inserted": 5,
+          "conflicts": 0,
+          "duplicated": 0,
+          "entriesUpdated": 0,
+          "entriesInserted": 5,
+          "entriesDuplicated": 0
+        },
+        "second": {
+          "outcome": "official_results_persisted",
+          "inserted": 0,
+          "conflicts": 0,
+          "duplicated": 5,
+          "entriesUpdated": 0,
+          "entriesInserted": 0,
+          "entriesDuplicated": 5
+        },
+        "workerContextAndCaptureTested": true,
+        "independentExtractorsAgree": true,
+        "persistedMatchesOriginal": true,
+        "persistedSeedingMatchesOriginal": true
+      }
+    ],
+    "productionWrites": 0
+  },
+  "gates": [
+    {
+      "gate": 1,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 2,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 3,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 4,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 5,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 6,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 7,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 8,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 9,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 10,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 11,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 12,
+      "status": "REPROVADO"
+    }
+  ]
+}
