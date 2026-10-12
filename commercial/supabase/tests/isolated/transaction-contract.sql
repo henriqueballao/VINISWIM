@@ -456,3 +456,26 @@ DO $$ DECLARE j import_v2_jobs;answer jsonb;BEGIN
  IF EXISTS(SELECT 1 FROM official_catalog_subscriptions WHERE athlete_id=j.athlete_id AND active) THEN RAISE EXCEPTION 'DISABLED_CONFIG_STILL_ENROLLED'; END IF;
 END $$;
 ROLLBACK;
+
+\ir ../../proposals/official-global-cutover-fence.sql
+-- SYNTHETIC safety across every profile, not a list of known registrations.
+BEGIN;
+DO $$ DECLARE aid uuid:='00000000-0000-4000-8000-000000000012';BEGIN
+ BEGIN INSERT INTO results(athlete_id,origin,is_official) VALUES(aid,'official',true);RAISE EXCEPTION 'GLOBAL_OFFICIAL_INSERT_ACCEPTED';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'OFFICIAL_IMPORT_MAINTENANCE' THEN RAISE; END IF; END;
+ BEGIN INSERT INTO meet_entries(athlete_id) VALUES(aid);RAISE EXCEPTION 'GLOBAL_LEGACY_ENTRY_ACCEPTED';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'OFFICIAL_IMPORT_MAINTENANCE' THEN RAISE; END IF; END;
+ IF has_table_privilege('authenticated','app.official_pipeline_mode','UPDATE') OR has_function_privilege('service_role','app.guard_global_official_pipeline()','EXECUTE') THEN RAISE EXCEPTION 'GLOBAL_MODE_OR_GUARD_EXPOSED'; END IF;
+END $$;
+ROLLBACK;
+-- This changes only the disposable test database. Production stays maintenance.
+UPDATE app.official_pipeline_mode SET mode='official_only';
+BEGIN;
+SELECT set_config('viniswim.official_job_id','',true),set_config('viniswim.official_lease_token','',true);
+DO $$ BEGIN
+ BEGIN INSERT INTO meet_entries(athlete_id) VALUES('00000000-0000-4000-8000-000000000012');RAISE EXCEPTION 'RETIRED_ENTRY_WRITER_ACCEPTED';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'LEGACY_IMPORT_WRITER_RETIRED' THEN RAISE; END IF; END;
+ BEGIN INSERT INTO results(athlete_id,origin,is_official) VALUES('00000000-0000-4000-8000-000000000012','official',true);RAISE EXCEPTION 'RETIRED_RESULT_WRITER_ACCEPTED';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'LEGACY_IMPORT_WRITER_RETIRED' THEN RAISE; END IF; END;
+END $$;
+ROLLBACK;
