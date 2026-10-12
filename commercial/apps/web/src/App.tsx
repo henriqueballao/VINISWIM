@@ -420,7 +420,7 @@ function AthleteOfficialDiscovery({athlete,sourceConfigs,onLinked,trigger}:{athl
  async function confirm(choice:any){
   setBusy(true);setNotice('')
   try{
-   const {data,error}=await supabase.rpc('save_athlete_source_config',{
+   const {data,error}=await supabase.rpc('save_official_athlete_source_config',{
     p_athlete_id:athlete.id,p_url:cfg.source_url,p_external_id:choice.external_id,
     p_external_name:choice.external_name,p_display_name:cfg.display_name,p_config_id:cfg.id
    })
@@ -428,7 +428,7 @@ function AthleteOfficialDiscovery({athlete,sourceConfigs,onLinked,trigger}:{athl
    if(!data?.ok)throw new Error(data?.message||'Falha ao vincular fonte')
    const request=await supabase.rpc('request_official_catalog_import',{p_athlete_id:athlete.id})
    if(request.error)setNotice('Identificação vinculada, mas a busca não iniciou: '+request.error.message)
-   else setNotice('Identificação confirmada por documentos oficiais. Busca automática iniciada no SwimSystem; confira o andamento e os resultados nesta tela.')
+   else setNotice('Registro vinculado. A busca verificará as publicações oficiais; confira o andamento nesta tela.')
    setCandidates(null)
    await onLinked()
   }catch(e:any){setNotice('Falha ao vincular identidade: '+(e?.message||String(e)))}
@@ -835,7 +835,9 @@ function SourceConfigEditor({athleteId,cfg,onSaved,onDeleted,onMessage,isNew,onC
   if(!url.trim()||!externalId.trim()||!externalName.trim()){onMessage('Preencha URL, número/registro e nome do atleta nesta fonte.');return}
   if(isNew&&!label.trim()){onMessage('Informe como essa fonte deve aparecer no VINISWIM.');return}
   setBusy(true)
-  const {data,error}=await supabase.rpc('save_athlete_source_config',{
+  const modernSource=cfg?.sources?.code==='swimsystem'||/^https:\/\/(?:www\.)?swimsystem\.app(?:\/|$)/.test(url.trim());
+  if(!modernSource){setBusy(false);onMessage('Esta fonte aguarda um adaptador validado. Nenhuma importação antiga será iniciada.');return}
+  const {data,error}=await supabase.rpc('save_official_athlete_source_config',{
    p_athlete_id:athleteId,
    p_url:url.trim(),
    p_external_id:externalId.trim(),

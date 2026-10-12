@@ -23,6 +23,7 @@ CREATE TABLE historical_archive_jobs(request_id uuid,status text,heartbeat_at ti
 \ir ../../proposals/official-legacy-writer-fence.sql
 \ir ../../proposals/official-targeted-request.sql
 \ir ../../proposals/official-catalog-automation.sql
+\ir ../../proposals/official-source-configuration.sql
 \ir ../../proposals/official-progress-view.sql
 \ir published-triggers.sql
 GRANT USAGE ON SCHEMA public,extensions TO service_role;
@@ -481,4 +482,21 @@ DO $$ BEGIN
  BEGIN INSERT INTO results(athlete_id,origin,is_official) VALUES('00000000-0000-4000-8000-000000000012','official',true);RAISE EXCEPTION 'RETIRED_RESULT_WRITER_ACCEPTED';
  EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'LEGACY_IMPORT_WRITER_RETIRED' THEN RAISE; END IF; END;
 END $$;
+ROLLBACK;
+
+-- New identity configuration is authenticated and never self-verifies.
+BEGIN;
+UPDATE athlete_identifiers SET active=false WHERE athlete_id='00000000-0000-4000-8000-000000000011';
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-4000-8000-000000000031';
+DO $$ DECLARE saved jsonb;BEGIN
+ saved=save_official_athlete_source_config('00000000-0000-4000-8000-000000000011','https://www.swimsystem.app','987654','SYNTHETIC NEW SOURCE IDENTITY');
+ IF saved->>'ok'<>'true' THEN RAISE EXCEPTION 'SOURCE_CONFIGURATION_FAILED'; END IF;
+ BEGIN PERFORM save_official_athlete_source_config('00000000-0000-4000-8000-000000000012','https://www.swimsystem.app','987654','SYNTHETIC CROSS ACCOUNT');RAISE EXCEPTION 'SOURCE_CONFIG_CROSS_ACCOUNT_ACCEPTED';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'ATHLETE_ACCESS_DENIED' THEN RAISE; END IF; END;
+ BEGIN PERFORM save_official_athlete_source_config('00000000-0000-4000-8000-000000000011','https://evil.invalid/?swimsystem.app','987654','SYNTHETIC URL SPOOF');RAISE EXCEPTION 'SOURCE_CONFIG_HOST_SPOOF_ACCEPTED';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'INVALID_OFFICIAL_SOURCE_CONFIGURATION' THEN RAISE; END IF; END;
+END $$;
+RESET ROLE;
+DO $$ BEGIN IF EXISTS(SELECT 1 FROM athlete_identifiers WHERE athlete_id='00000000-0000-4000-8000-000000000011' AND external_id='987654' AND verified) THEN RAISE EXCEPTION 'TYPED_SOURCE_IDENTITY_SELF_VERIFIED'; END IF; END $$;
 ROLLBACK;

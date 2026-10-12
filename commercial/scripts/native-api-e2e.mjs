@@ -27,8 +27,9 @@ if(process.argv[2]==='seed'){
  const registration=text.match(/^\s*\d+\.\s+\d+\/\d+\s+.+?\s+(\d{5,7})\s+20\d{2}\s+/m)?.[1];
  assert.ok(registration);assert.ok(!['422692','399680','393259'].includes(registration));
  const sourceId=randomUUID();await checked(admin.from('sources').insert({id:sourceId,code:'swimsystem',name:'SwimSystem',source_type:'official_results',official:true,active:true}));
- await checked(admin.from('athlete_source_configs').insert({athlete_id:a.athleteId,source_id:sourceId,display_name:'SwimSystem',source_url:'https://www.swimsystem.app',external_id:registration,external_name:'Public registration selected from official original',active:true}));
- await checked(admin.from('athlete_identifiers').insert({athlete_id:a.athleteId,source_id:sourceId,external_id:registration,active:true,verified:true,status:'verified'}));
+ const user=createClient(api,anon,options);await checked(user.auth.signInWithPassword({email:a.email,password:a.password}));
+ const configured=await checked(user.rpc('save_official_athlete_source_config',{p_athlete_id:a.athleteId,p_url:'https://www.swimsystem.app',p_external_id:registration,p_external_name:'Public registration selected from official original',p_display_name:'SwimSystem'}));assert.equal(configured.ok,true);
+ const identifiers=await checked(admin.from('athlete_identifiers').select('*').eq('athlete_id',a.athleteId));assert.equal(identifiers.length,0,'Typed registration must not be marked officially verified');
  const strokes={Livre:'freestyle',Costas:'backstroke',Peito:'breaststroke',Borboleta:'butterfly',Medley:'medley'};
  await checked(admin.from('events').insert(Object.entries(strokes).flatMap(([label,stroke])=>[25,50,100,200,400,800,1500].map(distance=>({distance_m:distance,stroke,label:distance+' '+label,active:true})))));
  await fs.writeFile(statePath,JSON.stringify({a,b,registration,sourceId}));

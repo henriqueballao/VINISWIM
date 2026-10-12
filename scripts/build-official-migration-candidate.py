@@ -14,7 +14,7 @@ names = [
  'official-worker-outcomes', 'official-batch-transaction',
  'official-request-cancellation', 'official-monitoring',
  'official-legacy-writer-fence', 'official-targeted-request',
- 'official-catalog-discovery', 'official-catalog-automation',
+ 'official-catalog-discovery', 'official-catalog-automation', 'official-source-configuration',
  'official-progress-view', 'official-finalization-trigger',
  'official-personal-best-concurrency', 'official-scheduler-auth',
 ]

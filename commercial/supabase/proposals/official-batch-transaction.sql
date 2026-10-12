@@ -184,6 +184,10 @@ BEGIN
  -- Subscribe only when catalog discovery actually resolves this athlete in a
  -- validated publication. Unrelated catalog meets are never user entries.
  IF j.cursor->>'catalog_discovery'='true' AND conflicts=0 THEN
+  INSERT INTO public.athlete_identifiers(athlete_id,source_id,external_id,status,verified,active,verified_at,metadata)
+  VALUES(a.id,j.source_id,external_id,'verified',true,true,now(),jsonb_build_object('verification_origin','official_document','job_id',j.id))
+  ON CONFLICT(athlete_id,source_id) DO UPDATE SET verified=true,status='verified',verified_at=now(),
+   metadata=public.athlete_identifiers.metadata||excluded.metadata WHERE public.athlete_identifiers.external_id=excluded.external_id;
   INSERT INTO public.official_meet_subscriptions(athlete_id,source_id,meet_external_id,official_url,requested_by)
   VALUES(a.id,j.source_id,metadata->>'externalMeetId',metadata->>'officialUrl',rr.requested_by)
   ON CONFLICT(athlete_id,source_id,meet_external_id) DO NOTHING;

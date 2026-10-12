@@ -9,9 +9,8 @@ const {chromium}=require('playwright');const fs=require('node:fs');const assert=
   await page.getByRole('button',{name:'Entrar',exact:true}).click();await page.getByRole('heading',{name:'Visão Geral'}).waitFor({timeout:30000});
   await page.getByRole('button',{name:'Abrir menu'}).click();await page.locator('aside.sidebar nav button').filter({hasText:'Resultados'}).click();
   if(process.argv[2]==='request'){
-   const response=page.waitForResponse(r=>r.url().endsWith('/rest/v1/rpc/request_official_catalog_import'));
-   await page.getByRole('button',{name:'Atualizar resultados'}).click();assert.equal((await response).status(),200);
-   console.log('PASS native browser login and catalog request, no API mocks');
+   await page.getByRole('button',{name:'Cancelar busca'}).waitFor({timeout:30000});
+   console.log('PASS native browser login and automatic config enrollment, no search click or API mocks');
   }else{
    const proof=JSON.parse(fs.readFileSync('/tmp/viniswim-native-proof.json','utf8'));
    await page.getByText(proof.rows.length+' resultados oficiais registrados',{exact:true}).waitFor({timeout:30000});
