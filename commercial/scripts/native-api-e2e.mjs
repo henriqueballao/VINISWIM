@@ -26,8 +26,6 @@ if(process.argv[2]==='seed'){
  const registration=text.match(/^\s*\d+\.\s+\d+\/\d+\s+.+?\s+(\d{5,7})\s+20\d{2}\s+/m)?.[1];
  assert.ok(registration);assert.ok(!['422692','399680','393259'].includes(registration));
  const sourceId=randomUUID();await checked(admin.from('sources').insert({id:sourceId,code:'swimsystem',name:'SwimSystem',source_type:'official_results',official:true,active:true}));
- const user=createClient(api,anon,options);await checked(user.auth.signInWithPassword({email:a.email,password:a.password}));
- const configured=await checked(user.rpc('save_official_athlete_source_config',{p_athlete_id:a.athleteId,p_url:'https://www.swimsystem.app',p_external_id:registration,p_external_name:'Public registration selected from official original',p_display_name:'SwimSystem'}));assert.equal(configured.ok,true);
  const identifiers=await checked(admin.from('athlete_identifiers').select('*').eq('athlete_id',a.athleteId));assert.equal(identifiers.length,0,'Typed registration must not be marked officially verified');
  const strokes={Livre:'freestyle',Costas:'backstroke',Peito:'breaststroke',Borboleta:'butterfly',Medley:'medley'};
  await checked(admin.from('events').insert(Object.entries(strokes).flatMap(([label,stroke])=>[25,50,100,200,400,800,1500].map(distance=>({distance_m:distance,stroke,label:distance+' '+label,active:true})))));
@@ -36,6 +34,7 @@ if(process.argv[2]==='seed'){
 }else if(process.argv[2]==='import'){
  const state=JSON.parse(await fs.readFile(statePath,'utf8'));
  const user=createClient(api,anon,options);await checked(user.auth.signInWithPassword({email:state.a.email,password:state.a.password}));
+ const beforeVerification=await checked(admin.from('athlete_identifiers').select('*').eq('athlete_id',state.a.athleteId));assert.equal(beforeVerification.length,0,'Browser source registration must not self-verify identity');
  const rootJobs=await checked(admin.from('import_v2_jobs').select('*').eq('worker_version','official-v3').eq('status','pending').order('created_at'));
  const root=rootJobs.find(j=>j.cursor.scope==='meet_catalog');assert.ok(root,'UI must create the catalog request through native Auth');
  await checked(admin.from('import_v2_jobs').update({priority:-100}).eq('id',root.id));
@@ -80,7 +79,7 @@ if(process.argv[2]==='seed'){
  const rotation=spawnSync('psql',[process.env.DB_URL,'-v','ON_ERROR_STOP=1'],{input:"SELECT vault.update_secret(id, '"+rotated+"') FROM vault.secrets WHERE name='viniswim_official_import_worker_token';",encoding:'utf8'});assert.equal(rotation.status,0,'Local Vault rotation must succeed');
  const revoked=await fetch(endpoint,{method:'POST',headers:{authorization:'Bearer '+token},body:'{}'});assert.equal(revoked.status,401,'Warm Deno isolate must reject revoked token');
  const refreshed=await fetch(endpoint,{method:'POST',headers:{authorization:'Bearer '+rotated},body:'{}'});assert.equal(refreshed.status,200);assert.equal((await refreshed.json()).outcome,'idle');
- await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify({mode:'native-supabase-edge-auth-rest-live-source',actualDenoEntrypoint:true,supabaseCliEdgeRuntime:true,warmVaultRotationVerified:true,productionWrites:0,registration:state.registration,discovery,first,second,rows,sources,segregation:true}));
+ await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify({mode:'native-supabase-edge-auth-rest-live-source',actualDenoEntrypoint:true,supabaseCliEdgeRuntime:true,browserConfiguredSource:true,warmVaultRotationVerified:true,productionWrites:0,registration:state.registration,discovery,first,second,rows,sources,segregation:true}));
  console.log(JSON.stringify({mode:'native-supabase-edge-auth-rest-live-source',actualDenoEntrypoint:true,supabaseCliEdgeRuntime:true,productionWrites:0,registration:state.registration,inserted:first.inserted,reimported:second.inserted,segregation:true}));
 }else if(process.argv[2]==='verify-restart'){
  const state=JSON.parse(await fs.readFile(statePath,'utf8')),proof=JSON.parse(await fs.readFile('/tmp/viniswim-native-proof.json','utf8'));
