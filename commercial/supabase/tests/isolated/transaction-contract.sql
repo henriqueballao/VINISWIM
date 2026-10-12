@@ -14,6 +14,7 @@ GRANT USAGE ON SCHEMA auth TO authenticated;
 \ir ../../proposals/official-worker-leases.sql
 \ir ../../proposals/official-worker-context.sql
 \ir ../../proposals/official-worker-outcomes.sql
+\ir ../../proposals/official-catalog-discovery.sql
 \ir ../../proposals/official-batch-transaction.sql
 CREATE TABLE monitor_jobs(request_id uuid,status text,locked_at timestamptz,next_run_at timestamptz,updated_at timestamptz,last_error text);
 CREATE TABLE historical_archive_jobs(request_id uuid,status text,heartbeat_at timestamptz,finished_at timestamptz,updated_at timestamptz,started_at timestamptz,last_error text);
@@ -21,6 +22,7 @@ CREATE TABLE historical_archive_jobs(request_id uuid,status text,heartbeat_at ti
 \ir ../../proposals/official-monitoring.sql
 \ir ../../proposals/official-legacy-writer-fence.sql
 \ir ../../proposals/official-targeted-request.sql
+\ir ../../proposals/official-catalog-automation.sql
 \ir ../../proposals/official-progress-view.sql
 \ir published-triggers.sql
 GRANT USAGE ON SCHEMA public,extensions TO service_role;
@@ -396,4 +398,35 @@ DO $$ BEGIN
 END $$;
 RESET ROLE;
 DO $$ BEGIN IF EXISTS(SELECT 1 FROM meets WHERE name='ATOMIC ROLLBACK SYNTHETIC') THEN RAISE EXCEPTION 'FAILED_STORAGE_LEFT_ORPHAN_MEET'; END IF; END $$;
+ROLLBACK;
+
+-- SYNTHETIC generic discovery. Arbitrary federative identifier, two tenants.
+BEGIN;
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-4000-8000-000000000031';
+SELECT request_official_catalog_import('00000000-0000-4000-8000-000000000011');
+DO $$ DECLARE first jsonb;second jsonb;BEGIN
+ first=request_official_catalog_import('00000000-0000-4000-8000-000000000011');
+ second=request_official_catalog_import('00000000-0000-4000-8000-000000000011');
+ IF first->>'request_id' IS DISTINCT FROM second->>'request_id' OR second->>'reused'<>'true' THEN RAISE EXCEPTION 'DUPLICATED_ACTIVE_CATALOG_REQUEST'; END IF;
+ BEGIN PERFORM request_official_catalog_import('00000000-0000-4000-8000-000000000012');RAISE EXCEPTION 'CATALOG_TENANT_BYPASS';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'ATHLETE_ACCESS_DENIED' THEN RAISE; END IF; END;
+END $$;
+RESET ROLE;
+DO $$ DECLARE j import_v2_jobs;ctx jsonb;payload jsonb;outcome jsonb;raw bytea;BEGIN
+ UPDATE import_v2_jobs SET priority=-1 WHERE cursor->>'scope'='meet_catalog';
+ SELECT * INTO j FROM claim_official_import_jobs(1);
+ ctx=load_official_import_context(j.id,j.lease_token);
+ IF ctx->>'scope'<>'meet_catalog' OR ctx->'identity'->>'externalId'<>'700001' THEN RAISE EXCEPTION 'CATALOG_CONTEXT_WRONG_IDENTITY'; END IF;
+ raw=convert_to('<a href="/meets/sw/aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa">SYNTHETIC</a><a href="/meets?page=2">Próxima</a>','UTF8');
+ payload=jsonb_build_object('url','https://www.swimsystem.app/meets','rawBase64',encode(raw,'base64'),'rawHash',encode(extensions.digest(raw,'sha256'),'hex'),'retrievedAt',now(),
+ 'meetUrls',jsonb_build_array('https://www.swimsystem.app/meets/sw/aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','https://www.swimsystem.app/meets/sw/aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa'),'pageUrls',jsonb_build_array('https://www.swimsystem.app/meets?page=2'));
+ outcome=persist_official_catalog(j.id,j.lease_token,payload);
+ IF outcome->>'enqueued'<>'2' OR outcome->>'resultsInserted'<>'0' THEN RAISE EXCEPTION 'CATALOG_CHILD_DEDUP_FAILED'; END IF;
+ IF (SELECT terminal_status FROM refresh_requests WHERE id=j.request_id) IS NOT NULL OR (SELECT job_count FROM refresh_requests WHERE id=j.request_id)<>3 THEN RAISE EXCEPTION 'CATALOG_PREMATURE_FINALIZATION'; END IF;
+ outcome=persist_official_catalog(j.id,j.lease_token,payload);
+ IF outcome->>'receiptReplay'<>'true' OR (SELECT count(*) FROM import_v2_jobs WHERE request_id=j.request_id)<>3 THEN RAISE EXCEPTION 'CATALOG_RECEIPT_NOT_IDEMPOTENT'; END IF;
+ BEGIN PERFORM persist_official_catalog(j.id,j.lease_token,jsonb_set(payload,'{rawHash}','"changed"'));RAISE EXCEPTION 'CATALOG_CHANGED_REPLAY_ACCEPTED';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'RECEIPT_PAYLOAD_MISMATCH' THEN RAISE; END IF; END;
+END $$;
 ROLLBACK;

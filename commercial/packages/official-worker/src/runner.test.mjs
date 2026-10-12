@@ -52,3 +52,17 @@ test('uncertain response replay is bounded and then uses backoff',async()=>{
  const result=await commitScenario(async()=>{throw new TypeError('fetch failed');});
  assert.equal(result.payloads.length,2);assert.equal(result.answer.status,'pending');assert.equal(result.answer.failureCode,'database_error');assert.equal(result.calls.at(-1).args.p_retryable,true);
 });
+
+test('generic catalog job expands source links without PDF extraction or result writes',async()=>{
+ const calls=[],payloads=[];let extracts=0;
+ const catalogContext={athlete:{id,account_id:id},identity:{externalId:'987654'},scope:'meet_catalog',catalogUrl:'https://www.swimsystem.app/meets'};
+ const html=`<a href="/meets/sw/${id}">SYNTHETIC</a>`;
+ const result=await processClaimedOfficialJob({job,extractPdf:async()=>{extracts++;},fetchImpl:async()=>new Response(html,{headers:{'content-type':'text/html'}}),rpc:async(name,args)=>{
+  calls.push(name);if(name==='load_official_import_context')return {data:catalogContext};
+  if(name==='persist_official_catalog'){payloads.push(args.p_catalog);if(payloads.length===1)throw new TypeError('fetch failed');return {data:{outcome:'catalog_discovered',enqueued:1,resultsInserted:0,receiptReplay:true}};}
+  throw Error('Unexpected catalog RPC '+name);
+ }});
+ assert.equal(result.status,'catalog_discovered');assert.equal(extracts,0);assert.equal(result.resultsInserted,0);
+ assert.deepEqual(payloads[0],payloads[1]);assert.equal(payloads[0].meetUrls.length,1);
+ assert.equal(calls.includes('persist_official_meet_batch'),false);
+});

@@ -17,6 +17,10 @@ BEGIN
   UNION ALL SELECT external_id FROM public.athlete_source_configs WHERE athlete_id=a.id AND source_id=j.source_id AND active
  ) identities WHERE external_id IS NOT NULL AND trim(external_id)<>'';
  IF cardinality(ids) IS DISTINCT FROM 1 OR ids[1] !~ '^[0-9]+$' THEN RAISE EXCEPTION 'SOURCE_IDENTITY_MISSING_OR_AMBIGUOUS'; END IF;
+ IF j.job_type='historical' AND j.cursor->>'scope'='meet_catalog' THEN
+  IF j.cursor->>'catalog_url' IS NULL OR j.cursor->>'catalog_url' !~ '^https://www[.]swimsystem[.]app/meets([?]page=[1-9][0-9]*)?$' THEN RAISE EXCEPTION 'UNSUPPORTED_JOB_TYPE'; END IF;
+  RETURN jsonb_build_object('athlete',jsonb_build_object('id',a.id,'account_id',a.account_id),'identity',jsonb_build_object('externalId',ids[1]),'scope','meet_catalog','catalogUrl',j.cursor->>'catalog_url');
+ END IF;
  IF j.job_type<>'current_meet' OR j.cursor->>'scope' IS DISTINCT FROM 'targeted_meet'
   OR j.cursor->>'official_url' IS DISTINCT FROM 'https://www.swimsystem.app/meets/sw/'||(j.cursor->>'external_meet_id') THEN RAISE EXCEPTION 'UNSUPPORTED_JOB_TYPE'; END IF;
  RETURN jsonb_build_object('athlete',jsonb_build_object('id',a.id,'account_id',a.account_id),'identity',jsonb_build_object('externalId',ids[1]),'officialUrl',j.cursor->>'official_url');

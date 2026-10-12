@@ -179,6 +179,13 @@ BEGIN
   records_found=jsonb_array_length(p_batch->'results')+jsonb_array_length(p_batch->'entries'),records_inserted=inserted,records_duplicated=duplicated,
   failure_code=CASE WHEN outcome='official_results_persisted' THEN NULL ELSE outcome END,last_error=CASE WHEN outcome='official_results_persisted' THEN NULL ELSE outcome END,
   locked_at=NULL,lease_token=NULL,lease_expires_at=NULL,next_run_at=NULL,updated_at=now() WHERE id=j.id;
+ -- Subscribe only when catalog discovery actually resolves this athlete in a
+ -- validated publication. Unrelated catalog meets are never user entries.
+ IF j.cursor->>'catalog_discovery'='true' AND conflicts=0 THEN
+  INSERT INTO public.official_meet_subscriptions(athlete_id,source_id,meet_external_id,official_url,requested_by)
+  VALUES(a.id,j.source_id,metadata->>'externalMeetId',metadata->>'officialUrl',rr.requested_by)
+  ON CONFLICT(athlete_id,source_id,meet_external_id) DO NOTHING;
+ END IF;
  UPDATE public.official_meet_subscriptions SET
   last_checked_at=now(),last_publication_hash=encode(extensions.digest(convert_to((SELECT jsonb_agg(jsonb_build_array(v->>'url',v->>'rawHash') ORDER BY v->>'url') FROM jsonb_array_elements(p_batch->'documents') v)::text,'UTF8'),'sha256'),'hex'),
   last_outcome=outcome,last_error=CASE WHEN conflicts>0 THEN outcome ELSE NULL END,

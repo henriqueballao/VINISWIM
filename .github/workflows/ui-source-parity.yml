@@ -43,7 +43,7 @@ jobs:
             'old menu items removed':"['meets','Campeonatos'" not in s and "['expectations','Expectativas'" not in s,
             'unified dashboard components':"{page==='dashboard'&&<><Dashboard" in s and '<MeetsPage meets={meets}' in s and '<Expectations results={results}' in s,
             'old route renders removed':"{page==='meets'&&" not in s and "{page==='expectations'&&" not in s,
-            'V2 retained':'request_result_refresh_v2' in s,
+            'official discovery request':'request_official_catalog_import' in s,\n            'no legacy refresh calls':'request_result_refresh_v2' not in s,
             'source meets retained':'function MeetsPage(' in s,
             'source expectations retained':'function Expectations(' in s,
             'manual result retention':"origin==='manual'" in s,

@@ -1,4 +1,6 @@
 import {authorizeWorkerRequest} from './authorization.mjs';
+import {Buffer} from 'node:buffer';
+import {discoverOfficialCatalog} from './catalog.mjs';
 import {discoverOfficialMeet} from './discovery.mjs';
 import {captureOfficialDocument,SourceAccessError} from '../../import-v2/src/official-document.mjs';
 import {buildOfficialBatch,commitOfficialBatch} from './batch.mjs';
@@ -10,6 +12,16 @@ export async function processClaimedOfficialJob({job,rpc,extractPdf,fetchImpl=fe
  const context=()=>checkedRpc(rpc,'load_official_import_context',{p_job_id:job.id,p_lease_token:job.lease_token});
  try{
   const authorized=await context();
+  if(authorized.scope==='meet_catalog'){
+   const document=await captureOfficialDocument({url:authorized.catalogUrl,allowedHosts:OFFICIAL_HOSTS,fetchImpl,now,maxBytes:4*1024*1024});
+   const catalog=discoverOfficialCatalog(document);
+   const payload={...catalog,rawBase64:Buffer.from(document.bytes).toString('base64')};
+   await context();
+   const commit=()=>checkedRpc(rpc,'persist_official_catalog',{p_job_id:job.id,p_lease_token:job.lease_token,p_catalog:payload});
+   let outcome;try{outcome=await commit();}catch(error){if(!uncertainCommitResponse(error))throw error;outcome=await commit();}
+   if(outcome.outcome!=='catalog_discovered')throw new OfficialRpcError('persist_official_catalog',{code:'INVALID_RPC_RESPONSE',message:'Missing catalog outcome'});
+   return {jobId:job.id,requestId:job.request_id,status:'catalog_discovered',...outcome};
+  }
   const page=await captureOfficialDocument({url:authorized.officialUrl,allowedHosts:OFFICIAL_HOSTS,fetchImpl,now,maxBytes:4*1024*1024});
   const discovered=discoverOfficialMeet(page);
   if(!discovered.documents.length)throw new SourceAccessError('No supported official publication is listed yet',{parserMatched:false});

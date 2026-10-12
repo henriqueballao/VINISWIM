@@ -18,6 +18,7 @@ DECLARE token text;monitor_outcome jsonb;http_request bigint;
 BEGIN
  token=public.read_official_worker_token();
  monitor_outcome=public.enqueue_official_subscribed_meets(16);
+ monitor_outcome=monitor_outcome||jsonb_build_object('catalog',public.enqueue_official_catalog_scans(8));
  SELECT net.http_post(
   url:='https://cdtvhagbgiwnjkgninqn.supabase.co/functions/v1/official-import-runner',
   body:='{}'::jsonb,

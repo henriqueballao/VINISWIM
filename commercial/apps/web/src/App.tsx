@@ -353,7 +353,9 @@ export default function App(){
   const missing=selected.filter((cfg:any)=>(!String(cfg.external_id||'').trim()||!String(cfg.external_name||'').trim()))
   const sourceCodes=selected.map((cfg:any)=>cfg.sources?.code).filter(Boolean)
   if(!sourceCodes.length){setRefreshMsg('Nenhuma fonte ativa selecionada para varredura.');return}
-  const {error}=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athleteId,p_source_codes:sourceCodes})
+  if(sourceCodes.some((code:string)=>code!=='swimsystem')){setRefreshMsg('A nova importação automática está disponível para o SwimSystem. As outras fontes aguardam validação.');return}
+  if(missing.length){setRefreshMsg('Confirme nome e registro federativo antes de iniciar a busca.');return}
+  const {error}=await supabase.rpc('request_official_catalog_import',{p_athlete_id:athleteId})
   if(error){setRefreshMsg('Falha ao solicitar atualização: '+error.message);return}
   if(missing.length)setRefreshMsg('Varredura solicitada também às fontes sem registro confirmado: '+missing.map((cfg:any)=>cfg.display_name||'fonte').join(', ')+'. A execução de cada fonte informará se está preparada ou se precisa de correção no importador.')
   await loadAthlete()
@@ -424,7 +426,7 @@ function AthleteOfficialDiscovery({athlete,sourceConfigs,onLinked,trigger}:{athl
    })
    if(error)throw error
    if(!data?.ok)throw new Error(data?.message||'Falha ao vincular fonte')
-   const request=await supabase.rpc('request_result_refresh_v2',{p_athlete_id:athlete.id})
+   const request=await supabase.rpc('request_official_catalog_import',{p_athlete_id:athlete.id})
    if(request.error)setNotice('Identificação vinculada, mas a busca não iniciou: '+request.error.message)
    else setNotice('Identificação confirmada por documentos oficiais. Busca automática iniciada no SwimSystem; confira o andamento e os resultados nesta tela.')
    setCandidates(null)

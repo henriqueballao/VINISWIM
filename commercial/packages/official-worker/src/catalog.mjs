@@ -7,6 +7,7 @@ export function canonicalCatalogUrl(value){
  if(url.protocol!=='https:'||url.hostname!=='www.swimsystem.app'||url.port||url.username||url.password||url.hash||url.pathname!=='/meets')throw new SourceAccessError('Unsupported official catalog URL',{formatUnrecognized:true});
  for(const [key,value] of url.searchParams)if(key!=='page'||!/^\d+$/.test(value)||Number(value)<1||!Number.isSafeInteger(Number(value)))throw new SourceAccessError('Unsupported catalog pagination',{formatUnrecognized:true});
  if([...url.searchParams.keys()].length>1)throw new SourceAccessError('Ambiguous catalog pagination',{formatUnrecognized:true});
+ if(url.searchParams.has('page'))url.searchParams.set('page',String(Number(url.searchParams.get('page'))));
  return url.href;
 }
 export function discoverOfficialCatalog(document){
