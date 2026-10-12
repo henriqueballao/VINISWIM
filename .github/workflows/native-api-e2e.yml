@@ -71,7 +71,13 @@ jobs:
           export SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
           export OFFICIAL_IMPORT_WORKER_TOKEN="$(openssl rand -hex 32)"
           echo "::add-mask::$OFFICIAL_IMPORT_WORKER_TOKEN"
-          deno run --frozen --config supabase/functions/official-import-runner/deno.json --allow-net --allow-env --allow-read --allow-write --allow-sys supabase/functions/official-import-runner/index.ts > /tmp/native-deno.log 2>&1 &
+          python3 - <<'PY'
+          import os,subprocess
+          token=os.environ['OFFICIAL_IMPORT_WORKER_TOKEN']
+          assert len(token)==64 and all(c in '0123456789abcdef' for c in token)
+          subprocess.run(['psql',os.environ['DB_URL'],'-v','ON_ERROR_STOP=1'],input="SELECT vault.create_secret('"+token+"','viniswim_official_import_worker_token');",text=True,check=True,stdout=subprocess.DEVNULL)
+          PY
+          env -u OFFICIAL_IMPORT_WORKER_TOKEN deno run --frozen --config supabase/functions/official-import-runner/deno.json --allow-net --allow-env --allow-read --allow-write --allow-sys supabase/functions/official-import-runner/index.ts > /tmp/native-deno.log 2>&1 &
           deno_pid=$!
           trap 'kill "$preview_pid" "$deno_pid" 2>/dev/null || true' EXIT
           for i in $(seq 1 40); do

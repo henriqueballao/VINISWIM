@@ -1,7 +1,8 @@
 // Local Supabase Auth/PostgREST + real worker/source; NEVER production.
 import {createClient} from '@supabase/supabase-js';
-import {randomUUID,createHash} from 'node:crypto';import fs from 'node:fs/promises';
+import {randomUUID,randomBytes,createHash} from 'node:crypto';import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
 const api=process.env.API_URL,anon=process.env.ANON_KEY,key=process.env.SERVICE_ROLE_KEY;
 if(api!=='http://127.0.0.1:54321'||!anon||!key)throw Error('Native E2E requires isolated loopback Supabase');
 const options={auth:{persistSession:false,autoRefreshToken:false}};
@@ -46,6 +47,7 @@ if(process.argv[2]==='seed'){
   assert.equal(payload.outcomes.length,1);assert.equal(payload.outcomes[0].jobId,expectedId);return payload.outcomes[0];
  };
  // Real production entrypoint over HTTP; neither Node handler nor mocked RPC.
+ const vaultAccess=await user.rpc('read_official_worker_token');assert.ok(vaultAccess.error,'Browser cannot read service secret');
  const denied=await fetch(endpoint,{method:'POST',headers:{authorization:'Bearer '+token.slice(0,-1)+'z'},body:'{}'});assert.equal(denied.status,401);
  const get=await fetch(endpoint);assert.equal(get.status,405);
  const discovery=await invoke(root.id);
@@ -73,7 +75,12 @@ if(process.argv[2]==='seed'){
   manifest.push({file,url:document.source_url,rawHash:document.raw_hash,capturedAt:document.captured_at,bytes:bytes.length});
  }
  await fs.writeFile(originalRoot+'/manifest.json',JSON.stringify({mode:'native-local-live-original-captures',documents:manifest}));
- await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify({mode:'native-deno-http-auth-rest-live-source',actualDenoEntrypoint:true,productionWrites:0,registration:state.registration,discovery,first,second,rows,sources,segregation:true}));
+ const db=new URL(process.env.DB_URL);assert.ok(['127.0.0.1','localhost'].includes(db.hostname)&&db.port==='54322');
+ const rotated=randomBytes(32).toString('hex');
+ const rotation=spawnSync('psql',[process.env.DB_URL,'-v','ON_ERROR_STOP=1'],{input:"SELECT vault.update_secret(id, '"+rotated+"') FROM vault.secrets WHERE name='viniswim_official_import_worker_token';",encoding:'utf8'});assert.equal(rotation.status,0,'Local Vault rotation must succeed');
+ const revoked=await fetch(endpoint,{method:'POST',headers:{authorization:'Bearer '+token},body:'{}'});assert.equal(revoked.status,401,'Warm Deno isolate must reject revoked token');
+ const refreshed=await fetch(endpoint,{method:'POST',headers:{authorization:'Bearer '+rotated},body:'{}'});assert.equal(refreshed.status,200);assert.equal((await refreshed.json()).outcome,'idle');
+ await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify({mode:'native-deno-http-auth-rest-live-source',actualDenoEntrypoint:true,warmVaultRotationVerified:true,productionWrites:0,registration:state.registration,discovery,first,second,rows,sources,segregation:true}));
  console.log(JSON.stringify({mode:'native-deno-http-auth-rest-live-source',actualDenoEntrypoint:true,productionWrites:0,registration:state.registration,inserted:first.inserted,reimported:second.inserted,segregation:true}));
 }else if(process.argv[2]==='verify-restart'){
  const state=JSON.parse(await fs.readFile(statePath,'utf8')),proof=JSON.parse(await fs.readFile('/tmp/viniswim-native-proof.json','utf8'));
