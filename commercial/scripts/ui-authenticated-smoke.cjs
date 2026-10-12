@@ -24,7 +24,8 @@ const tables={
    const context=await browser.newContext({viewport:{width:size.width,height:size.height},serviceWorkers:'block'});
    const page=await context.newPage();
    const errors=[],writes=[];
-   let accountReadFailure=false,manualMock=false,manualFailure=true;
+   let accountReadFailure=false,manualMock=false,manualFailure=true,sourceConfigured=false;
+   const catalogCalls=[];
    const manualCalls=[],manualRows=[];
    page.on('pageerror',e=>errors.push(e.message));
    await page.route('**/*',async route=>{
@@ -38,7 +39,7 @@ const tables={
     if(path.startsWith('/rest/v1/')&&req.method()==='GET'){
       const table=decodeURIComponent(path.split('/').pop());
       if(table==='account_members'&&accountReadFailure)return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'SYNTHETIC unavailable account read'})});
-      const data=table==='v_meet_entry_timeline'?[...tables[table],...manualRows]:table==='meets'?[...tables.meets,...manualRows.map(row=>row.meets)]:Object.hasOwn(tables,table)?tables[table]:[];
+      const data=table==='athlete_source_configs'&&sourceConfigured?tables[table].map(row=>({...row,external_id:'987654',external_name:'Nadador Sintético'})):table==='v_meet_entry_timeline'?[...tables[table],...manualRows]:table==='meets'?[...tables.meets,...manualRows.map(row=>row.meets)]:Object.hasOwn(tables,table)?tables[table]:[];
       return route.fulfill({status:200,contentType:'application/json',headers:{'content-range':'0-0/1'},body:JSON.stringify(data)});
     }
     // Supabase RPC transport is POST even for read-only operations.
@@ -47,6 +48,10 @@ const tables={
       const readOnly={'list_account_members':[],'list_account_invites':[],'account_limits':{},'is_platform_admin':false,'discover_athlete_source_candidates':{candidates:[{external_id:'000001',external_name:'Nadador Sintetico',birth_year:2015,evidence_count:3,evidence_url:'https://swimsystem.swimtimebrasil.com/11111/ResultList_1.pdf'}],source:'swimsystem'}};
       const name=path.split('/').pop();
       if(Object.hasOwn(readOnly,name))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(readOnly[name])});
+      if(name==='request_official_catalog_import'&&sourceConfigured){
+       catalogCalls.push(req.postDataJSON());
+       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({request_id:'99999999-9999-4999-8999-999999999993',status:'pending'})});
+      }
       if(name==='create_manual_meet_entry'&&manualMock){
        const payload=req.postDataJSON();manualCalls.push(payload);
        if(manualFailure)return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'SYNTHETIC manual RPC unavailable'})});
@@ -129,6 +134,16 @@ const tables={
    assert.deepEqual(writes,[],'Manual form must not issue direct table mutations');
    assert.deepEqual(errors,[],'Manual form must not throw JS errors');
    console.log('PASS synthetic manual plan RPC, validation, retry and label '+size.name);
+   sourceConfigured=true;
+   await page.reload();
+   await page.getByRole('heading',{name:'Visão Geral'}).waitFor();
+   await clickNav('Resultados');
+   const catalogResponse=page.waitForResponse(response=>response.url().endsWith('/rest/v1/rpc/request_official_catalog_import'));
+   await page.getByRole('button',{name:'Atualizar resultados'}).click();
+   await catalogResponse;
+   assert.deepEqual(catalogCalls,[{p_athlete_id:athleteId}],'Configured source must use the new catalog RPC with server-resolved identity');
+   assert.deepEqual(writes,[],'Configured discovery must never call a legacy writer');
+   console.log('PASS synthetic configured source uses catalog RPC '+size.name);
    console.log('PASS synthetic authenticated dashboard/navigation '+size.name);
    await context.close();
   }
