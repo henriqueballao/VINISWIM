@@ -64,6 +64,7 @@ BEGIN
    INSERT INTO public.refresh_requests(athlete_id,requested_by,source_codes,job_count) VALUES(subscription.athlete_id,subscription.requested_by,ARRAY['swimsystem'],1) RETURNING id INTO request;
    INSERT INTO public.import_v2_jobs(request_id,athlete_id,source_id,job_type,worker_version,cursor)
    VALUES(request,subscription.athlete_id,subscription.source_id,'historical','official-v3',jsonb_build_object('scope','meet_catalog','catalog_url','https://www.swimsystem.app/meets'));
+   INSERT INTO public.official_catalog_tasks VALUES(request,'https://www.swimsystem.app/meets',request);
    enqueued=enqueued+1;
   END IF;
   UPDATE public.official_catalog_subscriptions SET next_scan_at=now()+interval '1 day',updated_at=now() WHERE athlete_id=subscription.athlete_id AND source_id=subscription.source_id;

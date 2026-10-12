@@ -9,6 +9,14 @@ CREATE TABLE public.official_catalog_captures (
 ALTER TABLE public.official_catalog_captures ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.official_catalog_captures FROM PUBLIC,anon,authenticated;
 GRANT SELECT,INSERT ON public.official_catalog_captures TO service_role;
+CREATE TABLE public.official_catalog_tasks (
+ root_request_id uuid NOT NULL REFERENCES public.refresh_requests(id),target_url text NOT NULL,
+ request_id uuid NOT NULL UNIQUE REFERENCES public.refresh_requests(id),
+ PRIMARY KEY(root_request_id,target_url)
+);
+ALTER TABLE public.official_catalog_tasks ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.official_catalog_tasks FROM PUBLIC,anon,authenticated;
+GRANT SELECT,INSERT ON public.official_catalog_tasks TO service_role;
 CREATE UNIQUE INDEX official_job_request_scope_uidx ON public.import_v2_jobs
  (request_id,(cursor->>'scope'),(coalesce(cursor->>'official_url',cursor->>'catalog_url')))
  WHERE worker_version='official-v3';
@@ -41,6 +49,7 @@ BEGIN
  VALUES(p_athlete_id,auth.uid(),ARRAY['swimsystem'],1) RETURNING id INTO request;
  INSERT INTO public.import_v2_jobs(request_id,athlete_id,source_id,job_type,worker_version,cursor)
  VALUES(request,p_athlete_id,source,'historical','official-v3',jsonb_build_object('scope','meet_catalog','catalog_url','https://www.swimsystem.app/meets')) RETURNING id INTO job;
+ INSERT INTO public.official_catalog_tasks VALUES(request,'https://www.swimsystem.app/meets',request);
  RETURN jsonb_build_object('request_id',request,'job_id',job,'status','pending','reused',false);
 END $$;
 REVOKE ALL ON FUNCTION public.request_official_catalog_import(uuid) FROM PUBLIC,anon;
@@ -49,11 +58,12 @@ GRANT EXECUTE ON FUNCTION public.request_official_catalog_import(uuid) TO authen
 CREATE FUNCTION public.persist_official_catalog(p_job_id uuid,p_lease_token uuid,p_catalog jsonb) RETURNS jsonb
 LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,public,extensions AS $$
 DECLARE j public.import_v2_jobs;rr public.refresh_requests;receipt public.official_catalog_captures;
- raw bytea;payload_hash text;url text;child text;scope text;inserted integer:=0;n integer;answer jsonb;
+ raw bytea;payload_hash text;url text;child text;scope text;inserted integer:=0;answer jsonb;root uuid;child_request uuid;
 BEGIN
  SELECT * INTO j FROM public.import_v2_jobs WHERE id=p_job_id;
  IF NOT FOUND THEN RAISE EXCEPTION 'JOB_NOT_FOUND'; END IF;
- SELECT * INTO rr FROM public.refresh_requests WHERE id=j.request_id FOR UPDATE;
+ rr=public.lock_official_request(j.request_id);
+ root=coalesce(rr.catalog_root_request_id,rr.id);
  SELECT * INTO j FROM public.import_v2_jobs WHERE id=p_job_id FOR UPDATE;
  payload_hash=encode(extensions.digest(convert_to(p_catalog::text,'UTF8'),'sha256'),'hex');
  SELECT * INTO receipt FROM public.official_catalog_captures WHERE job_id=j.id AND lease_token=p_lease_token;
@@ -82,15 +92,19 @@ BEGIN
   IF (scope='targeted_meet' AND child !~ '^https://www[.]swimsystem[.]app/meets/sw/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$')
   OR (scope='meet_catalog' AND child !~ '^https://www[.]swimsystem[.]app/meets[?]page=[1-9][0-9]*$')
   THEN RAISE EXCEPTION 'INVALID_CATALOG_CAPTURE'; END IF;
+  IF EXISTS(SELECT 1 FROM public.official_catalog_tasks WHERE root_request_id=root AND target_url=child) THEN CONTINUE; END IF;
+  INSERT INTO public.refresh_requests(athlete_id,requested_by,source_codes,job_count,catalog_root_request_id)
+  VALUES(j.athlete_id,rr.requested_by,ARRAY['swimsystem'],1,root) RETURNING id INTO child_request;
+  INSERT INTO public.official_catalog_tasks VALUES(root,child,child_request);
   INSERT INTO public.import_v2_jobs(request_id,athlete_id,source_id,job_type,worker_version,priority,cursor)
-  VALUES(j.request_id,j.athlete_id,j.source_id,CASE WHEN scope='meet_catalog' THEN 'historical' ELSE 'current_meet' END,'official-v3',10,
+  VALUES(child_request,j.athlete_id,j.source_id,CASE WHEN scope='meet_catalog' THEN 'historical' ELSE 'current_meet' END,'official-v3',10,
    CASE WHEN scope='meet_catalog' THEN jsonb_build_object('scope',scope,'catalog_url',child)
    ELSE jsonb_build_object('scope',scope,'official_url',child,'external_meet_id',substring(child FROM '/meets/sw/([^/]+)$'),'catalog_discovery',true) END)
-  ON CONFLICT DO NOTHING;
-  GET DIAGNOSTICS n=ROW_COUNT;inserted=inserted+n;
+  ;
+  inserted=inserted+1;
  END LOOP;
  -- Children exist before parent completion/finalizer observes the request.
- UPDATE public.refresh_requests SET job_count=(SELECT count(*) FROM public.import_v2_jobs WHERE request_id=j.request_id),updated_at=now() WHERE id=j.request_id;
+ UPDATE public.refresh_requests SET job_count=(SELECT count(*) FROM public.import_v2_jobs WHERE request_id IN(SELECT id FROM public.refresh_requests WHERE id=root OR catalog_root_request_id=root)),updated_at=now() WHERE id=root;
  answer=jsonb_build_object('outcome','catalog_discovered','enqueued',inserted,'resultsInserted',0);
  INSERT INTO public.official_catalog_captures VALUES(j.id,p_lease_token,url,(p_catalog->>'retrievedAt')::timestamptz,p_catalog->>'rawHash',raw,payload_hash,answer);
  UPDATE public.import_v2_jobs SET status='completed',failure_code=NULL,last_error=NULL,locked_at=NULL,lease_token=NULL,lease_expires_at=NULL,

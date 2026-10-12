@@ -49,7 +49,7 @@ BEGIN
  -- lock before touching any job. No network operation occurs in this transaction.
  SELECT * INTO j FROM public.import_v2_jobs WHERE id=p_job_id;
  IF NOT FOUND THEN RAISE EXCEPTION 'JOB_NOT_FOUND'; END IF;
- SELECT * INTO rr FROM public.refresh_requests WHERE id=j.request_id FOR UPDATE;
+ rr=public.lock_official_request(j.request_id);
  SELECT * INTO j FROM public.import_v2_jobs WHERE id=p_job_id FOR UPDATE;
  payload_hash=encode(extensions.digest(convert_to(p_batch::text,'UTF8'),'sha256'),'hex');
  SELECT * INTO receipt FROM public.official_import_batches WHERE job_id=j.id AND lease_token=p_lease_token;

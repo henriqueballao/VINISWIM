@@ -8,7 +8,7 @@ BEGIN
  SELECT * INTO j FROM public.import_v2_jobs WHERE id=p_job_id;
  IF NOT FOUND OR j.worker_version<>'official-v3' OR j.status<>'running' OR j.lease_token IS DISTINCT FROM p_lease_token OR j.lease_expires_at IS NULL OR j.lease_expires_at<=now() THEN RAISE EXCEPTION 'STALE_WORKER_LEASE'; END IF;
  SELECT * INTO rr FROM public.refresh_requests WHERE id=j.request_id;
- IF NOT FOUND OR rr.cancel_requested_at IS NOT NULL OR rr.terminal_status IS NOT NULL THEN RAISE EXCEPTION 'REQUEST_CANCELLED_OR_TERMINAL'; END IF;
+ IF NOT FOUND OR rr.cancel_requested_at IS NOT NULL OR rr.terminal_status IS NOT NULL OR EXISTS(SELECT 1 FROM public.refresh_requests root WHERE root.id=rr.catalog_root_request_id AND (root.cancel_requested_at IS NOT NULL OR root.terminal_status IS NOT NULL)) THEN RAISE EXCEPTION 'REQUEST_CANCELLED_OR_TERMINAL'; END IF;
  SELECT * INTO a FROM public.athletes WHERE id=j.athlete_id;
  IF NOT FOUND OR rr.athlete_id IS DISTINCT FROM a.id OR NOT EXISTS(SELECT 1 FROM public.account_members WHERE account_id=a.account_id AND user_id=rr.requested_by AND status='active') THEN RAISE EXCEPTION 'REQUEST_ACCESS_REVOKED'; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.sources WHERE id=j.source_id AND code='swimsystem' AND active AND official) THEN RAISE EXCEPTION 'UNSUPPORTED_OFFICIAL_SOURCE'; END IF;

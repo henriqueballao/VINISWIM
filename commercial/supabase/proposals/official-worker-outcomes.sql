@@ -6,12 +6,14 @@ CREATE OR REPLACE FUNCTION public.finalize_official_import_request(p_request_id 
 RETURNS void LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,public AS $$
 DECLARE rr public.refresh_requests%ROWTYPE;total integer;active_count integer;failed_count integer;completed_count integer;
 BEGIN
- SELECT * INTO rr FROM public.refresh_requests WHERE id=p_request_id FOR UPDATE;
+ SELECT * INTO rr FROM public.refresh_requests WHERE id=p_request_id;
+ IF NOT FOUND THEN RETURN; END IF;
+ rr=public.lock_official_request(coalesce(rr.catalog_root_request_id,rr.id));
  IF NOT FOUND OR rr.terminal_status IS NOT NULL OR rr.cancel_requested_at IS NOT NULL THEN RETURN; END IF;
  -- Mixed legacy requests are handled by their existing finalizer until cutover.
  IF EXISTS(SELECT 1 FROM public.import_v2_jobs WHERE request_id=rr.id AND worker_version<>'official-v3') THEN RETURN; END IF;
  SELECT count(*),count(*) FILTER(WHERE status IN ('pending','running')),count(*) FILTER(WHERE status IN ('failed','blocked')),count(*) FILTER(WHERE status='completed')
- INTO total,active_count,failed_count,completed_count FROM public.import_v2_jobs WHERE request_id=rr.id;
+ INTO total,active_count,failed_count,completed_count FROM public.import_v2_jobs WHERE request_id IN(SELECT id FROM public.refresh_requests WHERE id=rr.id OR catalog_root_request_id=rr.id);
  IF total=0 OR total<>rr.job_count OR active_count>0 THEN RETURN; END IF;
  UPDATE public.refresh_requests SET terminal_status=CASE WHEN failed_count>0 THEN 'failed' WHEN completed_count=total THEN 'completed' ELSE 'cancelled' END,
   completed_job_count=completed_count,failed_job_count=failed_count,finalized_at=now(),updated_at=now() WHERE id=rr.id;
@@ -25,7 +27,7 @@ DECLARE j public.import_v2_jobs%ROWTYPE;rr public.refresh_requests%ROWTYPE;next_
 BEGIN
  SELECT * INTO j FROM public.import_v2_jobs WHERE id=p_job_id;
  IF NOT FOUND THEN RAISE EXCEPTION 'JOB_NOT_FOUND'; END IF;
- SELECT * INTO rr FROM public.refresh_requests WHERE id=j.request_id FOR UPDATE;
+ rr=public.lock_official_request(j.request_id);
  SELECT * INTO j FROM public.import_v2_jobs WHERE id=p_job_id FOR UPDATE;
  IF j.worker_version<>'official-v3' OR j.status<>'running' OR j.lease_token IS DISTINCT FROM p_lease_token OR j.lease_expires_at IS NULL OR j.lease_expires_at<=now() THEN RAISE EXCEPTION 'STALE_WORKER_LEASE'; END IF;
  IF rr.cancel_requested_at IS NOT NULL OR rr.terminal_status IS NOT NULL THEN RAISE EXCEPTION 'REQUEST_CANCELLED_OR_TERMINAL'; END IF;

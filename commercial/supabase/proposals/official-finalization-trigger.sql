@@ -13,6 +13,10 @@ declare
   v_failed int;
   v_completed int;
 begin
+  if TG_TABLE_NAME='import_v2_jobs' and to_jsonb(new)->>'worker_version'='official-v3' then
+    if new.status::text not in ('pending','running') then perform public.finalize_official_import_request(new.request_id); end if;
+    return new;
+  end if;
   v_request_id := coalesce(new.request_id, old.request_id);
   if v_request_id is null then return new; end if;
 

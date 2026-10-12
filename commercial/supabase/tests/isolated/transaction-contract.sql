@@ -425,7 +425,7 @@ DO $$ DECLARE j import_v2_jobs;ctx jsonb;payload jsonb;outcome jsonb;raw bytea;B
  IF outcome->>'enqueued'<>'2' OR outcome->>'resultsInserted'<>'0' THEN RAISE EXCEPTION 'CATALOG_CHILD_DEDUP_FAILED'; END IF;
  IF (SELECT terminal_status FROM refresh_requests WHERE id=j.request_id) IS NOT NULL OR (SELECT job_count FROM refresh_requests WHERE id=j.request_id)<>3 THEN RAISE EXCEPTION 'CATALOG_PREMATURE_FINALIZATION'; END IF;
  outcome=persist_official_catalog(j.id,j.lease_token,payload);
- IF outcome->>'receiptReplay'<>'true' OR (SELECT count(*) FROM import_v2_jobs WHERE request_id=j.request_id)<>3 THEN RAISE EXCEPTION 'CATALOG_RECEIPT_NOT_IDEMPOTENT'; END IF;
+ IF outcome->>'receiptReplay'<>'true' OR (SELECT count(*) FROM import_v2_jobs WHERE request_id IN(SELECT id FROM refresh_requests WHERE id=j.request_id OR catalog_root_request_id=j.request_id))<>3 THEN RAISE EXCEPTION 'CATALOG_RECEIPT_NOT_IDEMPOTENT'; END IF;
  BEGIN PERFORM persist_official_catalog(j.id,j.lease_token,jsonb_set(payload,'{rawHash}','"changed"'));RAISE EXCEPTION 'CATALOG_CHANGED_REPLAY_ACCEPTED';
  EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'RECEIPT_PAYLOAD_MISMATCH' THEN RAISE; END IF; END;
 END $$;
