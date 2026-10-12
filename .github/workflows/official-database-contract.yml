@@ -1,0 +1,55 @@
+name: Official database contract (isolated)
+on:
+  push:
+    branches: ['fix/official-import-audit-20261011']
+    paths: ['commercial/supabase/proposals/**', 'commercial/supabase/tests/isolated/**', '.github/workflows/official-database-contract.yml', 'scripts/test-isolated-concurrency.mjs', 'scripts/test-official-pipeline-isolated.mjs']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  database-contract:
+    strategy:
+      fail-fast: false
+      matrix:
+        contract: [event, lease, transaction]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: viniswim_isolated_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: SYNTHETIC-CI-ONLY
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reproduce published constraints and verify candidate repair
+        env:
+          PGPASSWORD: SYNTHETIC-CI-ONLY
+        run: psql -h localhost -U postgres -d viniswim_isolated_test -v ON_ERROR_STOP=1 -f commercial/supabase/tests/isolated/${{ matrix.contract }}-contract.sql
+      - name: Exercise concurrent ingestion and cancellation in separate database sessions
+        if: matrix.contract == 'transaction'
+        env:
+          PGPASSWORD: SYNTHETIC-CI-ONLY
+        run: node scripts/test-isolated-concurrency.mjs
+      - uses: actions/setup-node@v4
+        if: matrix.contract == 'transaction'
+        with:
+          node-version: '22'
+      - name: Install original-document test dependencies
+        if: matrix.contract == 'transaction'
+        working-directory: commercial
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install independent Poppler extractor
+        if: matrix.contract == 'transaction'
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Verify and unpack committed current/historical original publications
+        if: matrix.contract == 'transaction'
+        run: python3 scripts/unpack-official-fixture.py 20261011-1748 current-and-historical-originals
+      - name: Original publications through real isolated PostgreSQL transaction
+        if: matrix.contract == 'transaction'
+        env:
+          PGPASSWORD: SYNTHETIC-CI-ONLY
+        run: node scripts/test-official-pipeline-isolated.mjs current-and-historical-originals

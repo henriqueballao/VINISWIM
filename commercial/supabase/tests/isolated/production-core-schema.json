@@ -1,0 +1,1906 @@
+{
+  "mode": "read-only-production-catalog-no-row-data",
+  "projectId": "cdtvhagbgiwnjkgninqn",
+  "capturedOn": "2026-10-11",
+  "columns": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "account_members",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "name": "account_id",
+      "type": "uuid",
+      "table": "account_members",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "user_id",
+      "type": "uuid",
+      "table": "account_members",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "role",
+      "type": "member_role",
+      "table": "account_members",
+      "default": "'guardian'::member_role",
+      "nullable": "NO"
+    },
+    {
+      "name": "status",
+      "type": "member_status",
+      "table": "account_members",
+      "default": "'invited'::member_status",
+      "nullable": "NO"
+    },
+    {
+      "name": "invited_at",
+      "type": "timestamptz",
+      "table": "account_members",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "joined_at",
+      "type": "timestamptz",
+      "table": "account_members",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamptz",
+      "table": "account_members",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamptz",
+      "table": "account_members",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "athlete_identifiers",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "name": "athlete_id",
+      "type": "uuid",
+      "table": "athlete_identifiers",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "source_id",
+      "type": "uuid",
+      "table": "athlete_identifiers",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "external_id",
+      "type": "text",
+      "table": "athlete_identifiers",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "external_name",
+      "type": "text",
+      "table": "athlete_identifiers",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "status",
+      "type": "identifier_status",
+      "table": "athlete_identifiers",
+      "default": "'unverified'::identifier_status",
+      "nullable": "NO"
+    },
+    {
+      "name": "verified",
+      "type": "bool",
+      "table": "athlete_identifiers",
+      "default": "false",
+      "nullable": "NO"
+    },
+    {
+      "name": "verified_at",
+      "type": "timestamptz",
+      "table": "athlete_identifiers",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "active",
+      "type": "bool",
+      "table": "athlete_identifiers",
+      "default": "true",
+      "nullable": "NO"
+    },
+    {
+      "name": "metadata",
+      "type": "jsonb",
+      "table": "athlete_identifiers",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamptz",
+      "table": "athlete_identifiers",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamptz",
+      "table": "athlete_identifiers",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "athlete_source_configs",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "name": "athlete_id",
+      "type": "uuid",
+      "table": "athlete_source_configs",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "source_id",
+      "type": "uuid",
+      "table": "athlete_source_configs",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "display_name",
+      "type": "text",
+      "table": "athlete_source_configs",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "source_url",
+      "type": "text",
+      "table": "athlete_source_configs",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "external_id",
+      "type": "text",
+      "table": "athlete_source_configs",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "external_name",
+      "type": "text",
+      "table": "athlete_source_configs",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "active",
+      "type": "bool",
+      "table": "athlete_source_configs",
+      "default": "true",
+      "nullable": "NO"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamptz",
+      "table": "athlete_source_configs",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamptz",
+      "table": "athlete_source_configs",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "is_default",
+      "type": "bool",
+      "table": "athlete_source_configs",
+      "default": "false",
+      "nullable": "NO"
+    },
+    {
+      "name": "sort_order",
+      "type": "int4",
+      "table": "athlete_source_configs",
+      "default": "100",
+      "nullable": "NO"
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "athletes",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "name": "account_id",
+      "type": "uuid",
+      "table": "athletes",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "full_name",
+      "type": "text",
+      "table": "athletes",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "preferred_name",
+      "type": "text",
+      "table": "athletes",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "birth_date",
+      "type": "date",
+      "table": "athletes",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "gender",
+      "type": "gender_code",
+      "table": "athletes",
+      "default": "'unspecified'::gender_code",
+      "nullable": "NO"
+    },
+    {
+      "name": "club_name",
+      "type": "text",
+      "table": "athletes",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "status",
+      "type": "athlete_status",
+      "table": "athletes",
+      "default": "'draft'::athlete_status",
+      "nullable": "NO"
+    },
+    {
+      "name": "active",
+      "type": "bool",
+      "table": "athletes",
+      "default": "true",
+      "nullable": "NO"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamptz",
+      "table": "athletes",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamptz",
+      "table": "athletes",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "category",
+      "type": "text",
+      "table": "athletes",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "category_by_year",
+      "type": "jsonb",
+      "table": "athletes",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    {
+      "name": "photo_data_url",
+      "type": "text",
+      "table": "athletes",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "events",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "name": "distance_m",
+      "type": "int4",
+      "table": "events",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "stroke",
+      "type": "swim_stroke",
+      "table": "events",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "relay",
+      "type": "bool",
+      "table": "events",
+      "default": "false",
+      "nullable": "NO"
+    },
+    {
+      "name": "label",
+      "type": "text",
+      "table": "events",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "sort_order",
+      "type": "int4",
+      "table": "events",
+      "default": "0",
+      "nullable": "NO"
+    },
+    {
+      "name": "active",
+      "type": "bool",
+      "table": "events",
+      "default": "true",
+      "nullable": "NO"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamptz",
+      "table": "events",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "import_v2_jobs",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "name": "request_id",
+      "type": "uuid",
+      "table": "import_v2_jobs",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "athlete_id",
+      "type": "uuid",
+      "table": "import_v2_jobs",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "source_id",
+      "type": "uuid",
+      "table": "import_v2_jobs",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "job_type",
+      "type": "text",
+      "table": "import_v2_jobs",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "status",
+      "type": "text",
+      "table": "import_v2_jobs",
+      "default": "'pending'::text",
+      "nullable": "NO"
+    },
+    {
+      "name": "priority",
+      "type": "int4",
+      "table": "import_v2_jobs",
+      "default": "10",
+      "nullable": "NO"
+    },
+    {
+      "name": "cursor",
+      "type": "jsonb",
+      "table": "import_v2_jobs",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    {
+      "name": "failure_code",
+      "type": "text",
+      "table": "import_v2_jobs",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "last_error",
+      "type": "text",
+      "table": "import_v2_jobs",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "attempts",
+      "type": "int4",
+      "table": "import_v2_jobs",
+      "default": "0",
+      "nullable": "NO"
+    },
+    {
+      "name": "records_found",
+      "type": "int4",
+      "table": "import_v2_jobs",
+      "default": "0",
+      "nullable": "NO"
+    },
+    {
+      "name": "records_inserted",
+      "type": "int4",
+      "table": "import_v2_jobs",
+      "default": "0",
+      "nullable": "NO"
+    },
+    {
+      "name": "records_duplicated",
+      "type": "int4",
+      "table": "import_v2_jobs",
+      "default": "0",
+      "nullable": "NO"
+    },
+    {
+      "name": "locked_at",
+      "type": "timestamptz",
+      "table": "import_v2_jobs",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "last_run_at",
+      "type": "timestamptz",
+      "table": "import_v2_jobs",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "next_run_at",
+      "type": "timestamptz",
+      "table": "import_v2_jobs",
+      "default": "now()",
+      "nullable": "YES"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamptz",
+      "table": "import_v2_jobs",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamptz",
+      "table": "import_v2_jobs",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "meet_entries",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "name": "meet_id",
+      "type": "uuid",
+      "table": "meet_entries",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "athlete_id",
+      "type": "uuid",
+      "table": "meet_entries",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "event_id",
+      "type": "uuid",
+      "table": "meet_entries",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "seed_time_ms",
+      "type": "int4",
+      "table": "meet_entries",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "heat",
+      "type": "int4",
+      "table": "meet_entries",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "lane",
+      "type": "int4",
+      "table": "meet_entries",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "entry_status",
+      "type": "entry_status",
+      "table": "meet_entries",
+      "default": "'entered'::entry_status",
+      "nullable": "NO"
+    },
+    {
+      "name": "source_id",
+      "type": "uuid",
+      "table": "meet_entries",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "external_id",
+      "type": "text",
+      "table": "meet_entries",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamptz",
+      "table": "meet_entries",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamptz",
+      "table": "meet_entries",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "scheduled_at",
+      "type": "timestamptz",
+      "table": "meet_entries",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "meets",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "name": "source_id",
+      "type": "uuid",
+      "table": "meets",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "external_id",
+      "type": "text",
+      "table": "meets",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "table": "meets",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "start_date",
+      "type": "date",
+      "table": "meets",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "end_date",
+      "type": "date",
+      "table": "meets",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "venue",
+      "type": "text",
+      "table": "meets",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "city",
+      "type": "text",
+      "table": "meets",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "state",
+      "type": "text",
+      "table": "meets",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "country",
+      "type": "text",
+      "table": "meets",
+      "default": "'BR'::text",
+      "nullable": "NO"
+    },
+    {
+      "name": "course",
+      "type": "swim_course",
+      "table": "meets",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "official_url",
+      "type": "text",
+      "table": "meets",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "status",
+      "type": "meet_status",
+      "table": "meets",
+      "default": "'scheduled'::meet_status",
+      "nullable": "NO"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamptz",
+      "table": "meets",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamptz",
+      "table": "meets",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "result_sources",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "name": "result_id",
+      "type": "uuid",
+      "table": "result_sources",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "source_id",
+      "type": "uuid",
+      "table": "result_sources",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "source_url",
+      "type": "text",
+      "table": "result_sources",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "external_id",
+      "type": "text",
+      "table": "result_sources",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "retrieved_at",
+      "type": "timestamptz",
+      "table": "result_sources",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "raw_hash",
+      "type": "text",
+      "table": "result_sources",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "monitor_run_id",
+      "type": "uuid",
+      "table": "result_sources",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "metadata",
+      "type": "jsonb",
+      "table": "result_sources",
+      "default": "'{}'::jsonb",
+      "nullable": "NO"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamptz",
+      "table": "result_sources",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "sources",
+      "default": "gen_random_uuid()",
+      "nullable": "NO"
+    },
+    {
+      "name": "code",
+      "type": "text",
+      "table": "sources",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "name",
+      "type": "text",
+      "table": "sources",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "source_type",
+      "type": "source_type",
+      "table": "sources",
+      "default": null,
+      "nullable": "NO"
+    },
+    {
+      "name": "base_url",
+      "type": "text",
+      "table": "sources",
+      "default": null,
+      "nullable": "YES"
+    },
+    {
+      "name": "official",
+      "type": "bool",
+      "table": "sources",
+      "default": "false",
+      "nullable": "NO"
+    },
+    {
+      "name": "active",
+      "type": "bool",
+      "table": "sources",
+      "default": "true",
+      "nullable": "NO"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamptz",
+      "table": "sources",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamptz",
+      "table": "sources",
+      "default": "now()",
+      "nullable": "NO"
+    },
+    {
+      "table": "refresh_requests",
+      "name": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "refresh_requests",
+      "name": "athlete_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "refresh_requests",
+      "name": "requested_by",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "refresh_requests",
+      "name": "source_codes",
+      "type": "_text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "refresh_requests",
+      "name": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "refresh_requests",
+      "name": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "refresh_requests",
+      "name": "cancel_requested_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "refresh_requests",
+      "name": "job_count",
+      "type": "int4",
+      "nullable": "NO",
+      "default": "0"
+    },
+    {
+      "table": "refresh_requests",
+      "name": "terminal_status",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "refresh_requests",
+      "name": "completed_job_count",
+      "type": "int4",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "refresh_requests",
+      "name": "failed_job_count",
+      "type": "int4",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "refresh_requests",
+      "name": "finalized_at",
+      "type": "timestamptz",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": "gen_random_uuid()"
+    },
+    {
+      "table": "results",
+      "name": "athlete_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "meet_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "event_id",
+      "type": "uuid",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "result_date",
+      "type": "date",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "course",
+      "type": "swim_course",
+      "nullable": "NO",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "time_ms",
+      "type": "int4",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "status",
+      "type": "result_status",
+      "nullable": "NO",
+      "default": "'valid'::result_status"
+    },
+    {
+      "table": "results",
+      "name": "origin",
+      "type": "result_origin",
+      "nullable": "NO",
+      "default": "'manual'::result_origin"
+    },
+    {
+      "table": "results",
+      "name": "source_id",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "external_id",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "is_official",
+      "type": "bool",
+      "nullable": "NO",
+      "default": "false"
+    },
+    {
+      "table": "results",
+      "name": "notes",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "created_by",
+      "type": "uuid",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "result_fingerprint",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "created_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "results",
+      "name": "updated_at",
+      "type": "timestamptz",
+      "nullable": "NO",
+      "default": "now()"
+    },
+    {
+      "table": "results",
+      "name": "venue",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "city",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    },
+    {
+      "table": "results",
+      "name": "category",
+      "type": "text",
+      "nullable": "YES",
+      "default": null
+    }
+  ],
+  "enums": {
+    "gender_code": [
+      "male",
+      "female",
+      "other",
+      "unspecified"
+    ],
+    "meet_status": [
+      "draft",
+      "scheduled",
+      "active",
+      "completed",
+      "cancelled"
+    ],
+    "member_role": [
+      "owner",
+      "admin",
+      "guardian",
+      "coach",
+      "viewer",
+      "athlete"
+    ],
+    "source_type": [
+      "official_results",
+      "federation",
+      "club",
+      "other"
+    ],
+    "swim_course": [
+      "SCM",
+      "LCM"
+    ],
+    "swim_stroke": [
+      "freestyle",
+      "backstroke",
+      "breaststroke",
+      "butterfly",
+      "medley",
+      "relay"
+    ],
+    "account_type": [
+      "individual",
+      "family",
+      "club"
+    ],
+    "entry_status": [
+      "entered",
+      "seeded",
+      "withdrawn",
+      "dns",
+      "cancelled"
+    ],
+    "member_status": [
+      "invited",
+      "active",
+      "suspended",
+      "removed"
+    ],
+    "result_origin": [
+      "official",
+      "manual",
+      "import"
+    ],
+    "result_status": [
+      "valid",
+      "dns",
+      "dsq",
+      "dnf",
+      "partial"
+    ],
+    "account_status": [
+      "active",
+      "suspended",
+      "cancelled",
+      "pending_deletion"
+    ],
+    "athlete_status": [
+      "draft",
+      "pending_source",
+      "syncing",
+      "active",
+      "sync_error",
+      "inactive"
+    ],
+    "monitor_job_type": [
+      "current_meet",
+      "historical",
+      "reconciliation"
+    ],
+    "identifier_status": [
+      "unverified",
+      "verified",
+      "syncing",
+      "active",
+      "error",
+      "disabled"
+    ],
+    "notification_type": [
+      "official_result",
+      "personal_best",
+      "meet_entry",
+      "seed_change",
+      "occurrence",
+      "system"
+    ],
+    "monitor_job_status": [
+      "pending",
+      "running",
+      "completed",
+      "partial",
+      "failed",
+      "cancelled"
+    ],
+    "monitor_run_status": [
+      "running",
+      "completed",
+      "partial",
+      "failed"
+    ],
+    "source_link_status": [
+      "pending",
+      "verified",
+      "rejected",
+      "error"
+    ],
+    "notification_status": [
+      "pending",
+      "sent",
+      "failed",
+      "read"
+    ],
+    "subscription_status": [
+      "trialing",
+      "active",
+      "past_due",
+      "cancelled",
+      "expired"
+    ],
+    "commercial_access_status": [
+      "authorized",
+      "used",
+      "revoked",
+      "expired"
+    ]
+  },
+  "constraints": [
+    {
+      "name": "account_members_account_id_fkey",
+      "table": "account_members",
+      "definition": "FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "account_members_account_id_user_id_key",
+      "table": "account_members",
+      "definition": "UNIQUE (account_id, user_id)"
+    },
+    {
+      "name": "account_members_pkey",
+      "table": "account_members",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "account_members_user_id_fkey",
+      "table": "account_members",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "athlete_identifiers_athlete_id_fkey",
+      "table": "athlete_identifiers",
+      "definition": "FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "athlete_identifiers_athlete_id_source_id_key",
+      "table": "athlete_identifiers",
+      "definition": "UNIQUE (athlete_id, source_id)"
+    },
+    {
+      "name": "athlete_identifiers_pkey",
+      "table": "athlete_identifiers",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "athlete_identifiers_source_id_fkey",
+      "table": "athlete_identifiers",
+      "definition": "FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "athlete_source_configs_athlete_id_fkey",
+      "table": "athlete_source_configs",
+      "definition": "FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "athlete_source_configs_athlete_id_source_id_key",
+      "table": "athlete_source_configs",
+      "definition": "UNIQUE (athlete_id, source_id)"
+    },
+    {
+      "name": "athlete_source_configs_pkey",
+      "table": "athlete_source_configs",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "athlete_source_configs_source_id_fkey",
+      "table": "athlete_source_configs",
+      "definition": "FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "athletes_account_id_fkey",
+      "table": "athletes",
+      "definition": "FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "athletes_full_name_check",
+      "table": "athletes",
+      "definition": "CHECK ((length(TRIM(BOTH FROM full_name)) >= 2))"
+    },
+    {
+      "name": "athletes_pkey",
+      "table": "athletes",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "events_distance_m_check",
+      "table": "events",
+      "definition": "CHECK ((distance_m > 0))"
+    },
+    {
+      "name": "events_distance_m_stroke_relay_key",
+      "table": "events",
+      "definition": "UNIQUE (distance_m, stroke, relay)"
+    },
+    {
+      "name": "events_pkey",
+      "table": "events",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "import_v2_jobs_athlete_id_fkey",
+      "table": "import_v2_jobs",
+      "definition": "FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "import_v2_jobs_job_type_check",
+      "table": "import_v2_jobs",
+      "definition": "CHECK ((job_type = ANY (ARRAY['historical'::text, 'current_meet'::text])))"
+    },
+    {
+      "name": "import_v2_jobs_pkey",
+      "table": "import_v2_jobs",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "import_v2_jobs_request_id_fkey",
+      "table": "import_v2_jobs",
+      "definition": "FOREIGN KEY (request_id) REFERENCES refresh_requests(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "import_v2_jobs_request_id_source_id_job_type_key",
+      "table": "import_v2_jobs",
+      "definition": "UNIQUE (request_id, source_id, job_type)"
+    },
+    {
+      "name": "import_v2_jobs_source_id_fkey",
+      "table": "import_v2_jobs",
+      "definition": "FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "import_v2_jobs_status_check",
+      "table": "import_v2_jobs",
+      "definition": "CHECK ((status = ANY (ARRAY['pending'::text, 'running'::text, 'completed'::text, 'failed'::text, 'cancelled'::text])))"
+    },
+    {
+      "name": "meet_entries_athlete_id_fkey",
+      "table": "meet_entries",
+      "definition": "FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "meet_entries_event_id_fkey",
+      "table": "meet_entries",
+      "definition": "FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "meet_entries_heat_check",
+      "table": "meet_entries",
+      "definition": "CHECK (((heat IS NULL) OR (heat > 0)))"
+    },
+    {
+      "name": "meet_entries_lane_check",
+      "table": "meet_entries",
+      "definition": "CHECK (((lane IS NULL) OR (lane > 0)))"
+    },
+    {
+      "name": "meet_entries_meet_id_fkey",
+      "table": "meet_entries",
+      "definition": "FOREIGN KEY (meet_id) REFERENCES meets(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "meet_entries_pkey",
+      "table": "meet_entries",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "meet_entries_seed_time_ms_check",
+      "table": "meet_entries",
+      "definition": "CHECK (((seed_time_ms IS NULL) OR (seed_time_ms > 0)))"
+    },
+    {
+      "name": "meet_entries_source_id_fkey",
+      "table": "meet_entries",
+      "definition": "FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "meets_check",
+      "table": "meets",
+      "definition": "CHECK (((end_date IS NULL) OR (end_date >= start_date)))"
+    },
+    {
+      "name": "meets_pkey",
+      "table": "meets",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "meets_source_id_fkey",
+      "table": "meets",
+      "definition": "FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "refresh_requests_athlete_id_fkey",
+      "table": "refresh_requests",
+      "definition": "FOREIGN KEY (athlete_id) REFERENCES athletes(id)"
+    },
+    {
+      "name": "refresh_requests_pkey",
+      "table": "refresh_requests",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "refresh_requests_terminal_status_check",
+      "table": "refresh_requests",
+      "definition": "CHECK (((terminal_status IS NULL) OR (terminal_status = ANY (ARRAY['cancelled'::text, 'completed'::text, 'failed'::text, 'no_sources'::text]))))"
+    },
+    {
+      "name": "result_sources_monitor_run_fk",
+      "table": "result_sources",
+      "definition": "FOREIGN KEY (monitor_run_id) REFERENCES monitor_runs(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "result_sources_pkey",
+      "table": "result_sources",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "result_sources_result_id_fkey",
+      "table": "result_sources",
+      "definition": "FOREIGN KEY (result_id) REFERENCES results(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "result_sources_result_id_source_id_external_id_key",
+      "table": "result_sources",
+      "definition": "UNIQUE (result_id, source_id, external_id)"
+    },
+    {
+      "name": "result_sources_source_id_fkey",
+      "table": "result_sources",
+      "definition": "FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "results_athlete_id_fkey",
+      "table": "results",
+      "definition": "FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "results_check",
+      "table": "results",
+      "definition": "CHECK (((status <> 'valid'::result_status) OR (time_ms IS NOT NULL)))"
+    },
+    {
+      "name": "results_check1",
+      "table": "results",
+      "definition": "CHECK (((origin <> 'official'::result_origin) OR (is_official = true)))"
+    },
+    {
+      "name": "results_check2",
+      "table": "results",
+      "definition": "CHECK (((origin <> 'manual'::result_origin) OR (is_official = false)))"
+    },
+    {
+      "name": "results_created_by_fkey",
+      "table": "results",
+      "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "results_event_id_fkey",
+      "table": "results",
+      "definition": "FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE RESTRICT"
+    },
+    {
+      "name": "results_meet_id_fkey",
+      "table": "results",
+      "definition": "FOREIGN KEY (meet_id) REFERENCES meets(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "results_pkey",
+      "table": "results",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "results_source_id_fkey",
+      "table": "results",
+      "definition": "FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "results_time_ms_check",
+      "table": "results",
+      "definition": "CHECK (((time_ms IS NULL) OR (time_ms > 0)))"
+    },
+    {
+      "name": "sources_code_check",
+      "table": "sources",
+      "definition": "CHECK ((code ~ '^[a-z0-9_]+$'::text))"
+    },
+    {
+      "name": "sources_code_key",
+      "table": "sources",
+      "definition": "UNIQUE (code)"
+    },
+    {
+      "name": "sources_pkey",
+      "table": "sources",
+      "definition": "PRIMARY KEY (id)"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "account_members_account_id_user_id_key",
+      "table": "account_members",
+      "definition": "CREATE UNIQUE INDEX account_members_account_id_user_id_key ON public.account_members USING btree (account_id, user_id)"
+    },
+    {
+      "name": "account_members_pkey",
+      "table": "account_members",
+      "definition": "CREATE UNIQUE INDEX account_members_pkey ON public.account_members USING btree (id)"
+    },
+    {
+      "name": "account_members_user_account_idx",
+      "table": "account_members",
+      "definition": "CREATE INDEX account_members_user_account_idx ON public.account_members USING btree (user_id, account_id)"
+    },
+    {
+      "name": "athlete_identifiers_athlete_id_source_id_key",
+      "table": "athlete_identifiers",
+      "definition": "CREATE UNIQUE INDEX athlete_identifiers_athlete_id_source_id_key ON public.athlete_identifiers USING btree (athlete_id, source_id)"
+    },
+    {
+      "name": "athlete_identifiers_athlete_idx",
+      "table": "athlete_identifiers",
+      "definition": "CREATE INDEX athlete_identifiers_athlete_idx ON public.athlete_identifiers USING btree (athlete_id)"
+    },
+    {
+      "name": "athlete_identifiers_pkey",
+      "table": "athlete_identifiers",
+      "definition": "CREATE UNIQUE INDEX athlete_identifiers_pkey ON public.athlete_identifiers USING btree (id)"
+    },
+    {
+      "name": "athlete_source_configs_athlete_id_source_id_key",
+      "table": "athlete_source_configs",
+      "definition": "CREATE UNIQUE INDEX athlete_source_configs_athlete_id_source_id_key ON public.athlete_source_configs USING btree (athlete_id, source_id)"
+    },
+    {
+      "name": "athlete_source_configs_known_source_uq",
+      "table": "athlete_source_configs",
+      "definition": "CREATE UNIQUE INDEX athlete_source_configs_known_source_uq ON public.athlete_source_configs USING btree (athlete_id, source_id) WHERE (source_id IS NOT NULL)"
+    },
+    {
+      "name": "athlete_source_configs_pkey",
+      "table": "athlete_source_configs",
+      "definition": "CREATE UNIQUE INDEX athlete_source_configs_pkey ON public.athlete_source_configs USING btree (id)"
+    },
+    {
+      "name": "athletes_account_idx",
+      "table": "athletes",
+      "definition": "CREATE INDEX athletes_account_idx ON public.athletes USING btree (account_id)"
+    },
+    {
+      "name": "athletes_pkey",
+      "table": "athletes",
+      "definition": "CREATE UNIQUE INDEX athletes_pkey ON public.athletes USING btree (id)"
+    },
+    {
+      "name": "events_distance_m_stroke_relay_key",
+      "table": "events",
+      "definition": "CREATE UNIQUE INDEX events_distance_m_stroke_relay_key ON public.events USING btree (distance_m, stroke, relay)"
+    },
+    {
+      "name": "events_pkey",
+      "table": "events",
+      "definition": "CREATE UNIQUE INDEX events_pkey ON public.events USING btree (id)"
+    },
+    {
+      "name": "import_v2_jobs_athlete_idx",
+      "table": "import_v2_jobs",
+      "definition": "CREATE INDEX import_v2_jobs_athlete_idx ON public.import_v2_jobs USING btree (athlete_id)"
+    },
+    {
+      "name": "import_v2_jobs_claim_idx",
+      "table": "import_v2_jobs",
+      "definition": "CREATE INDEX import_v2_jobs_claim_idx ON public.import_v2_jobs USING btree (status, next_run_at, priority, created_at)"
+    },
+    {
+      "name": "import_v2_jobs_pkey",
+      "table": "import_v2_jobs",
+      "definition": "CREATE UNIQUE INDEX import_v2_jobs_pkey ON public.import_v2_jobs USING btree (id)"
+    },
+    {
+      "name": "import_v2_jobs_request_id_source_id_job_type_key",
+      "table": "import_v2_jobs",
+      "definition": "CREATE UNIQUE INDEX import_v2_jobs_request_id_source_id_job_type_key ON public.import_v2_jobs USING btree (request_id, source_id, job_type)"
+    },
+    {
+      "name": "import_v2_jobs_source_idx",
+      "table": "import_v2_jobs",
+      "definition": "CREATE INDEX import_v2_jobs_source_idx ON public.import_v2_jobs USING btree (source_id)"
+    },
+    {
+      "name": "meet_entries_athlete_idx",
+      "table": "meet_entries",
+      "definition": "CREATE INDEX meet_entries_athlete_idx ON public.meet_entries USING btree (athlete_id)"
+    },
+    {
+      "name": "meet_entries_event_idx",
+      "table": "meet_entries",
+      "definition": "CREATE INDEX meet_entries_event_idx ON public.meet_entries USING btree (event_id)"
+    },
+    {
+      "name": "meet_entries_natural_uidx",
+      "table": "meet_entries",
+      "definition": "CREATE UNIQUE INDEX meet_entries_natural_uidx ON public.meet_entries USING btree (meet_id, athlete_id, event_id)"
+    },
+    {
+      "name": "meet_entries_pkey",
+      "table": "meet_entries",
+      "definition": "CREATE UNIQUE INDEX meet_entries_pkey ON public.meet_entries USING btree (id)"
+    },
+    {
+      "name": "meet_entries_scheduled_idx",
+      "table": "meet_entries",
+      "definition": "CREATE INDEX meet_entries_scheduled_idx ON public.meet_entries USING btree (athlete_id, scheduled_at) WHERE (scheduled_at IS NOT NULL)"
+    },
+    {
+      "name": "meet_entries_source_external_uidx",
+      "table": "meet_entries",
+      "definition": "CREATE UNIQUE INDEX meet_entries_source_external_uidx ON public.meet_entries USING btree (source_id, external_id) WHERE ((source_id IS NOT NULL) AND (external_id IS NOT NULL))"
+    },
+    {
+      "name": "meets_pkey",
+      "table": "meets",
+      "definition": "CREATE UNIQUE INDEX meets_pkey ON public.meets USING btree (id)"
+    },
+    {
+      "name": "meets_source_external_uidx",
+      "table": "meets",
+      "definition": "CREATE UNIQUE INDEX meets_source_external_uidx ON public.meets USING btree (source_id, external_id) WHERE ((source_id IS NOT NULL) AND (external_id IS NOT NULL))"
+    },
+    {
+      "name": "meets_source_external_uq",
+      "table": "meets",
+      "definition": "CREATE UNIQUE INDEX meets_source_external_uq ON public.meets USING btree (source_id, external_id)"
+    },
+    {
+      "name": "refresh_requests_athlete_created_idx",
+      "table": "refresh_requests",
+      "definition": "CREATE INDEX refresh_requests_athlete_created_idx ON public.refresh_requests USING btree (athlete_id, created_at DESC)"
+    },
+    {
+      "name": "refresh_requests_pkey",
+      "table": "refresh_requests",
+      "definition": "CREATE UNIQUE INDEX refresh_requests_pkey ON public.refresh_requests USING btree (id)"
+    },
+    {
+      "name": "result_sources_monitor_run_idx",
+      "table": "result_sources",
+      "definition": "CREATE INDEX result_sources_monitor_run_idx ON public.result_sources USING btree (monitor_run_id)"
+    },
+    {
+      "name": "result_sources_pkey",
+      "table": "result_sources",
+      "definition": "CREATE UNIQUE INDEX result_sources_pkey ON public.result_sources USING btree (id)"
+    },
+    {
+      "name": "result_sources_result_id_source_id_external_id_key",
+      "table": "result_sources",
+      "definition": "CREATE UNIQUE INDEX result_sources_result_id_source_id_external_id_key ON public.result_sources USING btree (result_id, source_id, external_id)"
+    },
+    {
+      "name": "result_sources_source_idx",
+      "table": "result_sources",
+      "definition": "CREATE INDEX result_sources_source_idx ON public.result_sources USING btree (source_id)"
+    },
+    {
+      "name": "results_athlete_date_idx",
+      "table": "results",
+      "definition": "CREATE INDEX results_athlete_date_idx ON public.results USING btree (athlete_id, result_date DESC, created_at DESC)"
+    },
+    {
+      "name": "results_athlete_event_course_idx",
+      "table": "results",
+      "definition": "CREATE INDEX results_athlete_event_course_idx ON public.results USING btree (athlete_id, event_id, course)"
+    },
+    {
+      "name": "results_created_by_idx",
+      "table": "results",
+      "definition": "CREATE INDEX results_created_by_idx ON public.results USING btree (created_by)"
+    },
+    {
+      "name": "results_event_idx",
+      "table": "results",
+      "definition": "CREATE INDEX results_event_idx ON public.results USING btree (event_id)"
+    },
+    {
+      "name": "results_fingerprint_uidx",
+      "table": "results",
+      "definition": "CREATE UNIQUE INDEX results_fingerprint_uidx ON public.results USING btree (result_fingerprint) WHERE (result_fingerprint IS NOT NULL)"
+    },
+    {
+      "name": "results_meet_athlete_idx",
+      "table": "results",
+      "definition": "CREATE INDEX results_meet_athlete_idx ON public.results USING btree (meet_id, athlete_id)"
+    },
+    {
+      "name": "results_pkey",
+      "table": "results",
+      "definition": "CREATE UNIQUE INDEX results_pkey ON public.results USING btree (id)"
+    },
+    {
+      "name": "results_source_external_uidx",
+      "table": "results",
+      "definition": "CREATE UNIQUE INDEX results_source_external_uidx ON public.results USING btree (source_id, external_id) WHERE ((source_id IS NOT NULL) AND (external_id IS NOT NULL))"
+    },
+    {
+      "name": "sources_code_key",
+      "table": "sources",
+      "definition": "CREATE UNIQUE INDEX sources_code_key ON public.sources USING btree (code)"
+    },
+    {
+      "name": "sources_pkey",
+      "table": "sources",
+      "definition": "CREATE UNIQUE INDEX sources_pkey ON public.sources USING btree (id)"
+    }
+  ],
+  "policies": [
+    {
+      "name": "account_members_select_self",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "account_members",
+      "using": "(user_id = ( SELECT auth.uid() AS uid))",
+      "command": "SELECT"
+    },
+    {
+      "name": "athlete_identifiers_select_member",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "athlete_identifiers",
+      "using": "(EXISTS ( SELECT 1\n   FROM (athletes a\n     JOIN account_members am ON ((am.account_id = a.account_id)))\n  WHERE ((a.id = athlete_identifiers.athlete_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status))))",
+      "command": "SELECT"
+    },
+    {
+      "name": "athlete_source_configs_select_member",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "athlete_source_configs",
+      "using": "(EXISTS ( SELECT 1\n   FROM (athletes a\n     JOIN account_members am ON ((am.account_id = a.account_id)))\n  WHERE ((a.id = athlete_source_configs.athlete_id) AND (am.user_id = auth.uid()) AND (am.status = 'active'::member_status))))",
+      "command": "SELECT"
+    },
+    {
+      "name": "athletes_insert_writer",
+      "check": "(EXISTS ( SELECT 1\n   FROM account_members am\n  WHERE ((am.account_id = athletes.account_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status) AND (am.role = ANY (ARRAY['owner'::member_role, 'admin'::member_role, 'guardian'::member_role])))))",
+      "roles": [
+        "authenticated"
+      ],
+      "table": "athletes",
+      "using": null,
+      "command": "INSERT"
+    },
+    {
+      "name": "athletes_select_member",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "athletes",
+      "using": "(EXISTS ( SELECT 1\n   FROM account_members am\n  WHERE ((am.account_id = athletes.account_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status))))",
+      "command": "SELECT"
+    },
+    {
+      "name": "athletes_update_writer",
+      "check": "(EXISTS ( SELECT 1\n   FROM account_members am\n  WHERE ((am.account_id = athletes.account_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status) AND (am.role = ANY (ARRAY['owner'::member_role, 'admin'::member_role, 'guardian'::member_role])))))",
+      "roles": [
+        "authenticated"
+      ],
+      "table": "athletes",
+      "using": "(EXISTS ( SELECT 1\n   FROM account_members am\n  WHERE ((am.account_id = athletes.account_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status) AND (am.role = ANY (ARRAY['owner'::member_role, 'admin'::member_role, 'guardian'::member_role])))))",
+      "command": "UPDATE"
+    },
+    {
+      "name": "events_read_authenticated",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "events",
+      "using": "(active = true)",
+      "command": "SELECT"
+    },
+    {
+      "name": "import_v2_jobs_select_members",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "import_v2_jobs",
+      "using": "(EXISTS ( SELECT 1\n   FROM (athletes a\n     JOIN account_members am ON ((am.account_id = a.account_id)))\n  WHERE ((a.id = import_v2_jobs.athlete_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status))))",
+      "command": "SELECT"
+    },
+    {
+      "name": "meet_entries_select_member",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "meet_entries",
+      "using": "(EXISTS ( SELECT 1\n   FROM (athletes a\n     JOIN account_members am ON ((am.account_id = a.account_id)))\n  WHERE ((a.id = meet_entries.athlete_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status))))",
+      "command": "SELECT"
+    },
+    {
+      "name": "meets_select_related",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "meets",
+      "using": "((EXISTS ( SELECT 1\n   FROM ((meet_entries me\n     JOIN athletes a ON ((a.id = me.athlete_id)))\n     JOIN account_members am ON ((am.account_id = a.account_id)))\n  WHERE ((me.meet_id = meets.id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status)))) OR (EXISTS ( SELECT 1\n   FROM ((results r\n     JOIN athletes a ON ((a.id = r.athlete_id)))\n     JOIN account_members am ON ((am.account_id = a.account_id)))\n  WHERE ((r.meet_id = meets.id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status)))))",
+      "command": "SELECT"
+    },
+    {
+      "name": "refresh_requests_select_member",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "refresh_requests",
+      "using": "(EXISTS ( SELECT 1\n   FROM (athletes a\n     JOIN account_members am ON ((am.account_id = a.account_id)))\n  WHERE ((a.id = refresh_requests.athlete_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status))))",
+      "command": "SELECT"
+    },
+    {
+      "name": "result_sources_select_member",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "result_sources",
+      "using": "(EXISTS ( SELECT 1\n   FROM ((results r\n     JOIN athletes a ON ((a.id = r.athlete_id)))\n     JOIN account_members am ON ((am.account_id = a.account_id)))\n  WHERE ((r.id = result_sources.result_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status))))",
+      "command": "SELECT"
+    },
+    {
+      "name": "results_delete_account_writer",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "results",
+      "using": "((origin = 'manual'::result_origin) AND (is_official = false) AND (EXISTS ( SELECT 1\n   FROM (athletes a\n     JOIN account_members am ON ((am.account_id = a.account_id)))\n  WHERE ((a.id = results.athlete_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status) AND (am.role = ANY (ARRAY['owner'::member_role, 'admin'::member_role, 'guardian'::member_role]))))))",
+      "command": "DELETE"
+    },
+    {
+      "name": "results_insert_manual_writer",
+      "check": "((origin = 'manual'::result_origin) AND (is_official = false) AND (created_by = ( SELECT auth.uid() AS uid)) AND (EXISTS ( SELECT 1\n   FROM (athletes a\n     JOIN account_members am ON ((am.account_id = a.account_id)))\n  WHERE ((a.id = results.athlete_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status) AND (am.role = ANY (ARRAY['owner'::member_role, 'admin'::member_role, 'guardian'::member_role]))))))",
+      "roles": [
+        "authenticated"
+      ],
+      "table": "results",
+      "using": null,
+      "command": "INSERT"
+    },
+    {
+      "name": "results_select_member",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "results",
+      "using": "(EXISTS ( SELECT 1\n   FROM (athletes a\n     JOIN account_members am ON ((am.account_id = a.account_id)))\n  WHERE ((a.id = results.athlete_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status))))",
+      "command": "SELECT"
+    },
+    {
+      "name": "results_update_manual_writer",
+      "check": "((origin = 'manual'::result_origin) AND (is_official = false) AND (EXISTS ( SELECT 1\n   FROM (athletes a\n     JOIN account_members am ON ((am.account_id = a.account_id)))\n  WHERE ((a.id = results.athlete_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status) AND (am.role = ANY (ARRAY['owner'::member_role, 'admin'::member_role, 'guardian'::member_role]))))))",
+      "roles": [
+        "authenticated"
+      ],
+      "table": "results",
+      "using": "((origin = 'manual'::result_origin) AND (is_official = false) AND (EXISTS ( SELECT 1\n   FROM (athletes a\n     JOIN account_members am ON ((am.account_id = a.account_id)))\n  WHERE ((a.id = results.athlete_id) AND (am.user_id = ( SELECT auth.uid() AS uid)) AND (am.status = 'active'::member_status) AND (am.role = ANY (ARRAY['owner'::member_role, 'admin'::member_role, 'guardian'::member_role]))))))",
+      "command": "UPDATE"
+    },
+    {
+      "name": "sources_read_authenticated",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "sources",
+      "using": "(active = true)",
+      "command": "SELECT"
+    }
+  ],
+  "externalRelationsAreMinimalTestStubs": [
+    "accounts",
+    "auth.users",
+    "monitor_runs"
+  ],
+  "notFullSupabaseClone": true
+}
+

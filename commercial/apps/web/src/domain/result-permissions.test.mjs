@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {canWriteManualResult,canModifyResult} from './result-permissions.ts';
+test('official/imported results cannot be edited or deleted by any account role',()=>{for(const role of ['owner','admin','guardian','coach','viewer','athlete',''])for(const row of [{origin:'official',is_official:true},{origin:'import',is_official:true},{origin:'manual',is_official:true},{origin:'import',is_official:false},{origin:'manual'}])assert.equal(canModifyResult(row,role),false);});
+test('manual changes follow actual PostgreSQL writer roles',()=>{for(const role of ['owner','admin','guardian'])assert.equal(canModifyResult({origin:'manual',is_official:false},role),true);for(const role of ['coach','viewer','athlete',''])assert.equal(canWriteManualResult(role),false);});

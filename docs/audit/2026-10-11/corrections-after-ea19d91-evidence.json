@@ -1,0 +1,296 @@
+{
+  "assessmentCommit": "ea19d91176c2483a1dea7256713bbdd260806952",
+  "reviewedImplementation": "ce3e097df2a33bbb8b4dd24c96219eade10079aa",
+  "implementationCommits": [
+    "918b5993eb349c25735a9ab0305f629fa2b48d4a",
+    "e3b112f7d2c62bd789b1e54ec7e5bbb016604425",
+    "b4e849633e77b14fc222f7939d2581af0aec22d1",
+    "7d117949359167eba40234185f1d773fbc1bb3ad",
+    "ce3e097df2a33bbb8b4dd24c96219eade10079aa"
+  ],
+  "productionWrites": 0,
+  "merged": false,
+  "deployed": false,
+  "prDraft": true,
+  "productionSnapshot": {
+    "capturedAt": "2026-10-11T22:39:20.488557+00:00",
+    "results": 252,
+    "legacyEntries": 0,
+    "personalBests": 82,
+    "resultSources": 252,
+    "hashedSources": 0,
+    "officialEntriesCandidateInstalled": false,
+    "persistBatchCandidateInstalled": false,
+    "legacyIndex": "CREATE UNIQUE INDEX meet_entries_natural_uidx ON public.meet_entries USING btree (meet_id, athlete_id, event_id)"
+  },
+  "edgeSnapshot": {
+    "functions": [
+      {
+        "slug": "monitor-runner",
+        "version": 115,
+        "status": "ACTIVE",
+        "verify_jwt": false
+      },
+      {
+        "slug": "import-v2-runner",
+        "version": 30,
+        "status": "ACTIVE",
+        "verify_jwt": false
+      }
+    ],
+    "officialWorkerPublished": false
+  },
+  "adversarialScriptsUnchanged": [
+    {
+      "path": "docs/audit/2026-10-11/repros/transaction-error-propagation.test.mjs",
+      "beforeBlob": "8d6de4383f295ab623064bd4dd5fd758d73e3634",
+      "afterBlob": "8d6de4383f295ab623064bd4dd5fd758d73e3634",
+      "unchanged": true
+    },
+    {
+      "path": "docs/audit/2026-10-11/repros/legacy-entry-upsert.sql",
+      "beforeBlob": "fab566f4a6e190e555e147ced4c4c2ecaeaf4f90",
+      "afterBlob": "fab566f4a6e190e555e147ced4c4c2ecaeaf4f90",
+      "unchanged": true
+    }
+  ],
+  "runs": [
+    {
+      "id": 38180969836,
+      "sha": "7d117949359167eba40234185f1d773fbc1bb3ad",
+      "scope": "isolated PostgreSQL, concurrency, RLS and archived originals including all seeding fields",
+      "conclusion": "success"
+    },
+    {
+      "id": 38181053112,
+      "sha": "ce3e097df2a33bbb8b4dd24c96219eade10079aa",
+      "scope": "unchanged adversarial contracts",
+      "conclusion": "success"
+    },
+    {
+      "id": 38181053087,
+      "sha": "ce3e097df2a33bbb8b4dd24c96219eade10079aa",
+      "scope": "worker, Node/Deno frozen candidate and public read-only capture",
+      "conclusion": "success"
+    },
+    {
+      "id": 38181053083,
+      "sha": "ce3e097df2a33bbb8b4dd24c96219eade10079aa",
+      "scope": "original hashes/excerpts and synthetic transport replay",
+      "conclusion": "success"
+    },
+    {
+      "id": 38181057333,
+      "sha": "ce3e097df2a33bbb8b4dd24c96219eade10079aa",
+      "scope": "synthetic preview browser, not published UI",
+      "conclusion": "success"
+    },
+    {
+      "id": 38181057458,
+      "sha": "ce3e097df2a33bbb8b4dd24c96219eade10079aa",
+      "scope": "import-v2 regression",
+      "conclusion": "success"
+    }
+  ],
+  "isolatedOriginalProof": {
+    "mode": "official-originals-to-isolated-postgres-not-production",
+    "proof": [
+      {
+        "externalId": "393259",
+        "meetId": "9b002997-591e-4f74-8492-ef595b4705c0",
+        "first": {
+          "jobId": "7c4a2039-3cc4-4e8b-bcfc-541d16d82b2b",
+          "requestId": "be1d3838-b28b-436a-ac60-6ce0a47d1de6",
+          "status": "completed",
+          "outcome": "official_results_persisted",
+          "inserted": 6,
+          "conflicts": 0,
+          "duplicated": 0,
+          "entriesUpdated": 0,
+          "entriesInserted": 6,
+          "entriesDuplicated": 0
+        },
+        "second": {
+          "outcome": "official_results_persisted",
+          "inserted": 0,
+          "conflicts": 0,
+          "duplicated": 6,
+          "entriesUpdated": 0,
+          "entriesInserted": 0,
+          "entriesDuplicated": 6
+        },
+        "workerContextAndCaptureTested": true,
+        "independentExtractorsAgree": true,
+        "persistedMatchesOriginal": true,
+        "persistedSeedingMatchesOriginal": true
+      },
+      {
+        "externalId": "399680",
+        "meetId": "c8587533-2e44-4b08-991f-f827170c7344",
+        "first": {
+          "jobId": "bbcbd717-ac24-425e-bf68-c53538ff431f",
+          "requestId": "3f25c3b3-3a4e-4d3b-aab0-b3fc4fda4465",
+          "status": "completed",
+          "outcome": "official_results_persisted",
+          "inserted": 5,
+          "conflicts": 0,
+          "duplicated": 0,
+          "entriesUpdated": 0,
+          "entriesInserted": 5,
+          "entriesDuplicated": 0
+        },
+        "second": {
+          "outcome": "official_results_persisted",
+          "inserted": 0,
+          "conflicts": 0,
+          "duplicated": 5,
+          "entriesUpdated": 0,
+          "entriesInserted": 0,
+          "entriesDuplicated": 5
+        },
+        "workerContextAndCaptureTested": true,
+        "independentExtractorsAgree": true,
+        "persistedMatchesOriginal": true,
+        "persistedSeedingMatchesOriginal": true
+      },
+      {
+        "externalId": "399680",
+        "meetId": "9b002997-591e-4f74-8492-ef595b4705c0",
+        "first": {
+          "jobId": "b4ec5d5c-e945-415a-bb04-c56cc63e900e",
+          "requestId": "2a7bdc7b-0a83-4da1-b3fc-ad8f7c0bd62d",
+          "status": "completed",
+          "outcome": "official_results_persisted",
+          "inserted": 6,
+          "conflicts": 0,
+          "duplicated": 0,
+          "entriesUpdated": 0,
+          "entriesInserted": 6,
+          "entriesDuplicated": 0
+        },
+        "second": {
+          "outcome": "official_results_persisted",
+          "inserted": 0,
+          "conflicts": 0,
+          "duplicated": 6,
+          "entriesUpdated": 0,
+          "entriesInserted": 0,
+          "entriesDuplicated": 6
+        },
+        "workerContextAndCaptureTested": true,
+        "independentExtractorsAgree": true,
+        "persistedMatchesOriginal": true,
+        "persistedSeedingMatchesOriginal": true
+      },
+      {
+        "externalId": "422692",
+        "meetId": "c8587533-2e44-4b08-991f-f827170c7344",
+        "first": {
+          "jobId": "f4f6103b-0caf-440e-9279-e952f1a55bda",
+          "requestId": "565c5899-681d-4a5b-9305-0484ee9cddd0",
+          "status": "completed",
+          "outcome": "official_results_persisted",
+          "inserted": 4,
+          "conflicts": 0,
+          "duplicated": 0,
+          "entriesUpdated": 0,
+          "entriesInserted": 4,
+          "entriesDuplicated": 0
+        },
+        "second": {
+          "outcome": "official_results_persisted",
+          "inserted": 0,
+          "conflicts": 0,
+          "duplicated": 4,
+          "entriesUpdated": 0,
+          "entriesInserted": 0,
+          "entriesDuplicated": 4
+        },
+        "workerContextAndCaptureTested": true,
+        "independentExtractorsAgree": true,
+        "persistedMatchesOriginal": true,
+        "persistedSeedingMatchesOriginal": true
+      },
+      {
+        "externalId": "422692",
+        "meetId": "9b002997-591e-4f74-8492-ef595b4705c0",
+        "first": {
+          "jobId": "cc12ac12-eb04-4500-a41f-adcbc960921f",
+          "requestId": "53d6e33a-3f59-4ac4-b040-3381942fd6d8",
+          "status": "completed",
+          "outcome": "official_results_persisted",
+          "inserted": 5,
+          "conflicts": 0,
+          "duplicated": 0,
+          "entriesUpdated": 0,
+          "entriesInserted": 5,
+          "entriesDuplicated": 0
+        },
+        "second": {
+          "outcome": "official_results_persisted",
+          "inserted": 0,
+          "conflicts": 0,
+          "duplicated": 5,
+          "entriesUpdated": 0,
+          "entriesInserted": 0,
+          "entriesDuplicated": 5
+        },
+        "workerContextAndCaptureTested": true,
+        "independentExtractorsAgree": true,
+        "persistedMatchesOriginal": true,
+        "persistedSeedingMatchesOriginal": true
+      }
+    ],
+    "productionWrites": 0
+  },
+  "gates": [
+    {
+      "gate": 1,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 2,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 3,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 4,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 5,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 6,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 7,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 8,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 9,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 10,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 11,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 12,
+      "status": "REPROVADO"
+    }
+  ]
+}
