@@ -2,7 +2,7 @@ name: Native local Auth and live-source pipeline (no production writes)
 on:
   push:
     branches: ['fix/official-import-audit-20261011']
-    paths: ['commercial/scripts/native-*.cjs', 'commercial/scripts/native-*.mjs', 'scripts/setup-native-api-fixture.py', 'scripts/build-official-migration-candidate.py', '.github/workflows/native-api-e2e.yml']
+    paths: ['commercial/apps/web/src/**', 'commercial/supabase/proposals/**', 'commercial/scripts/native-*.cjs', 'commercial/scripts/native-*.mjs', 'scripts/setup-native-api-fixture.py', 'scripts/build-official-migration-candidate.py', '.github/workflows/native-api-e2e.yml']
   workflow_dispatch:
 permissions:
   contents: read

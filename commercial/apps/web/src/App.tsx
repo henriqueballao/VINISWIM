@@ -475,8 +475,8 @@ function ResultsPage({myRole,filtered,allResults,events,filters,setFilters,meets
    <h3>Resultados</h3>
    <div className="results-icon-actions">
     <div className="result-icon-action">
-     <button className={"icon-action"+(clickActive?" clicked":"")} onClick={refreshFromButton} title="Atualizar resultados nas fontes selecionadas" aria-label="Atualizar resultados"><RefreshCw size={18}/></button>
-     <small>Atualizar</small>
+     <button className={"icon-action"+(clickActive?" clicked":"")} onClick={refreshFromButton} title={isActive?'Cancelar a busca em andamento':'Atualizar resultados nas fontes selecionadas'} aria-label={isActive?'Cancelar busca':'Atualizar resultados'}>{isActive?<X size={18}/>:<RefreshCw size={18}/>}</button>
+     <small>{isActive?'Cancelar':'Atualizar'}</small>
     </div>
     <div className="result-icon-action">
      <button className="icon-action primary" disabled={!canWriteManualResult(myRole)} onClick={onNew} title="Novo resultado manual de treino ou tomada de tempo" aria-label="Novo resultado manual"><Plus size={18}/></button>
