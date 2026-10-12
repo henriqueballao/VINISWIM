@@ -362,3 +362,21 @@ END $$;
 RESET ROLE;
 DO $$ BEGIN IF EXISTS(SELECT 1 FROM meets WHERE name IN('INVALID SEED','VIEWER DENIED','CROSS TENANT DENIED')) THEN RAISE EXCEPTION 'FAILED_MANUAL_RPC_LEFT_ORPHAN_MEET'; END IF; END $$;
 ROLLBACK;
+
+-- SYNTHETIC shared meet fence: even paused subscriptions reject legacy metadata.
+BEGIN;
+UPDATE official_meet_subscriptions SET active=false WHERE athlete_id='00000000-0000-4000-8000-000000000011';
+SELECT set_config('viniswim.official_job_id','',true),set_config('viniswim.official_lease_token','',true);
+SET LOCAL ROLE service_role;
+DO $$ BEGIN
+ BEGIN
+  UPDATE meets SET name='LEGACY CORRUPTION' WHERE source_id='00000000-0000-4000-8000-000000000001' AND external_id='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
+  RAISE EXCEPTION 'LEGACY_SHARED_MEET_UPDATE_ACCEPTED';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'LEGACY_OFFICIAL_MEET_WRITER_FENCED' THEN RAISE; END IF; END;
+ BEGIN
+  DELETE FROM meets WHERE source_id='00000000-0000-4000-8000-000000000001' AND external_id='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
+  RAISE EXCEPTION 'LEGACY_SHARED_MEET_DELETE_ACCEPTED';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'OFFICIAL_MEET_DELETE_REQUIRES_CONTROLLED_AUDIT' THEN RAISE; END IF; END;
+END $$;
+RESET ROLE;
+ROLLBACK;

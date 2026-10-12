@@ -58,4 +58,36 @@ END $$;
 REVOKE ALL ON FUNCTION public.guard_attested_entry_write() FROM PUBLIC,anon,authenticated;
 CREATE TRIGGER official_attested_entry_guard BEFORE INSERT OR UPDATE OR DELETE ON public.official_meet_entries
  FOR EACH ROW EXECUTE FUNCTION public.guard_attested_entry_write();
+-- A shared meet used by a subscription stays protected when monitoring pauses.
+-- Manual meets have no official source/external id and remain separate.
+CREATE FUNCTION public.guard_subscribed_meet_write()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,public AS $$
+DECLARE target public.meets; job uuid;token uuid;protected boolean;
+BEGIN
+ target=CASE WHEN TG_OP='INSERT' THEN NEW ELSE OLD END;
+ protected=EXISTS(SELECT 1 FROM public.official_meet_subscriptions s
+  WHERE s.source_id=target.source_id AND s.meet_external_id=target.external_id)
+  OR EXISTS(SELECT 1 FROM public.official_meet_entries e WHERE e.meet_id=target.id);
+ IF TG_OP='UPDATE' THEN
+  protected=protected OR EXISTS(SELECT 1 FROM public.official_meet_subscriptions s
+   WHERE s.source_id=NEW.source_id AND s.meet_external_id=NEW.external_id);
+ END IF;
+ IF NOT protected THEN RETURN CASE WHEN TG_OP='DELETE' THEN OLD ELSE NEW END; END IF;
+ IF TG_OP='DELETE' THEN RAISE EXCEPTION 'OFFICIAL_MEET_DELETE_REQUIRES_CONTROLLED_AUDIT'; END IF;
+ IF TG_OP='UPDATE' AND ROW(NEW.id,NEW.source_id,NEW.external_id) IS DISTINCT FROM ROW(OLD.id,OLD.source_id,OLD.external_id)
+ THEN RAISE EXCEPTION 'OFFICIAL_MEET_REASSIGNMENT_FORBIDDEN'; END IF;
+ job=nullif(current_setting('viniswim.official_job_id',true),'')::uuid;
+ token=nullif(current_setting('viniswim.official_lease_token',true),'')::uuid;
+ IF job IS NULL OR token IS NULL OR NOT EXISTS(
+  SELECT 1 FROM public.import_v2_jobs j JOIN public.refresh_requests r ON r.id=j.request_id
+  WHERE j.id=job AND j.lease_token=token AND j.worker_version='official-v3' AND j.status='running'
+  AND j.lease_expires_at>now() AND j.source_id=NEW.source_id
+  AND j.cursor->>'external_meet_id'=NEW.external_id
+  AND r.cancel_requested_at IS NULL AND r.terminal_status IS NULL
+ ) THEN RAISE EXCEPTION 'LEGACY_OFFICIAL_MEET_WRITER_FENCED'; END IF;
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.guard_subscribed_meet_write() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER official_subscribed_meet_guard BEFORE INSERT OR UPDATE OR DELETE ON public.meets
+ FOR EACH ROW EXECUTE FUNCTION public.guard_subscribed_meet_write();
 COMMIT;

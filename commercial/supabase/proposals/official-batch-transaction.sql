@@ -100,6 +100,9 @@ BEGIN
    VALUES(j.source_id,metadata->>'externalMeetId',d->>'url',d->>'requestedUrl',(d->>'retrievedAt')::timestamptz,d->>'rawHash',raw)
    ON CONFLICT(source_id,source_url,raw_hash) DO NOTHING;
  END LOOP;
+ -- Set the transaction-scoped lease before shared meet metadata is written.
+ PERFORM set_config('viniswim.official_job_id',j.id::text,true);
+ PERFORM set_config('viniswim.official_lease_token',p_lease_token::text,true);
  INSERT INTO public.meets(source_id,external_id,name,start_date,end_date,course,official_url)
  VALUES(j.source_id,metadata->>'externalMeetId',metadata->>'name',start_date,end_date,pool,metadata->>'officialUrl')
  ON CONFLICT(source_id,external_id) DO UPDATE SET name=excluded.name,start_date=excluded.start_date,end_date=excluded.end_date,course=excluded.course,official_url=excluded.official_url RETURNING id INTO meet_id;
