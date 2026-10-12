@@ -16,6 +16,7 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE phase text;job uuid;token uuid;context jsonb;
 BEGIN
  SELECT mode INTO phase FROM app.official_pipeline_mode WHERE singleton;
+ IF TG_TABLE_NAME IN('historical_discovery_cache','historical_document_text_cache') THEN RAISE EXCEPTION 'LEGACY_IMPORT_CACHE_RETIRED'; END IF;
  IF TG_TABLE_NAME='results' THEN
   IF NEW.origin::text='manual' AND NOT NEW.is_official THEN
    IF TG_OP='INSERT' THEN RETURN NEW; END IF;
@@ -51,4 +52,11 @@ CREATE TRIGGER global_meets_pipeline_guard BEFORE INSERT OR UPDATE ON public.mee
 CREATE TRIGGER global_v2_pipeline_guard BEFORE INSERT OR UPDATE ON public.import_v2_jobs FOR EACH ROW EXECUTE FUNCTION app.guard_global_official_pipeline();
 CREATE TRIGGER global_monitor_pipeline_guard BEFORE INSERT OR UPDATE ON public.monitor_jobs FOR EACH ROW EXECUTE FUNCTION app.guard_global_official_pipeline();
 CREATE TRIGGER global_historical_pipeline_guard BEFORE INSERT OR UPDATE ON public.historical_archive_jobs FOR EACH ROW EXECUTE FUNCTION app.guard_global_official_pipeline();
+DO $$ DECLARE cache text;BEGIN
+ FOREACH cache IN ARRAY ARRAY['historical_discovery_cache','historical_document_text_cache'] LOOP
+  IF to_regclass('public.'||cache) IS NOT NULL THEN
+   EXECUTE format('CREATE TRIGGER global_cache_pipeline_guard BEFORE INSERT OR UPDATE ON public.%I FOR EACH ROW EXECUTE FUNCTION app.guard_global_official_pipeline()',cache);
+  END IF;
+ END LOOP;
+END $$;
 COMMIT;

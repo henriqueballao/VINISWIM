@@ -457,6 +457,7 @@ DO $$ DECLARE j import_v2_jobs;answer jsonb;BEGIN
 END $$;
 ROLLBACK;
 
+CREATE TABLE public.historical_document_text_cache(url text PRIMARY KEY,text_content text,fetch_status text);
 \ir ../../proposals/official-global-cutover-fence.sql
 -- SYNTHETIC safety across every profile, not a list of known registrations.
 BEGIN;
@@ -465,6 +466,8 @@ DO $$ DECLARE aid uuid:='00000000-0000-4000-8000-000000000012';BEGIN
  EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'OFFICIAL_IMPORT_MAINTENANCE' THEN RAISE; END IF; END;
  BEGIN INSERT INTO meet_entries(athlete_id) VALUES(aid);RAISE EXCEPTION 'GLOBAL_LEGACY_ENTRY_ACCEPTED';
  EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'OFFICIAL_IMPORT_MAINTENANCE' THEN RAISE; END IF; END;
+ BEGIN INSERT INTO historical_document_text_cache VALUES('https://example.invalid/synthetic','SYNTHETIC','completed');RAISE EXCEPTION 'LEGACY_CACHE_INSERT_ACCEPTED';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'LEGACY_IMPORT_CACHE_RETIRED' THEN RAISE; END IF; END;
  IF has_table_privilege('authenticated','app.official_pipeline_mode','UPDATE') OR has_function_privilege('service_role','app.guard_global_official_pipeline()','EXECUTE') THEN RAISE EXCEPTION 'GLOBAL_MODE_OR_GUARD_EXPOSED'; END IF;
 END $$;
 ROLLBACK;
