@@ -4,7 +4,7 @@ BEGIN;
 CREATE FUNCTION public.save_official_athlete_source_config(p_athlete_id uuid,p_url text,p_external_id text,
  p_external_name text,p_display_name text DEFAULT NULL,p_config_id uuid DEFAULT NULL) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
-DECLARE source uuid;config uuid;label text;
+DECLARE source uuid;config uuid;label text;account uuid;
 BEGIN
  PERFORM 1 FROM public.athletes a JOIN public.account_members m ON m.account_id=a.account_id
  WHERE a.id=p_athlete_id AND m.user_id=auth.uid() AND m.status='active' AND m.role IN('owner','admin','guardian') FOR SHARE OF a,m;
@@ -15,6 +15,13 @@ BEGIN
  THEN RAISE EXCEPTION 'INVALID_OFFICIAL_SOURCE_CONFIGURATION'; END IF;
  SELECT id INTO source FROM public.sources WHERE code='swimsystem' AND official AND active;
  IF source IS NULL THEN RAISE EXCEPTION 'OFFICIAL_SOURCE_UNAVAILABLE'; END IF;
+ SELECT account_id INTO account FROM public.athletes WHERE id=p_athlete_id;
+ PERFORM pg_advisory_xact_lock(hashtextextended('source-identity:'||account::text||':'||source::text||':'||trim(p_external_id),0));
+ IF EXISTS(SELECT 1 FROM public.athlete_source_configs c JOIN public.athletes a ON a.id=c.athlete_id
+  WHERE a.account_id=account AND a.id<>p_athlete_id AND c.source_id=source AND c.active AND c.external_id=trim(p_external_id))
+ OR EXISTS(SELECT 1 FROM public.athlete_identifiers i JOIN public.athletes a ON a.id=i.athlete_id
+  WHERE a.account_id=account AND a.id<>p_athlete_id AND i.source_id=source AND i.active AND i.external_id=trim(p_external_id))
+ THEN RAISE EXCEPTION 'SOURCE_IDENTITY_ALREADY_LINKED_IN_ACCOUNT'; END IF;
  IF EXISTS(SELECT 1 FROM public.athlete_identifiers WHERE athlete_id=p_athlete_id AND source_id=source AND active AND verified AND external_id<>trim(p_external_id)) THEN RAISE EXCEPTION 'SOURCE_IDENTITY_CONFLICT'; END IF;
  IF p_config_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.athlete_source_configs WHERE id=p_config_id AND athlete_id=p_athlete_id AND source_id=source) THEN RAISE EXCEPTION 'SOURCE_CONFIGURATION_ACCESS_DENIED'; END IF;
  label=coalesce(nullif(trim(p_display_name),''),'SwimSystem');

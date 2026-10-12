@@ -500,3 +500,15 @@ END $$;
 RESET ROLE;
 DO $$ BEGIN IF EXISTS(SELECT 1 FROM athlete_identifiers WHERE athlete_id='00000000-0000-4000-8000-000000000011' AND external_id='987654' AND verified) THEN RAISE EXCEPTION 'TYPED_SOURCE_IDENTITY_SELF_VERIFIED'; END IF; END $$;
 ROLLBACK;
+
+-- Same source identity may belong to separate accounts, but not two profiles
+-- in one account. Never merge automatically or compare names to resolve it.
+BEGIN;
+INSERT INTO athletes(id,account_id,full_name) VALUES('00000000-0000-4000-8000-000000000099','00000000-0000-4000-8000-000000000021','SYNTHETIC DUPLICATE PROFILE');
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-4000-8000-000000000031';
+DO $$ BEGIN
+ BEGIN PERFORM save_official_athlete_source_config('00000000-0000-4000-8000-000000000099','https://www.swimsystem.app','700001','SYNTHETIC DUPLICATE');RAISE EXCEPTION 'DUPLICATE_ACCOUNT_IDENTITY_ACCEPTED';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'SOURCE_IDENTITY_ALREADY_LINKED_IN_ACCOUNT' THEN RAISE; END IF; END;
+END $$;
+ROLLBACK;
