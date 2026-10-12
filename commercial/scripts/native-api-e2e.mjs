@@ -2,8 +2,6 @@
 import {createClient} from '@supabase/supabase-js';
 import {randomUUID,createHash} from 'node:crypto';import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
-import {processClaimedOfficialJob} from '../packages/official-worker/src/runner.mjs';
-import {extractOfficialPdfJs} from '../packages/official-worker/src/pdf-js-extractor.mjs';
 const api=process.env.API_URL,anon=process.env.ANON_KEY,key=process.env.SERVICE_ROLE_KEY;
 if(api!=='http://127.0.0.1:54321'||!anon||!key)throw Error('Native E2E requires isolated loopback Supabase');
 const options={auth:{persistSession:false,autoRefreshToken:false}};
@@ -40,19 +38,25 @@ if(process.argv[2]==='seed'){
  const rootJobs=await checked(admin.from('import_v2_jobs').select('*').eq('worker_version','official-v3').eq('status','pending').order('created_at'));
  const root=rootJobs.find(j=>j.cursor.scope==='meet_catalog');assert.ok(root,'UI must create the catalog request through native Auth');
  await checked(admin.from('import_v2_jobs').update({priority:-100}).eq('id',root.id));
- const rpc=(name,args)=>admin.rpc(name,args);
- const claimed=await checked(admin.rpc('claim_official_import_jobs',{p_limit:1}));assert.equal(claimed[0].id,root.id);
- const discovery=await processClaimedOfficialJob({job:claimed[0],rpc,extractPdf:extractOfficialPdfJs});
+ const token=process.env.OFFICIAL_IMPORT_WORKER_TOKEN;assert.ok(/^[a-f0-9]{64}$/.test(token||''));
+ const endpoint='http://127.0.0.1:8000';
+ const invoke=async expectedId=>{
+  const response=await fetch(endpoint,{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:'{}'});
+  const payload=await response.json();assert.equal(response.status,200,JSON.stringify(payload));assert.equal(payload.outcome,'jobs_processed');
+  assert.equal(payload.outcomes.length,1);assert.equal(payload.outcomes[0].jobId,expectedId);return payload.outcomes[0];
+ };
+ // Real production entrypoint over HTTP; neither Node handler nor mocked RPC.
+ const denied=await fetch(endpoint,{method:'POST',headers:{authorization:'Bearer '+token.slice(0,-1)+'z'},body:'{}'});assert.equal(denied.status,401);
+ const get=await fetch(endpoint);assert.equal(get.status,405);
+ const discovery=await invoke(root.id);
  assert.equal(discovery.outcome,'catalog_discovered',JSON.stringify(discovery));
  const children=await checked(admin.from('import_v2_jobs').select('*').eq('status','pending'));
  const target=children.find(j=>j.cursor.external_meet_id==='c8587533-2e44-4b08-991f-f827170c7344');assert.ok(target);
  await checked(admin.from('import_v2_jobs').update({priority:-101}).eq('id',target.id));
- const jobs=await checked(admin.rpc('claim_official_import_jobs',{p_limit:1}));assert.equal(jobs[0].id,target.id);
- const first=await processClaimedOfficialJob({job:jobs[0],rpc,extractPdf:extractOfficialPdfJs});assert.equal(first.status,'completed',JSON.stringify(first));assert.ok(first.inserted>0);
+ const first=await invoke(target.id);assert.equal(first.status,'completed',JSON.stringify(first));assert.ok(first.inserted>0);
  await checked(user.rpc('cancel_result_refresh_request',{p_request_id:root.request_id}));
  const repeat=await checked(user.rpc('request_official_meet_import',{p_athlete_id:state.a.athleteId,p_meet_url:'https://www.swimsystem.app/meets/sw/c8587533-2e44-4b08-991f-f827170c7344'}));
- const reclaims=await checked(admin.rpc('claim_official_import_jobs',{p_limit:1}));assert.equal(reclaims[0].id,repeat.job_id);
- const second=await processClaimedOfficialJob({job:reclaims[0],rpc,extractPdf:extractOfficialPdfJs});assert.equal(second.status,'completed',JSON.stringify(second));assert.equal(second.inserted,0);
+ const second=await invoke(repeat.job_id);assert.equal(second.status,'completed',JSON.stringify(second));assert.equal(second.inserted,0);
  const rows=await checked(user.from('v_result_timeline').select('*').eq('athlete_id',state.a.athleteId));assert.equal(rows.length,first.inserted);assert.ok(rows.every(r=>r.is_official));
  const other=createClient(api,anon,options);await checked(other.auth.signInWithPassword({email:state.b.email,password:state.b.password}));
  const forbidden=await checked(other.from('v_result_timeline').select('*').eq('athlete_id',state.a.athleteId));assert.deepEqual(forbidden,[]);
@@ -69,8 +73,8 @@ if(process.argv[2]==='seed'){
   manifest.push({file,url:document.source_url,rawHash:document.raw_hash,capturedAt:document.captured_at,bytes:bytes.length});
  }
  await fs.writeFile(originalRoot+'/manifest.json',JSON.stringify({mode:'native-local-live-original-captures',documents:manifest}));
- await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify({mode:'native-local-auth-rest-live-source',productionWrites:0,registration:state.registration,discovery,first,second,rows,sources,segregation:true}));
- console.log(JSON.stringify({mode:'native-local-auth-rest-live-source',productionWrites:0,registration:state.registration,inserted:first.inserted,reimported:second.inserted,segregation:true}));
+ await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify({mode:'native-deno-http-auth-rest-live-source',actualDenoEntrypoint:true,productionWrites:0,registration:state.registration,discovery,first,second,rows,sources,segregation:true}));
+ console.log(JSON.stringify({mode:'native-deno-http-auth-rest-live-source',actualDenoEntrypoint:true,productionWrites:0,registration:state.registration,inserted:first.inserted,reimported:second.inserted,segregation:true}));
 }else if(process.argv[2]==='verify-restart'){
  const state=JSON.parse(await fs.readFile(statePath,'utf8')),proof=JSON.parse(await fs.readFile('/tmp/viniswim-native-proof.json','utf8'));
  const user=createClient(api,anon,options);await checked(user.auth.signInWithPassword({email:state.a.email,password:state.a.password}));

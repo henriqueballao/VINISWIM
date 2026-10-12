@@ -2,7 +2,7 @@ name: Native local Auth and live-source pipeline (no production writes)
 on:
   push:
     branches: ['fix/official-import-audit-20261011']
-    paths: ['commercial/apps/web/src/**', 'commercial/supabase/proposals/**', 'commercial/scripts/native-*.cjs', 'commercial/scripts/native-*.mjs', 'scripts/setup-native-api-fixture.py', 'scripts/build-official-migration-candidate.py', '.github/workflows/native-api-e2e.yml']
+    paths: ['commercial/apps/web/src/**', 'commercial/supabase/proposals/**', 'commercial/scripts/native-*.cjs', 'commercial/scripts/native-*.mjs', 'scripts/setup-native-api-fixture.py', 'scripts/build-official-migration-candidate.py', 'commercial/supabase/functions/official-import-runner/**', 'commercial/packages/official-worker/**', '.github/workflows/native-api-e2e.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,6 +15,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.1.4
       - uses: supabase/setup-cli@v1
         with:
           version: 2.120.0
@@ -65,7 +68,16 @@ jobs:
           set -euo pipefail
           npm --workspace @viniswim/web run preview -- --host 127.0.0.1 --port 4173 > /tmp/native-preview.log 2>&1 &
           preview_pid=$!
-          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          export SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          export OFFICIAL_IMPORT_WORKER_TOKEN="$(openssl rand -hex 32)"
+          echo "::add-mask::$OFFICIAL_IMPORT_WORKER_TOKEN"
+          deno run --frozen --config supabase/functions/official-import-runner/deno.json --allow-net --allow-env --allow-read --allow-write --allow-sys supabase/functions/official-import-runner/index.ts > /tmp/native-deno.log 2>&1 &
+          deno_pid=$!
+          trap 'kill "$preview_pid" "$deno_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/ | rg -q '^405$'; then break; fi
+            sleep 1
+          done
           for i in $(seq 1 40); do
             if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi
             sleep 1
