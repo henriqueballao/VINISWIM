@@ -1,6 +1,6 @@
 // Local Supabase Auth/PostgREST + real worker/source; NEVER production.
 import {createClient} from '@supabase/supabase-js';
-import {randomUUID} from 'node:crypto';import fs from 'node:fs/promises';
+import {randomUUID,createHash} from 'node:crypto';import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {processClaimedOfficialJob} from '../packages/official-worker/src/runner.mjs';
 import {extractOfficialPdfJs} from '../packages/official-worker/src/pdf-js-extractor.mjs';
@@ -59,6 +59,16 @@ if(process.argv[2]==='seed'){
  const direct=await user.rpc('persist_official_catalog',{p_job_id:root.id,p_lease_token:randomUUID(),p_catalog:{}});assert.ok(direct.error,'Browser cannot invoke service persistence');
  const sources=await checked(admin.from('result_sources').select('result_id,source_url,raw_hash,retrieved_at').in('result_id',rows.map(r=>r.id)));
  assert.equal(sources.length,rows.length);assert.ok(sources.every(s=>/^[a-f0-9]{64}$/.test(s.raw_hash)));
+ const originals=await checked(admin.from('official_import_documents').select('source_url,raw_hash,captured_at,raw_bytes').eq('source_id',state.sourceId));
+ const originalRoot='/tmp/native-official-originals';await fs.mkdir(originalRoot,{recursive:true});
+ const manifest=[];
+ for(const document of originals){
+  assert.ok(/^\\x[a-f0-9]+$/i.test(document.raw_bytes));
+  const bytes=Buffer.from(document.raw_bytes.slice(2),'hex');assert.equal(createHash('sha256').update(bytes).digest('hex'),document.raw_hash);
+  const file=document.raw_hash+'.pdf';await fs.writeFile(originalRoot+'/'+file,bytes);
+  manifest.push({file,url:document.source_url,rawHash:document.raw_hash,capturedAt:document.captured_at,bytes:bytes.length});
+ }
+ await fs.writeFile(originalRoot+'/manifest.json',JSON.stringify({mode:'native-local-live-original-captures',documents:manifest}));
  await fs.writeFile('/tmp/viniswim-native-proof.json',JSON.stringify({mode:'native-local-auth-rest-live-source',productionWrites:0,registration:state.registration,discovery,first,second,rows,sources,segregation:true}));
  console.log(JSON.stringify({mode:'native-local-auth-rest-live-source',productionWrites:0,registration:state.registration,inserted:first.inserted,reimported:second.inserted,segregation:true}));
 }else if(process.argv[2]==='verify-restart'){

@@ -95,7 +95,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: native-api-operational-proof
-          path: /tmp/viniswim-native-proof.json
+          path: |
+            /tmp/viniswim-native-proof.json
+            /tmp/native-official-originals/
           if-no-files-found: warn
           retention-days: 30
       - name: Stop disposable local services
