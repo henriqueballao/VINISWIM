@@ -3,6 +3,8 @@
 Atue como revisor técnico adversarial do VINISWIM. Consulte diretamente o repositório henriqueballao/VINISWIM, branch fix/official-import-audit-20261011, PR draft #17. Não aceite relato do Codex como comprovação de produção.
 
 Leia primeiro:
+- docs/audit/2026-10-12/athlete-catalog-discovery.md e athlete-catalog-discovery-evidence.json (candidata até 5d57a2d6; catálogo público de 70 links e replay isolado, sem publicação);
+
 - docs/audit/2026-10-12/manual-planning-and-shared-meet.md e manual-planning-and-shared-meet-evidence.json (correções R4/metadados candidatas até 4b64896d; produção vazia);
 - docs/audit/2026-10-11/authorized-legacy-cleanup.md (limpeza autorizada 17bc962 e holds aplicados; não restaurar dados nem desbloquear importadores);
 - docs/audit/2026-10-11/independent-technical-assessment-01a5fb9.md (parecer ea19d91);
@@ -29,6 +31,6 @@ Confirme ou refute, com localização e teste reproduzível:
 7. Originais da competição de outubro e histórica 9b002997: Vini/Lorenzo/André por registro exato, resultados e inscrições separados, DNS preservado. Ausência de André em outubro não prova ausência histórica. A suíte gravou em PostgreSQL descartável, não no Supabase ativo.
 8. UI candidata: associação de resultado à corrida exata e nova view invoker, ambiguidade, request autenticado, progresso, respostas atrasadas por tenant/atleta, falhas de leitura, CRUD exclusivamente manual e separação por prova/piscina nos gráficos e melhores marcas. Mocks não comprovam UI publicada.
 9. npm/Deno locks, build frozen, scripts de lifecycle, integridade dos ZIPs e reprodutibilidade após expiração de artifacts. Deno no Actions não comprova limites reais de CPU/memória da Edge.
-10. Propostas de subscriptions, Vault/cron autenticado e fence de escritores antigos; testes de agendamento usam Vault/net sintéticos. Compare o espelho das 12 tabelas centrais com produção e identifique dependências ainda em stubs. Pendências: ativação coordenada, novas publicações em operação automática, demais fontes, histórico completo, reconciliação, produção/E2E/restart.
+10. Propostas de subscriptions, Vault/cron autenticado e fence de escritores antigos; testes de agendamento usam Vault/net sintéticos. Compare o espelho das 12 tabelas centrais com produção e identifique dependências ainda em stubs. Pendências: ativação coordenada e fence global do legado, novas publicações em operação automática publicada, demais fontes, histórico completo, reconciliação, produção/E2E/restart. Examine fan-out sem alterar UNIQUE(request_id,source_id,job_type), root locks, progresso/cancelamento de filhos, enrollment automático e fonte desativada.
 
 Entregue uma matriz de achados: confirmado/refutado/não verificado, gravidade, arquivo/linha/commit, evidência e correção necessária. Reavalie individualmente os 12 gates do documento original. Todos permanecem REPROVADOS enquanto não houver prova operacional da cadeia publicada. Uma suíte verde em ambiente isolado não aprova gates de produção. Preserve os avanços comprovados sem declarar sucesso além da evidência.
