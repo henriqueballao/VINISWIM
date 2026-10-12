@@ -38,7 +38,7 @@ const tables={
     if(path.startsWith('/rest/v1/')&&req.method()==='GET'){
       const table=decodeURIComponent(path.split('/').pop());
       if(table==='account_members'&&accountReadFailure)return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'SYNTHETIC unavailable account read'})});
-      const data=table==='v_meet_entry_timeline'?[...tables[table],...manualRows]:Object.hasOwn(tables,table)?tables[table]:[];
+      const data=table==='v_meet_entry_timeline'?[...tables[table],...manualRows]:table==='meets'?[...tables.meets,...manualRows.map(row=>row.meets)]:Object.hasOwn(tables,table)?tables[table]:[];
       return route.fulfill({status:200,contentType:'application/json',headers:{'content-range':'0-0/1'},body:JSON.stringify(data)});
     }
     // Supabase RPC transport is POST even for read-only operations.
