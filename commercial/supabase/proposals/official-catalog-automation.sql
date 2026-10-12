@@ -16,6 +16,7 @@ CREATE POLICY catalog_subscription_member_read ON public.official_catalog_subscr
 );
 CREATE FUNCTION public.enroll_official_catalog_from_config() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+DECLARE blocked_request uuid;
 BEGIN
  IF auth.uid() IS NULL THEN RETURN NEW; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.sources WHERE id=NEW.source_id AND code='swimsystem' AND official AND active) THEN RETURN NEW; END IF;
@@ -23,7 +24,19 @@ BEGIN
   UPDATE public.official_catalog_subscriptions SET active=false,updated_at=now() WHERE athlete_id=NEW.athlete_id AND source_id=NEW.source_id;
   RETURN NEW;
  END IF;
- PERFORM public.request_official_catalog_import(NEW.athlete_id);
+ BEGIN
+  PERFORM public.request_official_catalog_import(NEW.athlete_id);
+ EXCEPTION WHEN raise_exception THEN
+  IF SQLERRM<>'SOURCE_IDENTITY_MISSING_OR_AMBIGUOUS' THEN RAISE; END IF;
+  -- Preserve config edits needed to resolve identity; report a blocked request,
+  -- rather than rolling the config save back or silently claiming enrollment.
+  UPDATE public.official_catalog_subscriptions SET active=false,updated_at=now() WHERE athlete_id=NEW.athlete_id AND source_id=NEW.source_id;
+  INSERT INTO public.refresh_requests(athlete_id,requested_by,source_codes,job_count)
+  VALUES(NEW.athlete_id,auth.uid(),ARRAY['swimsystem'],1) RETURNING id INTO blocked_request;
+  INSERT INTO public.import_v2_jobs(request_id,athlete_id,source_id,job_type,worker_version,status,failure_code,last_error,cursor)
+  VALUES(blocked_request,NEW.athlete_id,NEW.source_id,'historical','official-v3','blocked','identity_not_found','SOURCE_IDENTITY_MISSING_OR_AMBIGUOUS',jsonb_build_object('scope','meet_catalog','catalog_url','https://www.swimsystem.app/meets'));
+  RETURN NEW;
+ END;
  INSERT INTO public.official_catalog_subscriptions(athlete_id,source_id,requested_by)
  VALUES(NEW.athlete_id,NEW.source_id,auth.uid())
  ON CONFLICT(athlete_id,source_id) DO UPDATE SET requested_by=excluded.requested_by,active=true,updated_at=now();

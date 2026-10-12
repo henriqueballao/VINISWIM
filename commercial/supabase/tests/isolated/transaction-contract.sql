@@ -430,3 +430,24 @@ DO $$ DECLARE j import_v2_jobs;ctx jsonb;payload jsonb;outcome jsonb;raw bytea;B
  EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'RECEIPT_PAYLOAD_MISMATCH' THEN RAISE; END IF; END;
 END $$;
 ROLLBACK;
+
+-- SYNTHETIC arbitrary new registration enrolls from config, without UI click.
+BEGIN;
+SET LOCAL request.jwt.claim.sub='00000000-0000-4000-8000-000000000031';
+UPDATE athlete_identifiers SET external_id='987654' WHERE athlete_id='00000000-0000-4000-8000-000000000011';
+INSERT INTO athlete_source_configs(athlete_id,source_id,display_name,source_url,external_id,active)
+VALUES('00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000001','SYNTHETIC ARBITRARY REGISTRATION','https://www.swimsystem.app','987654',true);
+DO $$ DECLARE j import_v2_jobs;answer jsonb;BEGIN
+ IF NOT EXISTS(SELECT 1 FROM official_catalog_subscriptions WHERE athlete_id='00000000-0000-4000-8000-000000000011' AND active) THEN RAISE EXCEPTION 'CONFIG_DID_NOT_ENROLL'; END IF;
+ UPDATE import_v2_jobs SET priority=-1 WHERE cursor->>'scope'='meet_catalog';
+ SELECT * INTO j FROM claim_official_import_jobs(1);
+ IF load_official_import_context(j.id,j.lease_token)->'identity'->>'externalId'<>'987654' THEN RAISE EXCEPTION 'ARBITRARY_REGISTRATION_NOT_RESOLVED'; END IF;
+ UPDATE official_catalog_subscriptions SET next_scan_at=now();
+ answer=enqueue_official_catalog_scans();
+ IF answer->>'enqueued'<>'0' THEN RAISE EXCEPTION 'SCHEDULER_DUPLICATED_ACTIVE_SCAN'; END IF;
+ UPDATE athlete_source_configs SET active=false WHERE athlete_id=j.athlete_id;
+ BEGIN PERFORM load_official_import_context(j.id,j.lease_token);RAISE EXCEPTION 'DISABLED_SOURCE_STILL_AUTHORIZED';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'REQUEST_ACCESS_REVOKED' THEN RAISE; END IF; END;
+ IF EXISTS(SELECT 1 FROM official_catalog_subscriptions WHERE athlete_id=j.athlete_id AND active) THEN RAISE EXCEPTION 'DISABLED_CONFIG_STILL_ENROLLED'; END IF;
+END $$;
+ROLLBACK;

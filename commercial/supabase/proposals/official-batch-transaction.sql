@@ -69,7 +69,9 @@ BEGIN
  IF source_code IS DISTINCT FROM 'swimsystem' THEN RAISE EXCEPTION 'UNSUPPORTED_OFFICIAL_SOURCE'; END IF;
  external_id=p_batch->>'athleteExternalId';
  PERFORM 1 FROM public.athlete_identifiers WHERE athlete_id=a.id AND source_id=j.source_id AND active AND verified FOR SHARE;
- PERFORM 1 FROM public.athlete_source_configs WHERE athlete_id=a.id AND source_id=j.source_id AND active FOR SHARE;
+ PERFORM 1 FROM public.athlete_source_configs WHERE athlete_id=a.id AND source_id=j.source_id FOR SHARE;
+ IF EXISTS(SELECT 1 FROM public.athlete_source_configs WHERE athlete_id=a.id AND source_id=j.source_id)
+ AND NOT EXISTS(SELECT 1 FROM public.athlete_source_configs WHERE athlete_id=a.id AND source_id=j.source_id AND active) THEN RAISE EXCEPTION 'REQUEST_ACCESS_REVOKED'; END IF;
  SELECT count(DISTINCT ids.external_id) INTO identity_count FROM (
   SELECT external_id FROM public.athlete_identifiers WHERE athlete_id=a.id AND source_id=j.source_id AND active AND verified
   UNION ALL SELECT external_id FROM public.athlete_source_configs WHERE athlete_id=a.id AND source_id=j.source_id AND active

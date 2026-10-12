@@ -12,6 +12,8 @@ BEGIN
  SELECT * INTO a FROM public.athletes WHERE id=j.athlete_id;
  IF NOT FOUND OR rr.athlete_id IS DISTINCT FROM a.id OR NOT EXISTS(SELECT 1 FROM public.account_members WHERE account_id=a.account_id AND user_id=rr.requested_by AND status='active') THEN RAISE EXCEPTION 'REQUEST_ACCESS_REVOKED'; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.sources WHERE id=j.source_id AND code='swimsystem' AND active AND official) THEN RAISE EXCEPTION 'UNSUPPORTED_OFFICIAL_SOURCE'; END IF;
+ IF EXISTS(SELECT 1 FROM public.athlete_source_configs WHERE athlete_id=a.id AND source_id=j.source_id)
+ AND NOT EXISTS(SELECT 1 FROM public.athlete_source_configs WHERE athlete_id=a.id AND source_id=j.source_id AND active) THEN RAISE EXCEPTION 'REQUEST_ACCESS_REVOKED'; END IF;
  SELECT array_agg(DISTINCT external_id) INTO ids FROM (
   SELECT external_id FROM public.athlete_identifiers WHERE athlete_id=a.id AND source_id=j.source_id AND active AND verified
   UNION ALL SELECT external_id FROM public.athlete_source_configs WHERE athlete_id=a.id AND source_id=j.source_id AND active
