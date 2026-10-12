@@ -1,5 +1,6 @@
 -- Candidate NOT APPLIED. Read both contracts without changing legacy writes.
 -- Requires official-event-integrity.sql. Never backfills official provenance.
+-- Also requires manual-meet-entry.sql for separately labelled manual plans.
 BEGIN;
 REVOKE ALL ON public.official_meet_entries FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.official_meet_entries TO authenticated;
@@ -28,7 +29,13 @@ CREATE VIEW public.v_meet_entry_timeline WITH(security_invoker=true) AS
   'legacy'::text AS entry_origin,to_jsonb(m) AS meets
  FROM public.meet_entries e JOIN public.meets m ON m.id=e.meet_id
  WHERE NOT EXISTS(SELECT 1 FROM public.official_meet_entries o
-  WHERE o.athlete_id=e.athlete_id AND o.meet_id=e.meet_id AND o.event_id=e.event_id);
+  WHERE o.athlete_id=e.athlete_id AND o.meet_id=e.meet_id AND o.event_id=e.event_id)
+ UNION ALL
+ SELECT e.id,e.meet_id,e.athlete_id,e.event_id,e.seed_time_ms,e.heat,e.lane,'entered'::text,
+  e.created_at,e.updated_at,NULL::uuid,NULL::text,NULL::timestamptz,
+  NULL::text,NULL::text,NULL::text,NULL::date,NULL::public.swim_course,
+  'manual'::text AS entry_origin,to_jsonb(m) AS meets
+ FROM public.manual_meet_entries e JOIN public.meets m ON m.id=e.meet_id;
 REVOKE ALL ON public.v_meet_entry_timeline FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.v_meet_entry_timeline TO authenticated,service_role;
 COMMIT;

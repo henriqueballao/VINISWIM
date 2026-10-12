@@ -8,6 +8,7 @@ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(
 GRANT USAGE ON SCHEMA auth TO authenticated;
 \ir published-core-schema.sql
 \ir ../../proposals/official-event-integrity.sql
+\ir ../../proposals/manual-meet-entry.sql
 \ir ../../proposals/official-entry-read-model.sql
 \ir ../../proposals/official-result-timeline.sql
 \ir ../../proposals/official-worker-leases.sql
@@ -329,4 +330,35 @@ SET LOCAL request.jwt.claim.sub='00000000-0000-4000-8000-000000000032';
 DO $$ BEGIN
  IF (SELECT count(*) FROM v_meet_entry_timeline)<>1 OR EXISTS(SELECT 1 FROM v_meet_entry_timeline WHERE entry_origin<>'legacy' OR athlete_id<>'00000000-0000-4000-8000-000000000012') OR EXISTS(SELECT 1 FROM official_meet_entries) THEN RAISE EXCEPTION 'Legacy-only account read crosses tenant'; END IF;
 END $$;
+ROLLBACK;
+
+-- SYNTHETIC manual planning: atomic authenticated RPC, no official writes.
+BEGIN;
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-4000-8000-000000000031';
+DO $$ DECLARE saved jsonb; BEGIN
+ saved=create_manual_meet_entry('00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000041','SYNTHETIC MANUAL ONLY','2026-10-20','SCM',NULL,NULL,42070,1,0);
+ IF saved->>'entry_origin'<>'manual' OR NOT EXISTS(SELECT 1 FROM v_meet_entry_timeline WHERE id=(saved->>'entry_id')::uuid AND entry_origin='manual' AND seed_time_ms=42070 AND lane=0 AND official_event_number IS NULL) THEN RAISE EXCEPTION 'MANUAL_READ_CONTRACT_FAILED'; END IF;
+ BEGIN
+  PERFORM create_manual_meet_entry('00000000-0000-4000-8000-000000000012','00000000-0000-4000-8000-000000000041','CROSS TENANT DENIED','2026-10-20','SCM');RAISE EXCEPTION 'MANUAL_TENANT_BYPASS';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'MANUAL_ENTRY_ACCESS_DENIED' THEN RAISE; END IF; END;
+ BEGIN
+  INSERT INTO manual_meet_entries(meet_id,athlete_id,event_id,created_by) VALUES((saved->>'meet_id')::uuid,'00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000041',auth.uid());RAISE EXCEPTION 'MANUAL_DIRECT_WRITE_BYPASS';
+ EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ BEGIN
+  PERFORM create_manual_meet_entry('00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000041','INVALID SEED','2026-10-20','SCM',NULL,NULL,-1);RAISE EXCEPTION 'INVALID_SEED_ACCEPTED';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'INVALID_MANUAL_ENTRY' THEN RAISE; END IF; END;
+END $$;
+SET LOCAL request.jwt.claim.sub='00000000-0000-4000-8000-000000000032';
+DO $$ BEGIN IF EXISTS(SELECT 1 FROM manual_meet_entries) OR EXISTS(SELECT 1 FROM meets WHERE name='SYNTHETIC MANUAL ONLY') THEN RAISE EXCEPTION 'MANUAL_PLAN_LEAKED'; END IF; END $$;
+RESET ROLE;
+UPDATE account_members SET role='viewer' WHERE user_id='00000000-0000-4000-8000-000000000031';
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='00000000-0000-4000-8000-000000000031';
+DO $$ BEGIN
+ BEGIN PERFORM create_manual_meet_entry('00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000041','VIEWER DENIED','2026-10-20','SCM');RAISE EXCEPTION 'VIEWER_WRITER_BYPASS';
+ EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'MANUAL_ENTRY_ACCESS_DENIED' THEN RAISE; END IF; END;
+END $$;
+RESET ROLE;
+DO $$ BEGIN IF EXISTS(SELECT 1 FROM meets WHERE name IN('INVALID SEED','VIEWER DENIED','CROSS TENANT DENIED')) THEN RAISE EXCEPTION 'FAILED_MANUAL_RPC_LEFT_ORPHAN_MEET'; END IF; END $$;
 ROLLBACK;
