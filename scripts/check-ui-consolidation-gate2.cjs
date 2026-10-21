@@ -10,7 +10,7 @@ const assert = require('node:assert/strict');
 
 const indexFile = path.resolve(__dirname, '../app/index.html');
 const index = fs.readFileSync(indexFile, 'utf8');
-const assets = [...index.matchAll(/src=["']\.\/assets\/([^"']+\.js)["']/g)];
+const assets = [...index.matchAll(/src=["']\.\/assets\/([^"']+\.js)(?:[?#][^"']*)?["']/g)];
 assert.equal(assets.length, 1, 'O app deve referenciar exatamente um bundle JS principal');
 const bundlePath = path.resolve(__dirname, '../app/assets', assets[0][1]);
 const js = fs.readFileSync(bundlePath, 'utf8');
@@ -42,3 +42,4 @@ for (const [label, ok] of checks) {
 }
 console.log(`Gate 2: ${checks.length - fails}/${checks.length} verificações; ${fails} pendências.`);
 if (fails) process.exitCode = 1;
+

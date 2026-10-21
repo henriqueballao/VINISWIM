@@ -35,7 +35,10 @@ export function parseResultList({text,identity,meet,sourceUrl,retrievedAt}){
  while(from<flat.length){
   const pos=flat.indexOf(id,from);if(pos<0)break;from=pos+id.length;
   const left=pos?flat[pos-1]:" ";if(/\d/.test(left))continue;
-  const right=flat[pos+id.length]||" ";if(!/\s|\d/.test(right))continue;
+  const suffix=flat.slice(pos+id.length),right=suffix[0]||" ";
+  // Compact PDF extraction may concatenate registration and birth year.
+  // Only that exact four-digit year is allowed after the complete identifier.
+  if(!/\s/.test(right)&&! /^(?:19|20)\d{2}(?=\D|$)/.test(suffix))continue;
   const row=athleteRow(flat,id,pos);if(!row)continue;
   const status=rowStatus(row.prefix),timeMs=status?null:officialTime(row.after);
   if(timeMs==null&&!status)continue;
@@ -43,3 +46,4 @@ export function parseResultList({text,identity,meet,sourceUrl,retrievedAt}){
  }
  return out;
 }
+

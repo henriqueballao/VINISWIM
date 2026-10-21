@@ -1,0 +1,22 @@
+{
+  "mode": "immutable-original-publications-and-public-readonly-evidence",
+  "productionWrites": 0,
+  "archives": {
+    "20261011-1439": {
+      "file": "20261011-1439.zip",
+      "sha256": "fe8a5802867fae9a974483e98572af7ac998120428d55312756f1c36f8dfcbe5",
+      "bytes": 1539808,
+      "workflowRun": 38148027929,
+      "artifactId": 11705044606,
+      "description": "First live read-only capture: eight original PDFs, public competition HTML and public deployed frontend evidence."
+    },
+    "20261011-1748": {
+      "file": "20261011-1748.zip",
+      "sha256": "5d359b9f4b954aa178484f22208f2f5d9bd4246906fa4c7976bf2f30da99bb45",
+      "bytes": 2078768,
+      "workflowRun": 38161104219,
+      "artifactId": 11710551736,
+      "description": "Second live read-only capture: original public competition HTML, seeded/result publications and text for October current meet and configured historical September meet; exact registration scans for all three athletes."
+    }
+  }
+}

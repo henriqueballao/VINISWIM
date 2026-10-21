@@ -1,0 +1,937 @@
+{
+  "reviewedCommit": "57758343528fe661733aa9bf7e04037fbb87dc42",
+  "reviewType": "adversarial re-review by Codex; not independent external reviewer",
+  "productionWritesInThisReview": 0,
+  "productionSnapshot": {
+    "entries": 0,
+    "results": 252,
+    "captured_at": "2026-10-11T20:26:12.228904+00:00",
+    "active_crons": [
+      {
+        "name": "viniswim-push-dispatcher",
+        "active": true,
+        "schedule": "* * * * *"
+      },
+      {
+        "name": "viniswim-import-v2-runner",
+        "active": true,
+        "schedule": "* * * * *"
+      },
+      {
+        "name": "viniswim-all-athletes-all-sources",
+        "active": true,
+        "schedule": "0 */6 * * *"
+      },
+      {
+        "name": "viniswim-nightly-all-athlete-full-scan",
+        "active": true,
+        "schedule": "0 6 * * *"
+      }
+    ],
+    "personal_bests": 82,
+    "monitor_pending": 8,
+    "new_worker_function_exists": false,
+    "subscriptions_table_exists": false
+  },
+  "originSnapshot": {
+    "provenance": {
+      "rows": 252,
+      "url_present": 252,
+      "hash_present": 0,
+      "latest_capture": "2026-10-11T18:31:21.247+00:00",
+      "sample_metadata_keys": [
+        "parser_version",
+        "source_block",
+        "engine"
+      ]
+    },
+    "captured_at": "2026-10-11T20:26:47.040366+00:00",
+    "job_summary": [
+      {
+        "count": 9,
+        "status": "failed",
+        "inserted": 0,
+        "latest_update": "2026-10-11T18:47:00.861136+00:00"
+      },
+      {
+        "count": 21,
+        "status": "completed",
+        "inserted": 252,
+        "latest_update": "2026-10-11T18:31:39.964753+00:00"
+      }
+    ],
+    "audit_columns": [
+      "id",
+      "account_id",
+      "athlete_id",
+      "user_id",
+      "entity_type",
+      "entity_id",
+      "action",
+      "old_data",
+      "new_data",
+      "source",
+      "created_at"
+    ],
+    "result_groups": [
+      {
+        "count": 50,
+        "origin": "official",
+        "source": "fdap",
+        "athlete_id": "4949f776-8a46-4abe-9339-7d86192c82ca",
+        "is_official": true,
+        "last_created": "2026-10-11T18:30:17.522586+00:00",
+        "first_created": "2026-10-11T18:30:02.611859+00:00",
+        "creator_present": 0,
+        "fingerprint_present": 50
+      },
+      {
+        "count": 9,
+        "origin": "official",
+        "source": "swimsystem",
+        "athlete_id": "f02e62f2-4987-4c99-aa21-1b8d89b80e65",
+        "is_official": true,
+        "last_created": "2026-10-11T18:11:31.410485+00:00",
+        "first_created": "2026-10-11T18:11:15.070671+00:00",
+        "creator_present": 0,
+        "fingerprint_present": 9
+      },
+      {
+        "count": 48,
+        "origin": "official",
+        "source": "fdap",
+        "athlete_id": "29ccbda0-fd1b-4fba-a39b-3486f78588c4",
+        "is_official": true,
+        "last_created": "2026-10-11T18:26:14.734082+00:00",
+        "first_created": "2026-10-11T18:26:02.508362+00:00",
+        "creator_present": 0,
+        "fingerprint_present": 48
+      },
+      {
+        "count": 11,
+        "origin": "official",
+        "source": "swimsystem",
+        "athlete_id": "29ccbda0-fd1b-4fba-a39b-3486f78588c4",
+        "is_official": true,
+        "last_created": "2026-10-11T18:27:23.561819+00:00",
+        "first_created": "2026-10-11T18:27:13.977158+00:00",
+        "creator_present": 0,
+        "fingerprint_present": 11
+      },
+      {
+        "count": 48,
+        "origin": "official",
+        "source": "fdap",
+        "athlete_id": "32ff6a40-b7a3-4cf9-9739-35b6138993f9",
+        "is_official": true,
+        "last_created": "2026-10-11T18:22:14.144708+00:00",
+        "first_created": "2026-10-11T18:22:02.43463+00:00",
+        "creator_present": 0,
+        "fingerprint_present": 48
+      },
+      {
+        "count": 10,
+        "origin": "official",
+        "source": "swimsystem",
+        "athlete_id": "4949f776-8a46-4abe-9339-7d86192c82ca",
+        "is_official": true,
+        "last_created": "2026-10-11T18:31:22.181298+00:00",
+        "first_created": "2026-10-11T18:31:13.499086+00:00",
+        "creator_present": 0,
+        "fingerprint_present": 10
+      },
+      {
+        "count": 28,
+        "origin": "official",
+        "source": "fdap",
+        "athlete_id": "af41d466-479b-47e5-8ffb-6dd03ae26e4f",
+        "is_official": true,
+        "last_created": "2026-10-11T18:18:59.646155+00:00",
+        "first_created": "2026-10-11T18:18:52.805634+00:00",
+        "creator_present": 0,
+        "fingerprint_present": 28
+      },
+      {
+        "count": 9,
+        "origin": "official",
+        "source": "swimsystem",
+        "athlete_id": "af41d466-479b-47e5-8ffb-6dd03ae26e4f",
+        "is_official": true,
+        "last_created": "2026-10-11T18:19:27.613721+00:00",
+        "first_created": "2026-10-11T18:19:13.737069+00:00",
+        "creator_present": 0,
+        "fingerprint_present": 9
+      },
+      {
+        "count": 28,
+        "origin": "official",
+        "source": "fdap",
+        "athlete_id": "f02e62f2-4987-4c99-aa21-1b8d89b80e65",
+        "is_official": true,
+        "last_created": "2026-10-11T18:10:10.912289+00:00",
+        "first_created": "2026-10-11T18:10:02.826415+00:00",
+        "creator_present": 0,
+        "fingerprint_present": 28
+      },
+      {
+        "count": 11,
+        "origin": "official",
+        "source": "swimsystem",
+        "athlete_id": "32ff6a40-b7a3-4cf9-9739-35b6138993f9",
+        "is_official": true,
+        "last_created": "2026-10-11T18:23:21.004962+00:00",
+        "first_created": "2026-10-11T18:23:10.457818+00:00",
+        "creator_present": 0,
+        "fingerprint_present": 11
+      }
+    ]
+  },
+  "traceSnapshot": {
+    "captured_at": "2026-10-11T20:27:07.90976+00:00",
+    "audit_recent": [
+      {
+        "count": 252,
+        "action": "insert",
+        "source": "monitor",
+        "last_at": "2026-10-11T18:31:22.181298+00:00",
+        "first_at": "2026-10-11T18:10:02.826415+00:00",
+        "entity_type": "result",
+        "user_present": 0
+      }
+    ],
+    "critical_results": [
+      {
+        "event": "100 Livre",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 74560,
+        "raw_hash": null,
+        "athlete_id": "29ccbda0-fd1b-4fba-a39b-3486f78588c4",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-18",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "400 Livre",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 369120,
+        "raw_hash": null,
+        "athlete_id": "29ccbda0-fd1b-4fba-a39b-3486f78588c4",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-18",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "50 Costas",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 41310,
+        "raw_hash": null,
+        "athlete_id": "29ccbda0-fd1b-4fba-a39b-3486f78588c4",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-18",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "200 Livre",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 166540,
+        "raw_hash": null,
+        "athlete_id": "29ccbda0-fd1b-4fba-a39b-3486f78588c4",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-19",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "50 Livre",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 32060,
+        "raw_hash": null,
+        "athlete_id": "29ccbda0-fd1b-4fba-a39b-3486f78588c4",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-19",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "100 Costas",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 89020,
+        "raw_hash": null,
+        "athlete_id": "29ccbda0-fd1b-4fba-a39b-3486f78588c4",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-20",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "400 Livre",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 351300,
+        "raw_hash": null,
+        "athlete_id": "4949f776-8a46-4abe-9339-7d86192c82ca",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-18",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "50 Peito",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 42180,
+        "raw_hash": null,
+        "athlete_id": "4949f776-8a46-4abe-9339-7d86192c82ca",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-18",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "200 Livre",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 166580,
+        "raw_hash": null,
+        "athlete_id": "4949f776-8a46-4abe-9339-7d86192c82ca",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-19",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "200 Medley",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 196530,
+        "raw_hash": null,
+        "athlete_id": "4949f776-8a46-4abe-9339-7d86192c82ca",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-19",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "50 Borboleta",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 39020,
+        "raw_hash": null,
+        "athlete_id": "4949f776-8a46-4abe-9339-7d86192c82ca",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-19",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "100 Peito",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 97960,
+        "raw_hash": null,
+        "athlete_id": "4949f776-8a46-4abe-9339-7d86192c82ca",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-20",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "100 Livre",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 95180,
+        "raw_hash": null,
+        "athlete_id": "f02e62f2-4987-4c99-aa21-1b8d89b80e65",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-18",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "50 Costas",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 50240,
+        "raw_hash": null,
+        "athlete_id": "f02e62f2-4987-4c99-aa21-1b8d89b80e65",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-18",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "200 Livre",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 216380,
+        "raw_hash": null,
+        "athlete_id": "f02e62f2-4987-4c99-aa21-1b8d89b80e65",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-19",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "50 Livre",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "dns",
+        "time_ms": null,
+        "raw_hash": null,
+        "athlete_id": "f02e62f2-4987-4c99-aa21-1b8d89b80e65",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-19",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      },
+      {
+        "event": "100 Costas",
+        "course": "LCM",
+        "origin": "official",
+        "source": "swimsystem",
+        "status": "valid",
+        "time_ms": 106090,
+        "raw_hash": null,
+        "athlete_id": "f02e62f2-4987-4c99-aa21-1b8d89b80e65",
+        "source_url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
+        "result_date": "2026-09-20",
+        "meet_external_id": "9b002997-591e-4f74-8492-ef595b4705c0"
+      }
+    ],
+    "provenance_engines": [
+      {
+        "count": 202,
+        "engine": "v2",
+        "parser_version": "resultlist-v2.7"
+      },
+      {
+        "count": 50,
+        "engine": "v2",
+        "parser_version": "swimsystem-modern-results-v1"
+      }
+    ],
+    "duplicate_natural_groups": 0
+  },
+  "legacyJobSnapshot": {
+    "captured_at": "2026-10-11T20:27:21.34453+00:00",
+    "recent_jobs": [
+      {
+        "source": "fgda",
+        "status": "failed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": "source_identity_missing: historical search requires verified athlete identifier for fgda",
+        "updated_at": "2026-10-11T18:47:00.861136+00:00",
+        "failure_code": "unknown",
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "fgda",
+        "status": "failed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": "source_identity_missing: historical search requires verified athlete identifier for fgda",
+        "updated_at": "2026-10-11T18:46:00.934048+00:00",
+        "failure_code": "unknown",
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "fgda",
+        "status": "failed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": "source_identity_missing: historical search requires verified athlete identifier for fgda",
+        "updated_at": "2026-10-11T18:45:02.723892+00:00",
+        "failure_code": "unknown",
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "fgda",
+        "status": "failed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": "source_identity_missing: historical search requires verified athlete identifier for fgda",
+        "updated_at": "2026-10-11T18:44:01.662962+00:00",
+        "failure_code": "unknown",
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "swimsystem",
+        "status": "failed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": "source_identity_missing: historical search requires verified athlete identifier for swimsystem",
+        "updated_at": "2026-10-11T18:43:00.939176+00:00",
+        "failure_code": "unknown",
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "fdap",
+        "status": "failed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": "source_identity_missing: historical search requires verified athlete identifier for fdap",
+        "updated_at": "2026-10-11T18:42:00.707019+00:00",
+        "failure_code": "unknown",
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "fgda",
+        "status": "failed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": "source_identity_missing: historical search requires verified athlete identifier for fgda",
+        "updated_at": "2026-10-11T18:41:00.758015+00:00",
+        "failure_code": "unknown",
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "fgda",
+        "status": "failed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": "source_identity_missing: historical search requires verified athlete identifier for fgda",
+        "updated_at": "2026-10-11T18:40:00.810489+00:00",
+        "failure_code": "unknown",
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "swimsystem",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:31:39.964753+00:00",
+        "failure_code": null,
+        "records_found": 10,
+        "records_inserted": 10,
+        "records_duplicated": 0
+      },
+      {
+        "source": "fdap",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:30:17.581411+00:00",
+        "failure_code": null,
+        "records_found": 50,
+        "records_inserted": 50,
+        "records_duplicated": 0
+      },
+      {
+        "source": "masters_parana",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:28:04.923203+00:00",
+        "failure_code": null,
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "swimsystem",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:27:40.682243+00:00",
+        "failure_code": null,
+        "records_found": 11,
+        "records_inserted": 11,
+        "records_duplicated": 0
+      },
+      {
+        "source": "fdap",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:26:14.776892+00:00",
+        "failure_code": null,
+        "records_found": 48,
+        "records_inserted": 48,
+        "records_duplicated": 0
+      },
+      {
+        "source": "masters_parana",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:24:05.268727+00:00",
+        "failure_code": null,
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "swimsystem",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:23:40.736605+00:00",
+        "failure_code": null,
+        "records_found": 11,
+        "records_inserted": 11,
+        "records_duplicated": 0
+      },
+      {
+        "source": "fdap",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:22:14.242285+00:00",
+        "failure_code": null,
+        "records_found": 48,
+        "records_inserted": 48,
+        "records_duplicated": 0
+      },
+      {
+        "source": "masters_parana",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:20:06.08695+00:00",
+        "failure_code": null,
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "swimsystem",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:19:47.189404+00:00",
+        "failure_code": null,
+        "records_found": 9,
+        "records_inserted": 9,
+        "records_duplicated": 0
+      },
+      {
+        "source": "fdap",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:18:59.695267+00:00",
+        "failure_code": null,
+        "records_found": 28,
+        "records_inserted": 28,
+        "records_duplicated": 0
+      },
+      {
+        "source": "masters_parana",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:16:05.770391+00:00",
+        "failure_code": null,
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "swimsystem",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:12:11.100023+00:00",
+        "failure_code": null,
+        "records_found": 9,
+        "records_inserted": 9,
+        "records_duplicated": 0
+      },
+      {
+        "source": "masters_parana",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:12:04.837307+00:00",
+        "failure_code": null,
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "fdap",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:10:10.969399+00:00",
+        "failure_code": null,
+        "records_found": 28,
+        "records_inserted": 28,
+        "records_duplicated": 0
+      },
+      {
+        "source": "swimsystem",
+        "status": "failed",
+        "job_type": "current_meet",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": "parser no match: missing external identity",
+        "updated_at": "2026-10-11T18:08:00.627614+00:00",
+        "failure_code": "parser_no_match",
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "masters_parana",
+        "status": "completed",
+        "job_type": "historical",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:07:05.822927+00:00",
+        "failure_code": null,
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "swimsystem",
+        "status": "completed",
+        "job_type": "current_meet",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:05:09.723977+00:00",
+        "failure_code": null,
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "swimsystem",
+        "status": "completed",
+        "job_type": "current_meet",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:04:10.420279+00:00",
+        "failure_code": null,
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "swimsystem",
+        "status": "completed",
+        "job_type": "current_meet",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:03:11.776848+00:00",
+        "failure_code": null,
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "swimsystem",
+        "status": "completed",
+        "job_type": "current_meet",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:02:08.215336+00:00",
+        "failure_code": null,
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      },
+      {
+        "source": "swimsystem",
+        "status": "completed",
+        "job_type": "current_meet",
+        "created_at": "2026-10-11T18:00:00.042533+00:00",
+        "last_error": null,
+        "updated_at": "2026-10-11T18:01:11.878504+00:00",
+        "failure_code": null,
+        "records_found": 0,
+        "records_inserted": 0,
+        "records_duplicated": 0
+      }
+    ],
+    "critical_meet": [
+      {
+        "id": "c805dbbb-60e3-47a8-9a4c-f9bcbddd1f5a",
+        "end_date": "2026-10-11",
+        "start_date": "2026-10-10",
+        "external_id": "c8587533-2e44-4b08-991f-f827170c7344"
+      }
+    ],
+    "swimsystem_meets": [
+      {
+        "name": "Torneio Regional da 1ª Região (Pré-Mirim/Petiz)",
+        "end_date": "2026-08-16",
+        "start_date": "2026-08-15",
+        "external_id": "13a41f8d-fbce-4d6d-8b06-01c9d5f866f4",
+        "result_count": 22,
+        "critical_dates": 0
+      },
+      {
+        "name": "Campeonato Paranaense de Verão (Mirim/Petiz)",
+        "end_date": "2026-09-20",
+        "start_date": "2026-09-18",
+        "external_id": "9b002997-591e-4f74-8492-ef595b4705c0",
+        "result_count": 28,
+        "critical_dates": 0
+      }
+    ]
+  },
+  "historicalProductionComparison": [
+    {
+      "registry": "422692",
+      "comparedMeet": "9b002997-591e-4f74-8492-ef595b4705c0",
+      "expected": 5,
+      "actual": 5,
+      "matched": 5,
+      "scope": "tuple comparison against archived original capture, not completeness, unique race descriptors or original byte capture of legacy job"
+    },
+    {
+      "registry": "399680",
+      "comparedMeet": "9b002997-591e-4f74-8492-ef595b4705c0",
+      "expected": 6,
+      "actual": 6,
+      "matched": 6,
+      "scope": "tuple comparison against archived original capture, not completeness, unique race descriptors or original byte capture of legacy job"
+    },
+    {
+      "registry": "393259",
+      "comparedMeet": "9b002997-591e-4f74-8492-ef595b4705c0",
+      "expected": 6,
+      "actual": 6,
+      "matched": 6,
+      "scope": "tuple comparison against archived original capture, not completeness, unique race descriptors or original byte capture of legacy job"
+    }
+  ],
+  "failingContracts": {
+    "commit": "2b45a7bb8272a476e5263212a7879da9bc784fdd",
+    "run": 38172476437,
+    "errorDiagnostics": {
+      "job": 114567794080,
+      "conclusion": "failure",
+      "assertionsFailed": 3
+    },
+    "legacyUpsert": {
+      "job": 114567794356,
+      "conclusion": "failure",
+      "sqlstate": "42P10"
+    }
+  },
+  "verifiedPriorRuns": [
+    {
+      "run": 38166665908,
+      "scope": "isolated SQL and archived official PDFs",
+      "conclusion": "success"
+    },
+    {
+      "run": 38165004790,
+      "scope": "Node/Deno candidate, public capture; no Supabase persistence",
+      "conclusion": "success"
+    },
+    {
+      "run": 38167462968,
+      "scope": "synthetic preview browser, not published UI",
+      "conclusion": "success"
+    }
+  ],
+  "gates": [
+    {
+      "gate": 1,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 2,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 3,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 4,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 5,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 6,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 7,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 8,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 9,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 10,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 11,
+      "status": "REPROVADO"
+    },
+    {
+      "gate": 12,
+      "status": "REPROVADO"
+    }
+  ]
+}
