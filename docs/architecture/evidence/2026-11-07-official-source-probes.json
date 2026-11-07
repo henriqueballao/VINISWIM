@@ -1,0 +1,185 @@
+{
+  "date": "2026-11-07",
+  "timezone": "UTC",
+  "method": "Public HTTPS GET; no credentials. HTTP time is elapsed time in the investigation environment. Hash covers the response bytes including error responses.",
+  "candidate": "ed9c5f5e47339ecc9640567333de67a497084aa6",
+  "main": "62c1b51b6e8bf1614817bbb9f6fea6b33ad43c8c",
+  "http": [
+    {
+      "probe": "app",
+      "status": 200,
+      "contentType": "text/html",
+      "bytes": 862,
+      "seconds": 4.325387,
+      "url": "https://viniswim.com.br/app/",
+      "sha256": "c222f04674b975346b072b68cf6bd4387d21b6424493ceb21f4b12e65f04538a"
+    },
+    {
+      "probe": "archive",
+      "status": 503,
+      "contentType": "text/plain",
+      "bytes": 98,
+      "seconds": 4.636127,
+      "url": "https://swimsystem.swimtimebrasil.com/39535/StartList_44F.pdf",
+      "sha256": "33fbc61ad080ef68dd7a6479f8c53f1bf864dba2930567dbbc4ceb47490a1909"
+    },
+    {
+      "probe": "event",
+      "status": 200,
+      "contentType": "text/html",
+      "bytes": 245153,
+      "seconds": 5.685263,
+      "url": "https://www.swimsystem.app/meets/sw/c8587533-2e44-4b08-991f-f827170c7344",
+      "sha256": "e307ad921ec08a5717191184f7b88f05b79816f2ad81fba869cce1935785db46"
+    },
+    {
+      "probe": "fdap",
+      "status": 403,
+      "contentType": "text/plain",
+      "bytes": 59,
+      "seconds": 4.391396,
+      "url": "https://fdap.org.br/",
+      "sha256": "8172310128b10b096a1bdbf9b48be78eb55aca3b37ba2bd5e17e6769457628e6"
+    },
+    {
+      "probe": "fgda",
+      "status": 403,
+      "contentType": "text/plain",
+      "bytes": 59,
+      "seconds": 4.288543,
+      "url": "https://fgda.org.br/",
+      "sha256": "7f2511ebe0fa885ff7bd5164e00bcd6acbd9a6d05721625c5aaa04e3ec213378"
+    },
+    {
+      "probe": "help",
+      "status": 200,
+      "contentType": "text/html",
+      "bytes": 177222,
+      "seconds": 5.579314,
+      "url": "https://www.swimsystem.app/help",
+      "sha256": "help"
+    },
+    {
+      "probe": "lenex",
+      "status": 200,
+      "contentType": "text/html",
+      "bytes": 174011,
+      "seconds": 6.087309,
+      "url": "https://www.swimsystem.app/resources/importacao-inscricoes-lenex",
+      "sha256": "1c4a207384b418feea7c3c9395f1a52e79c196d0fff2c96437d24369c2698bbc"
+    },
+    {
+      "probe": "masters",
+      "status": 200,
+      "contentType": "application/json",
+      "bytes": 518145,
+      "seconds": 8.19926,
+      "url": "https://mastersparana.com.br/associacao/index.php?rest_route=/wp/v2/pages&per_page=50",
+      "sha256": "76beb6a3eb89f8e4595b63346abd15ce6b19f9d5f881aeaf30cf8f08a43a1030"
+    },
+    {
+      "probe": "privacy",
+      "status": 200,
+      "contentType": "text/html",
+      "bytes": 61988,
+      "url": "https://sportstimingbrasil.com/privacy",
+      "sha256": "fed3897dec5a13616471d4fee2abdbad1da6dd76f5388c4d4872fd032d922271"
+    },
+    {
+      "probe": "root",
+      "status": 200,
+      "contentType": "text/html",
+      "bytes": 180732,
+      "seconds": 4.385248,
+      "url": "https://viniswim.com.br/",
+      "sha256": "20141d0240b3bdb5d86333aa96ca92d8d19fc825bef1b185ffd555b24b9e4f4a"
+    },
+    {
+      "probe": "system",
+      "status": 200,
+      "contentType": "text/html",
+      "bytes": 297118,
+      "seconds": 5.342319,
+      "url": "https://www.swimsystem.app/system",
+      "sha256": "system"
+    },
+    {
+      "probe": "terms",
+      "status": 200,
+      "contentType": "text/html",
+      "bytes": 65212,
+      "url": "https://sportstimingbrasil.com/terms",
+      "sha256": "02c8688f96089d8b9816711085c37ccd971e128837c42ace4b37631a337af3c8"
+    },
+    {
+      "probe": "masters-api-page",
+      "status": 200,
+      "contentType": "application/json",
+      "bytes": 73455,
+      "seconds": 8.788923,
+      "url": "https://mastersparana.com.br/associacao/index.php?rest_route=/wp/v2/pages/1514",
+      "sha256": "726d4fa951cbc1e135af0b0d7806af1c797b125c9b44c5d59f60e62f0c03cc65"
+    },
+    {
+      "probe": "masters-page",
+      "status": 200,
+      "contentType": "text/html",
+      "bytes": 101641,
+      "seconds": 9.240416,
+      "url": "https://mastersparana.com.br/associacao/",
+      "sha256": "dca963c6ed3e6fcc4656f238756681e6bbf80426fc4797ed0017bc8ef7bcb7c5"
+    }
+  ],
+  "observations": {
+    "help": {
+      "publicApi": "Em breve",
+      "webhooks": "Em breve"
+    },
+    "terms": {
+      "section": 14,
+      "entityKeys": true,
+      "partnerAccessConfirmed": false
+    },
+    "event": {
+      "anchorOccurrences": 55,
+      "distinctPdfLinks": 10,
+      "structuredSportFileLinks": 0
+    },
+    "masters": {
+      "publicWordPressPages": 13,
+      "rawSportResultsResourceConfirmed": false,
+      "pages": [
+        {
+          "id": 1514,
+          "season": 2026,
+          "pdfAnchors": 59
+        },
+        {
+          "id": 1146,
+          "season": 2025,
+          "pdfAnchors": 53
+        }
+      ],
+      "comparison": {
+        "apiUniquePdfLinks": 49,
+        "pageUniquePdfLinks": 50,
+        "matchingUniquePdfLinks": 49
+      }
+    },
+    "published": {
+      "rootHtmlMatchesMain": true,
+      "appHtmlMatchesMain": true,
+      "bundleInMain": "app/assets/index-BjbdadaH.js",
+      "callsInBundle": [
+        "monitor-runner",
+        "request_result_refresh_v2"
+      ]
+    },
+    "productionDatabase": {
+      "request": "SELECT code, active FROM public.sources ORDER BY code;",
+      "connectorOutcome": "Database is possibly not accessible at the moment",
+      "catalogVerified": false
+    },
+    "authorizedSportingSample": null
+  }
+}
