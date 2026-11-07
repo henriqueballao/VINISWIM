@@ -31,3 +31,14 @@ Quando o proprietário solicitar excluir o dataset:
 3. **Limite:** exclusão de arquivos ou branch não apaga necessariamente objetos do histórico Git. Para eliminação irreversível de dados do histórico, são necessários procedimentos próprios do GitHub e avaliação de réplicas/clones, sem prometer apagamento total.
 
 Não executar `DELETE` em Supabase — nada deste dataset foi gravado no banco.
+
+## Prévia integrada no código do aplicativo (somente nesta branch)
+
+O arquivo `commercial/apps/web/src/SandboxViniResults.tsx` é renderizado pela aba **Resultados** de `commercial/apps/web/src/App.tsx` **somente se o atleta selecionado for um dos dois UUIDs presentes na fixture e houver sessão de usuário e conta selecionada**.
+
+- Carrega os dados do arquivo versionado `fixture.json`; **não escreve em PostgreSQL nem chama uma importação**.
+- Por padrão exibe as quatro provas de novembro, com opção de exibir todos os 34 registros do cadastro.
+- Cada registro histórico mantém sua classificação como transcrição não integralmente homologada.
+- O botão **Remover prévia deste dispositivo** grava um marcador em `localStorage` com chave composta de usuário, conta e atleta; isso oculta a prévia somente naquele navegador. **Não é exclusão de dados persistidos**. Não usar este controle para prometer deleção irreversível.
+- Para exclusão do código sob ordem do proprietário, remover a linha de importação e a renderização de `SandboxViniResults` em `App.tsx`, apagar `src/SandboxViniResults.tsx` e o diretório `sandbox-data/vini-20261107/`, registrar commit e verificar build.
+- A branch **não foi mesclada nem implantada**; o aplicativo publicado não mostra esta prévia. Não implantar a branch sem revisão de exposição de dados, porque a fixture é empacotada com o frontend estático, e o filtro visual por conta não é barreira de autorização.
