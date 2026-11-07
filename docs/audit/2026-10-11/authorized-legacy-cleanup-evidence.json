@@ -1,0 +1,52 @@
+{
+  "authorizedBy": "Owner: Apague tudo, including 96 results in the other two accounts",
+  "before": {
+    "results": 252,
+    "personalBests": 82,
+    "resultSources": 252,
+    "entries": 0
+  },
+  "after": {
+    "entries": 0,
+    "results": 0,
+    "migrations": [
+      {
+        "name": "legacy_cleanup_hold",
+        "version": "20261011230114"
+      },
+      {
+        "name": "legacy_cleanup_hold_record_contract",
+        "version": "20261011230510"
+      }
+    ],
+    "active_jobs": 0,
+    "captured_at": "2026-10-11T23:05:23.15874+00:00",
+    "held_athletes": 5,
+    "personal_bests": 0,
+    "result_sources": 0
+  },
+  "preservation": {
+    "configs": 20,
+    "athletes": 5,
+    "identifiers": 3,
+    "audit_deletes": 572,
+    "notifications": 0,
+    "monitor_active": 0,
+    "reconciliation": 0,
+    "historical_jobs": 0
+  },
+  "fenceTests": {
+    "resultInsert": "blocked",
+    "entryInsert": "blocked",
+    "pendingV2JobInsert": "blocked",
+    "writesRolledBack": true
+  },
+  "importCronsPaused": [
+    "viniswim-import-v2-runner",
+    "viniswim-all-athletes-all-sources",
+    "viniswim-nightly-all-athlete-full-scan"
+  ],
+  "pushCronUnchanged": true,
+  "gates": "12 REPROVADOS",
+  "applicationDeployed": false
+}

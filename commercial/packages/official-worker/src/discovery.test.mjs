@@ -1,0 +1,10 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {captureOfficialDocument} from '../../import-v2/src/official-document.mjs';
+import {canonicalMeetUrl,discoverOfficialMeet} from './discovery.mjs';
+const id='00000000-0000-4000-8000-000000000001',base=`https://www.swimsystem.app/meets/sw/${id}`,pdf=`https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/${id}/00000000-0000-4000-8000-000000000002.pdf`;
+const metadata={'@type':'SportsEvent',name:'SYNTHETIC CI ONLY',url:base,startDate:'2026-10-10',endDate:'2026-10-11'};
+const html=(event=metadata,anchor=pdf)=>`<script type="application/ld+json">${JSON.stringify(event)}</script><script>"Piscina Curta · 25m"</script><div>Piscina Longa · 50m</div><a class="changed" href="${anchor}"><b>Resultados</b> (1ª Etapa) PDF</a>`;
+const captured=async body=>captureOfficialDocument({url:base,allowedHosts:['www.swimsystem.app'],fetchImpl:async()=>new Response(body,{headers:{'content-type':'text/html'}})});
+test('structured discovery tolerates markup changes and ignores script translations',async()=>{const found=discoverOfficialMeet(await captured(html()));assert.equal(found.meet.course,'LCM');assert.equal(found.meet.externalMeetId,id);assert.equal(found.documents[0].kind,'results');assert.equal(found.documents[0].url,pdf);});
+test('discovery refuses copied provenance, wrong meet, pool ambiguity and foreign document',async()=>{assert.throws(()=>discoverOfficialMeet({url:base,text:html()}));for(const body of [html({...metadata,url:base.replace(id,'00000000-0000-4000-8000-000000000099')}),html()+'<div>Piscina Curta · 25m</div>',html(metadata,pdf.replace(id,'00000000-0000-4000-8000-000000000099'))]){const doc=await captured(body);assert.throws(()=>discoverOfficialMeet(doc));}});
+test('canonical source URL rejects domain tricks and credentials',()=>{assert.equal(canonicalMeetUrl(base+'?utm_source=x').officialUrl,base);for(const value of [base.replace('www.swimsystem.app','www.swimsystem.app.evil.test'),base.replace('https://','https://user@'),base.replace('https://','http://')])assert.throws(()=>canonicalMeetUrl(value));});

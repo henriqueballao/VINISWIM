@@ -1,0 +1,25 @@
+name: Publication routing audit (read-only)
+on:
+  push:
+    branches: ['fix/official-import-audit-20261011']
+    paths: ['scripts/audit-publication-routing.mjs', '.github/workflows/publication-routing-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-routing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/audit-publication-routing.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: publication-routing-evidence
+          path: publication-routing-evidence
+          retention-days: 30

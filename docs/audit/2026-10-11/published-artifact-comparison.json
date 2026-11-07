@@ -1,0 +1,16 @@
+[
+  {
+    "path": "app/assets/index-BjbdadaH.js",
+    "gitBlob": "c1e33fa3d3694116a3fa3b792d4a0dcf545e7c6c",
+    "expectedBlob": "c1e33fa3d3694116a3fa3b792d4a0dcf545e7c6c",
+    "matches": true,
+    "sha256": "bd35e7fa865a92e082768233bc7f7c76780838127f4ca58aa9dde738607673a7"
+  },
+  {
+    "path": "app/index.html",
+    "gitBlob": "c54ebabee34783e6a3846eeecd37b7136f74fe72",
+    "expectedBlob": "c54ebabee34783e6a3846eeecd37b7136f74fe72",
+    "matches": true,
+    "sha256": "c222f04674b975346b072b68cf6bd4387d21b6424493ceb21f4b12e65f04538a"
+  }
+]

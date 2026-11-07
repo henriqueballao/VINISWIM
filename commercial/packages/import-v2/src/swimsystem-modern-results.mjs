@@ -30,10 +30,13 @@ export function parseModernResultBook({text,identity,meet,sourceUrl,retrievedAt}
  if(!ev.accepted)return [];
  const id=String(identity?.externalId||"").trim();if(!id)return [];
  const flat=raw.replace(/\s+/g," ").trim();
- const eventRe=/Prova\s+\d+\s*(?:-|—)\s*(?:Final\s+Direta\s+)?(?:Feminino|Masculino),\s*(\d{1,4})m\s+(Livre|Costas|Peito|Borboleta|Medley)[\s\S]{0,160}?(\d{1,2})\/(\d{1,2})\/(\d{4})\s+Resultados/gi;
+ const eventRe=/Prova\s+(\d+)\s*(?:-|—)\s*(Final\s+Direta|Final|Semifinal|Eliminatória)\s+(Feminino|Masculino),\s*(\d{1,4})m\s+(Livre|Costas|Peito|Borboleta|Medley)[\s\S]{0,160}?(\d{1,2})\/(\d{1,2})\/(\d{4})\s+Resultados/gi;
  const starts=[...flat.matchAll(eventRe)],out=[];
  for(let k=0;k<starts.length;k++){
    const h=starts[k],start=(h.index??0)+h[0].length,end=k+1<starts.length?(starts[k+1].index??flat.length):flat.length;
+   const resultDate=iso(h[6],h[7],h[8]);
+   if(!Number.isFinite(Date.parse(resultDate))||new Date(resultDate).toISOString().slice(0,10)!==resultDate||resultDate<ev.meet.startDate||resultDate>ev.meet.endDate)continue;
+   if(meet.startDate&&meet.startDate!==ev.meet.startDate||meet.endDate&&meet.endDate!==ev.meet.endDate||meet.course&&meet.course!==ev.meet.course)continue;
    const block=flat.slice(start,end),needle=" "+id+" ",pos=(" "+block+" ").indexOf(needle);
    if(pos<0)continue;
    const absolutePos=start+Math.max(0,pos-1);
@@ -42,11 +45,12 @@ export function parseModernResultBook({text,identity,meet,sourceUrl,retrievedAt}
    const timeMs=status==="valid"?firstOfficialTime(row.after):null;
    if(status==="valid"&&timeMs==null)continue;
    out.push({
-     sourceCode:meet.sourceCode,externalMeetId:meet.externalMeetId,event:h[1]+" "+h[2],
-     resultDate:iso(h[3],h[4],h[5]),course:ev.meet.course,timeMs,status,
-     sourceUrl,sourceBlock:row.text.slice(0,240),parserVersion:"swimsystem-modern-results-v1",
+     sourceCode:meet.sourceCode,externalMeetId:meet.externalMeetId,externalEventId:h[1],round:h[2].replace(/\s+/g," "),sex:h[3].toLowerCase(),event:h[4]+" "+h[5],
+     resultDate,course:ev.meet.course,timeMs,status,
+     sourceUrl,sourceBlock:row.text.slice(0,240),parserVersion:"swimsystem-modern-results-v2",
      retrievedAt,athleteExternalId:id,meetStartDate:ev.meet.startDate,meetEndDate:ev.meet.endDate
    });
  }
  return out;
 }
+

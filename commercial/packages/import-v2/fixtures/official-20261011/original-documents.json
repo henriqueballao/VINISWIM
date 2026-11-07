@@ -1,0 +1,107 @@
+{
+  "kind": "original-authorized-public-pdf-captures",
+  "artifactRun": 38148027929,
+  "artifactId": 11705044606,
+  "artifactName": "official-import-live-readonly",
+  "archiveSha256": "fe8a5802867fae9a974483e98572af7ac998120428d55312756f1c36f8dfcbe5",
+  "expiresAt": "2026-10-25T14:39:08Z",
+  "extractionVersion": "pdftotext 25.03.0",
+  "documents": [
+    {
+      "requestedUrl": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/074c7842-e39c-497d-9893-5c0cf654eb35.pdf",
+      "url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/074c7842-e39c-497d-9893-5c0cf654eb35.pdf",
+      "retrievedAt": "2026-10-11T14:39:03.505Z",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "rawHash": "113e99a36cd5934eab54ef44524446c975734c1ee2b4d8eed6ee3a825001b7ea",
+      "bytes": 405135,
+      "outcome": "document_captured",
+      "file": "official-document-0.pdf",
+      "extractedTextHash": "f3f1f5b824b534dd317f72c06bd9d95ebb84ab60b51c34e0821fe38cb2306cdc"
+    },
+    {
+      "requestedUrl": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/dbf8c318-8f0f-4a1d-887f-42400f739831.pdf",
+      "url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/dbf8c318-8f0f-4a1d-887f-42400f739831.pdf",
+      "retrievedAt": "2026-10-11T14:39:04.210Z",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "rawHash": "d69cddd3c878a68c53f391f6c08ea8d68bd3a14256545609cd7d859ef7bfb314",
+      "bytes": 51785,
+      "outcome": "document_captured",
+      "file": "official-document-1.pdf",
+      "extractedTextHash": "d2d6da0a22dd52c2758220fd24ee83785d132f5e8f4d4ab9496e18574bc88b69"
+    },
+    {
+      "requestedUrl": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/9c19bb70-e92c-48f3-84cd-c9ad61c1d090.pdf",
+      "url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/9c19bb70-e92c-48f3-84cd-c9ad61c1d090.pdf",
+      "retrievedAt": "2026-10-11T14:39:04.966Z",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "rawHash": "64b43e4237e9ba99a9bc0e59a87399c6323319f683bed6443239aef2e45a5130",
+      "bytes": 163774,
+      "outcome": "document_captured",
+      "file": "official-document-2.pdf",
+      "extractedTextHash": "32d4546510127fa30514b22ca42f983e9fab56f27f2ffc3c045cf423fae58793"
+    },
+    {
+      "requestedUrl": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/931cdfdd-0a94-4cd8-9f9a-4462dcd4d6f8.pdf",
+      "url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/931cdfdd-0a94-4cd8-9f9a-4462dcd4d6f8.pdf",
+      "retrievedAt": "2026-10-11T14:39:05.602Z",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "rawHash": "db90ad7acfcfa24b5a8555a24ba301f5f49f55a2d7866f3856a1b229982ca045",
+      "bytes": 54813,
+      "outcome": "document_captured",
+      "file": "official-document-3.pdf",
+      "extractedTextHash": "b86c50994476c52972a65f5a38fc784e0618457a7c2531f81d222c128ca863d0"
+    },
+    {
+      "requestedUrl": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/71d25ad4-ca54-48b4-8d1a-94996e784947.pdf",
+      "url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/71d25ad4-ca54-48b4-8d1a-94996e784947.pdf",
+      "retrievedAt": "2026-10-11T14:39:06.219Z",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "rawHash": "8c9be1bb775f6583db6173b0aa144e9fdbe06cc8cc067811073497f4b9c25ed5",
+      "bytes": 136338,
+      "outcome": "document_captured",
+      "file": "official-document-4.pdf",
+      "extractedTextHash": "90999c4004e94dc39f088ff8cfb04e5c0f074410fa57591d99251c651777a7c9"
+    },
+    {
+      "requestedUrl": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/11a0e615-4cb5-4d56-9d16-0972097f6404.pdf",
+      "url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/11a0e615-4cb5-4d56-9d16-0972097f6404.pdf",
+      "retrievedAt": "2026-10-11T14:39:06.591Z",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "rawHash": "0d1b8fbbc4a18f85f12a39804d122c1d2068f9a97177a0bc8c94e9f9de30043c",
+      "bytes": 248780,
+      "outcome": "document_captured",
+      "file": "official-document-5.pdf",
+      "extractedTextHash": "e558ea8b65d033dc4655d5ce60e25ae1e24a9b468a08557e682dacc334c27a0b"
+    },
+    {
+      "requestedUrl": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/39636362-ce07-4c82-8db5-bfd55369ed6b.pdf",
+      "url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/39636362-ce07-4c82-8db5-bfd55369ed6b.pdf",
+      "retrievedAt": "2026-10-11T14:39:07.179Z",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "rawHash": "e70119d5a4b90e2cfd5af9170fc8b9695ed828562d95844174c96f58e366f0ba",
+      "bytes": 172247,
+      "outcome": "document_captured",
+      "file": "official-document-6.pdf",
+      "extractedTextHash": "1928953245294725013a59b29969a731c1c564e028bb0fe0a226d48017317115"
+    },
+    {
+      "requestedUrl": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/e8f27d6d-2811-4d41-a77a-a318336d44ce.pdf",
+      "url": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/c8587533-2e44-4b08-991f-f827170c7344/e8f27d6d-2811-4d41-a77a-a318336d44ce.pdf",
+      "retrievedAt": "2026-10-11T14:39:07.581Z",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "rawHash": "9cfee410a819b3aa2a5128fd437013a529b4bec65136299380d7928114207a68",
+      "bytes": 120961,
+      "outcome": "document_captured",
+      "file": "official-document-7.pdf",
+      "extractedTextHash": "ffaeed036f5e61da463ae77f3318d110f7983a017e759cbc7424c92f7d041487"
+    }
+  ]
+}

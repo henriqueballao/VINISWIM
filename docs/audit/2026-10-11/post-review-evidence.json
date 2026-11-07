@@ -1,0 +1,158 @@
+{
+  "mode": "post-independent-review-readonly-and-isolated-validation",
+  "productionWritesThisStage": 0,
+  "merge": false,
+  "deploy": false,
+  "routing": {
+    "dns": {
+      "A": {
+        "records": [
+          "185.199.110.153",
+          "185.199.109.153",
+          "185.199.108.153",
+          "185.199.111.153"
+        ]
+      },
+      "AAAA": {
+        "error": "ENODATA"
+      },
+      "CNAME": {
+        "error": "ENODATA"
+      }
+    },
+    "captures": [
+      {
+        "requestedUrl": "https://viniswim.com.br/",
+        "url": "https://viniswim.com.br/",
+        "status": 200,
+        "retrievedAt": "2026-10-11T16:47:31.827Z",
+        "file": "root.html",
+        "rawHash": "20141d0240b3bdb5d86333aa96ca92d8d19fc825bef1b185ffd555b24b9e4f4a",
+        "gitBlob": "39077c531db914ed81b1c3a0eb0295214a847d68",
+        "repositoryPath": "index.html",
+        "mainBlob": "39077c531db914ed81b1c3a0eb0295214a847d68",
+        "matchesMain": true,
+        "headers": {
+          "server": "GitHub.com",
+          "via": "1.1 varnish",
+          "x-github-request-id": "61CE:1D05:9A8B0D:C671CB:6ACBBDA3",
+          "x-served-by": "cache-chi-kmdw8640023-CHI",
+          "cf-ray": null,
+          "location": null
+        },
+        "legacyRailwayReferences": true
+      },
+      {
+        "requestedUrl": "https://viniswim.com.br/app/",
+        "url": "https://viniswim.com.br/app/",
+        "status": 200,
+        "retrievedAt": "2026-10-11T16:47:31.903Z",
+        "file": "app.html",
+        "rawHash": "c222f04674b975346b072b68cf6bd4387d21b6424493ceb21f4b12e65f04538a",
+        "gitBlob": "c54ebabee34783e6a3846eeecd37b7136f74fe72",
+        "repositoryPath": "app/index.html",
+        "mainBlob": "c54ebabee34783e6a3846eeecd37b7136f74fe72",
+        "matchesMain": true,
+        "headers": {
+          "server": "GitHub.com",
+          "via": "1.1 varnish",
+          "x-github-request-id": "5F6A:25F8AC:484BC44:4CF5F19:6ACBBDA2",
+          "x-served-by": "cache-chi-kmdw8640023-CHI",
+          "cf-ray": null,
+          "location": null
+        },
+        "legacyRailwayReferences": false
+      },
+      {
+        "requestedUrl": "https://viniswim-monitor-live-production.up.railway.app/health",
+        "url": "https://viniswim-monitor-live-production.up.railway.app/health",
+        "status": 200,
+        "retrievedAt": "2026-10-11T16:47:32.105Z",
+        "file": "railway-health.json",
+        "rawHash": "5cb3855dd69e41eaf0dead479847f8570f3d6e09025448ad178033ff9ee52660",
+        "gitBlob": "c5d03cd446a9208b6e365b88ffe301ce1d89b932",
+        "repositoryPath": null,
+        "mainBlob": null,
+        "matchesMain": null,
+        "headers": {
+          "server": "railway-hikari",
+          "via": null,
+          "x-github-request-id": null,
+          "x-served-by": null,
+          "cf-ray": null,
+          "location": null
+        },
+        "legacyRailwayReferences": false
+      }
+    ]
+  },
+  "productionRecheck": {
+    "counts": {
+      "results": 0,
+      "meet_entries": 0,
+      "personal_bests": 0
+    },
+    "triggers": [
+      {
+        "table": "import_v2_jobs",
+        "function": "set_updated_at",
+        "definition": "CREATE TRIGGER import_v2_jobs_set_updated_at BEFORE UPDATE ON public.import_v2_jobs FOR EACH ROW EXECUTE FUNCTION app.set_updated_at()",
+        "function_definition": "CREATE OR REPLACE FUNCTION app.set_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'pg_catalog'\nAS $function$ begin new.updated_at=now(); return new; end $function$\n"
+      },
+      {
+        "table": "import_v2_jobs",
+        "function": "finalize_refresh_request_if_terminal",
+        "definition": "CREATE TRIGGER trg_finalize_import_v2_jobs AFTER INSERT OR UPDATE OF status, request_id ON public.import_v2_jobs FOR EACH ROW EXECUTE FUNCTION finalize_refresh_request_if_terminal()",
+        "function_definition": "CREATE OR REPLACE FUNCTION public.finalize_refresh_request_if_terminal()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public'\nAS $function$\ndeclare\n  v_request_id uuid;\n  v_pending_running int;\n  v_cancelled int;\n  v_failed int;\n  v_completed int;\nbegin\n  v_request_id := coalesce(new.request_id, old.request_id);\n  if v_request_id is null then return new; end if;\n\n  select\n    count(*) filter (where status in ('pending','running')),\n    count(*) filter (where status='cancelled'),\n    count(*) filter (where status='failed'),\n    count(*) filter (where status='completed')\n  into v_pending_running,v_cancelled,v_failed,v_completed\n  from (\n    select status::text from public.monitor_jobs where request_id=v_request_id\n    union all\n    select status::text from public.historical_archive_jobs where request_id=v_request_id\n    union all\n    select status::text from public.import_v2_jobs where request_id=v_request_id\n  ) x(status);\n\n  if v_pending_running>0 then return new; end if;\n  if v_cancelled>0 then return new; end if;\n\n  update public.refresh_requests\n  set terminal_status=case when v_failed>0 then 'failed' else 'completed' end,\n      completed_job_count=v_completed,\n      failed_job_count=v_failed,\n      finalized_at=now(),\n      updated_at=now()\n  where id=v_request_id\n    and finalized_at is null\n    and cancel_requested_at is null;\n\n  return new;\nend\n$function$\n"
+      },
+      {
+        "table": "meet_entries",
+        "function": "set_updated_at",
+        "definition": "CREATE TRIGGER meet_entries_set_updated_at BEFORE UPDATE ON public.meet_entries FOR EACH ROW EXECUTE FUNCTION app.set_updated_at()",
+        "function_definition": "CREATE OR REPLACE FUNCTION app.set_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'pg_catalog'\nAS $function$ begin new.updated_at=now(); return new; end $function$\n"
+      },
+      {
+        "table": "meets",
+        "function": "set_updated_at",
+        "definition": "CREATE TRIGGER meets_set_updated_at BEFORE UPDATE ON public.meets FOR EACH ROW EXECUTE FUNCTION app.set_updated_at()",
+        "function_definition": "CREATE OR REPLACE FUNCTION app.set_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'pg_catalog'\nAS $function$ begin new.updated_at=now(); return new; end $function$\n"
+      },
+      {
+        "table": "refresh_requests",
+        "function": "set_updated_at",
+        "definition": "CREATE TRIGGER refresh_requests_set_updated_at BEFORE UPDATE ON public.refresh_requests FOR EACH ROW EXECUTE FUNCTION app.set_updated_at()",
+        "function_definition": "CREATE OR REPLACE FUNCTION app.set_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'pg_catalog'\nAS $function$ begin new.updated_at=now(); return new; end $function$\n"
+      },
+      {
+        "table": "results",
+        "function": "audit_result_change",
+        "definition": "CREATE TRIGGER results_audit_change AFTER INSERT OR DELETE OR UPDATE ON public.results FOR EACH ROW EXECUTE FUNCTION app.audit_result_change()",
+        "function_definition": "CREATE OR REPLACE FUNCTION app.audit_result_change()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_athlete uuid;\n  v_account uuid;\n  v_uid uuid;\nbegin\n  v_athlete := coalesce(new.athlete_id,old.athlete_id);\n  select account_id into v_account from public.athletes where id=v_athlete;\n  v_uid := auth.uid();\n\n  insert into public.audit_log(account_id,athlete_id,user_id,entity_type,entity_id,action,old_data,new_data,source)\n  values(\n    v_account,\n    v_athlete,\n    v_uid,\n    'result',\n    coalesce(new.id,old.id),\n    lower(tg_op),\n    case when tg_op in ('UPDATE','DELETE') then to_jsonb(old) else null end,\n    case when tg_op in ('INSERT','UPDATE') then to_jsonb(new) else null end,\n    case when v_uid is null then 'monitor' else 'app' end\n  );\n\n  return coalesce(new,old);\nend;\n$function$\n"
+      },
+      {
+        "table": "results",
+        "function": "refresh_personal_best",
+        "definition": "CREATE TRIGGER results_refresh_personal_best AFTER INSERT OR DELETE OR UPDATE ON public.results FOR EACH ROW EXECUTE FUNCTION app.refresh_personal_best()",
+        "function_definition": "CREATE OR REPLACE FUNCTION app.refresh_personal_best()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_athlete uuid;\n  v_event uuid;\n  v_course public.swim_course;\n  v_best record;\nbegin\n  v_athlete := coalesce(new.athlete_id, old.athlete_id);\n  v_event := coalesce(new.event_id, old.event_id);\n  v_course := coalesce(new.course, old.course);\n\n  delete from public.personal_bests\n  where athlete_id=v_athlete and event_id=v_event and course=v_course;\n\n  select r.id, r.time_ms, r.result_date\n    into v_best\n  from public.results r\n  where r.athlete_id=v_athlete\n    and r.event_id=v_event\n    and r.course=v_course\n    and r.status='valid'\n    and r.is_official=true\n    and r.time_ms is not null\n  order by r.time_ms asc, r.result_date asc, r.created_at asc\n  limit 1;\n\n  if v_best.id is not null then\n    insert into public.personal_bests(athlete_id,event_id,course,result_id,time_ms,achieved_at)\n    values(v_athlete,v_event,v_course,v_best.id,v_best.time_ms,v_best.result_date);\n  end if;\n\n  return coalesce(new,old);\nend;\n$function$\n"
+      },
+      {
+        "table": "results",
+        "function": "set_updated_at",
+        "definition": "CREATE TRIGGER results_set_updated_at BEFORE UPDATE ON public.results FOR EACH ROW EXECUTE FUNCTION app.set_updated_at()",
+        "function_definition": "CREATE OR REPLACE FUNCTION app.set_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'pg_catalog'\nAS $function$ begin new.updated_at=now(); return new; end $function$\n"
+      }
+    ],
+    "captured_at": "2026-10-11T17:56:51.015351+00:00"
+  },
+  "verifiedRuns": {
+    "routing": 38156915485,
+    "liveOriginals": 38161104219,
+    "isolatedOriginalPipeline": 38164871972,
+    "denoNonFrozenRuntime": 38161892187
+  },
+  "notes": [
+    "Raw official original ZIP archives and manifests are committed under commercial/packages/import-v2/fixtures/official-originals.",
+    "SQL proposals and official-import-runner are not applied/deployed.",
+    "All 12 operational gates remain rejected."
+  ]
+}

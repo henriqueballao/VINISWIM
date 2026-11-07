@@ -4,6 +4,9 @@ export function parseMeetEvidence(text){
  const raw=String(text||"").replace(/\s+/g," ").trim();
  const h=raw.match(/\b([^,]{2,80})\s*\(([A-Z]{2})\),\s*(\d{1,2})(?:\s*-\s*(\d{1,2}))?\/(\d{1,2})\/(\d{4}),\s*(SCM|LCM)\s*\((25|50)m\)/i);
  if(!h)return {accepted:false,errors:["missing:canonical_meet_header"]};
+ const startDate=iso(h[3],h[5],h[6]),endDate=iso(h[4]||h[3],h[5],h[6]);
+ if((h[7].toUpperCase()==='SCM'?25:50)!==Number(h[8]))return {accepted:false,errors:['conflict:course_length']};
+ if([startDate,endDate].some(date=>!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date)||endDate<startDate)return {accepted:false,errors:['invalid:meet_dates']};
  return {accepted:true,meet:{city:h[1].trim(),startDate:iso(h[3],h[5],h[6]),endDate:iso(h[4]||h[3],h[5],h[6]),course:h[7].toUpperCase()}};
 }
 export function parseStartlist(text,identity){

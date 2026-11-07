@@ -1,0 +1,30 @@
+name: Verify original official PDF evidence
+on:
+  push:
+    branches: ['fix/official-import-audit-20261011']
+    paths: ['commercial/packages/import-v2/fixtures/official-20261011/**', 'commercial/packages/import-v2/fixtures/official-originals/**', 'scripts/unpack-official-fixture.py', 'scripts/verify-official-artifact.py', 'scripts/test-official-worker-replay.mjs', 'commercial/packages/official-worker/**', '.github/workflows/official-original-evidence.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  original-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify and unpack immutable committed original capture
+        run: python3 scripts/unpack-official-fixture.py 20261011-1439 original-capture
+      - name: Install authorized local PDF extractor
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Verify all eight byte hashes and reconstruct official excerpts
+        run: python3 scripts/verify-official-artifact.py original-capture
+      - name: Verify service authorization denies browser credentials
+        run: node commercial/packages/official-worker/src/authorization.test.mjs
+      - name: Replay original PDFs through capture, local extractor and worker batch
+        run: node scripts/test-official-worker-replay.mjs original-capture
+      - name: Preserve verified original PDF bytes beyond first artifact retention
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-original-official-pdfs
+          path: original-capture/official-document-*.pdf
+          retention-days: 90

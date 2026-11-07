@@ -1,0 +1,733 @@
+{
+  "capturedAt": "2026-10-12",
+  "baseCommit": "015c4642c295fe0185a50c1952af3db63fc6fca5",
+  "baseTree": "13c7dbfc026f244ee2d27e2dc4fcc5bb69819aeb",
+  "scope": "Versioned audit/refactor, candidate SQL/applied migrations, worker, scripts and workflows; not full repository inventory.",
+  "files": [
+    {
+      "path": ".github/workflows/adversarial-review-5775834.yml",
+      "blobSha": "9400825cf970fb55734601bda52230f8da849632",
+      "bytes": 1490
+    },
+    {
+      "path": ".github/workflows/dropbox-session-test.yml",
+      "blobSha": "ffa17ea501a09c5b98c3f0251713c98f4be55ab0",
+      "bytes": 8924
+    },
+    {
+      "path": ".github/workflows/import-v2-documentary-gates.yml",
+      "blobSha": "0a48a6a719790f6def99ac7b1fda3d9fb1120dee",
+      "bytes": 572
+    },
+    {
+      "path": ".github/workflows/import-v2-gates.yml",
+      "blobSha": "5889dd983cb2fbe9cd9af06eb47082925f64a2fc",
+      "bytes": 1210
+    },
+    {
+      "path": ".github/workflows/import-v2-live-readonly.yml",
+      "blobSha": "55f2bce2229a256950c529f9b6490cb0d680dc6c",
+      "bytes": 690
+    },
+    {
+      "path": ".github/workflows/native-api-e2e.yml",
+      "blobSha": "d43120e76a3210819e54958171dc8d432504a999",
+      "bytes": 7250
+    },
+    {
+      "path": ".github/workflows/official-database-contract.yml",
+      "blobSha": "7ff7f68230c6535c3c129ad9dc7d50007158d219",
+      "bytes": 2462
+    },
+    {
+      "path": ".github/workflows/official-edge-candidate.yml",
+      "blobSha": "eeaf97b42f12780532a3f6195db4ce34402bd374",
+      "bytes": 3022
+    },
+    {
+      "path": ".github/workflows/official-import-audit.yml",
+      "blobSha": "5ab84db1d4dc49483684faf63927605f2ca266d8",
+      "bytes": 895
+    },
+    {
+      "path": ".github/workflows/official-original-evidence.yml",
+      "blobSha": "3f6fd1b071899f84b254c7144f4dc7f6d6e8c3f5",
+      "bytes": 1645
+    },
+    {
+      "path": ".github/workflows/publication-routing-audit.yml",
+      "blobSha": "1ce62ea613e69f6518ed36ddf604e927ca970980",
+      "bytes": 729
+    },
+    {
+      "path": ".github/workflows/swimsystem-raw-diagnostic.yml",
+      "blobSha": "e9335c779fe0ad9f9603eb3a321b576fa31d1137",
+      "bytes": 3266
+    },
+    {
+      "path": ".github/workflows/ui-source-parity.yml",
+      "blobSha": "129833fe8596e288e6401b3e774138c298b66667",
+      "bytes": 6375
+    },
+    {
+      "path": ".github/workflows/viniswim-commercial-app.yml",
+      "blobSha": "c892fc82875249e8d5f59e75b1802afbcbff0f70",
+      "bytes": 1232
+    },
+    {
+      "path": ".github/workflows/viniswim-commercial-build.yml",
+      "blobSha": "5a73996d13f702627a949f4d1d37e7bd88ebb896",
+      "bytes": 2425
+    },
+    {
+      "path": "commercial/packages/official-worker/src/authorization.mjs",
+      "blobSha": "b5ca21ca2a94ec2d52d8e4310eac4e21b514bbc2",
+      "bytes": 654
+    },
+    {
+      "path": "commercial/packages/official-worker/src/authorization.test.mjs",
+      "blobSha": "852dc71026bf192144dc18cded5a42b98f225adf",
+      "bytes": 981
+    },
+    {
+      "path": "commercial/packages/official-worker/src/batch.mjs",
+      "blobSha": "83d8e344ef47ffe9168a9070b45a89642608fce2",
+      "bytes": 2296
+    },
+    {
+      "path": "commercial/packages/official-worker/src/catalog.mjs",
+      "blobSha": "cc18de85b749070bf50ba442c982454e9aa09e2e",
+      "bytes": 2199
+    },
+    {
+      "path": "commercial/packages/official-worker/src/catalog.test.mjs",
+      "blobSha": "6cfae54a6c0cd0359a708fbc13bbe87307338eb7",
+      "bytes": 2714
+    },
+    {
+      "path": "commercial/packages/official-worker/src/discovery.mjs",
+      "blobSha": "54d4992e61f9322142573e9e5eb03beac617258e",
+      "bytes": 4052
+    },
+    {
+      "path": "commercial/packages/official-worker/src/discovery.test.mjs",
+      "blobSha": "0b57e8e443923144e6d4d0ed177129906a2a5fd9",
+      "bytes": 2159
+    },
+    {
+      "path": "commercial/packages/official-worker/src/pdf-extractor.mjs",
+      "blobSha": "a15bee7b3da583acc86ff18108777b6483ff1798",
+      "bytes": 992
+    },
+    {
+      "path": "commercial/packages/official-worker/src/pdf-js-extractor.mjs",
+      "blobSha": "a4af3ff6ceecded7bc5c6336307d4d5c26220ed3",
+      "bytes": 1501
+    },
+    {
+      "path": "commercial/packages/official-worker/src/pdf-lines.mjs",
+      "blobSha": "ccf861b101a86fed4c1aca19ab55b306f7836c49",
+      "bytes": 689
+    },
+    {
+      "path": "commercial/packages/official-worker/src/pdf-lines.test.mjs",
+      "blobSha": "842af494835e0c567ffda2f1a6ca4970133060ea",
+      "bytes": 606
+    },
+    {
+      "path": "commercial/packages/official-worker/src/rpc-errors.mjs",
+      "blobSha": "e2dcc15772ff86c0ac21fcc9c3719b758b1c6270",
+      "bytes": 4438
+    },
+    {
+      "path": "commercial/packages/official-worker/src/rpc-errors.test.mjs",
+      "blobSha": "bff07a4fec330cd0bcf4b2a85f77d3fcc088db62",
+      "bytes": 4289
+    },
+    {
+      "path": "commercial/packages/official-worker/src/runner.mjs",
+      "blobSha": "52143816890133c71839132683936546b9867a8a",
+      "bytes": 6181
+    },
+    {
+      "path": "commercial/packages/official-worker/src/runner.test.mjs",
+      "blobSha": "5c0ea78d9422f7d141fef27aa0326c7c621993c9",
+      "bytes": 7668
+    },
+    {
+      "path": "commercial/supabase/migrations/20261007153000_unify_result_refresh_entrypoint.sql",
+      "blobSha": "71014dea86767ab22cca6855b811c0cceb23fcc3",
+      "bytes": 237
+    },
+    {
+      "path": "commercial/supabase/migrations/20261007165000_forensic_rollback_manual_contamination.sql",
+      "blobSha": "ab7e098ec0204bbf5f146ff4411cbf6cc0156da3",
+      "bytes": 1186
+    },
+    {
+      "path": "commercial/supabase/migrations/20261007170600_add_monitor_job_metadata.sql",
+      "blobSha": "9d4747fec6c8deba837f2c9c6d3fdeff5a756b38",
+      "bytes": 102
+    },
+    {
+      "path": "commercial/supabase/migrations/20261007174500_enforce_result_fingerprint_idempotency.sql",
+      "blobSha": "a777921130df7d00bbc37765a86d2119a9eb0995",
+      "bytes": 135
+    },
+    {
+      "path": "commercial/supabase/migrations/20261007180000_import_v2_job_runtime.sql",
+      "blobSha": "31900fa8cac8a0b098e8cb1168e4b7ab6840a706",
+      "bytes": 9575
+    },
+    {
+      "path": "commercial/supabase/migrations/20261007204500_meet_metadata_evidence.sql",
+      "blobSha": "18ee186c1d17bcadff60c7b02244d319bf0be5d5",
+      "bytes": 605
+    },
+    {
+      "path": "commercial/supabase/migrations/20261007211500_remove_seeded_meet_metadata.sql",
+      "blobSha": "af9274a12ea62f7df7531208d42b259aa4e6c293",
+      "bytes": 146
+    },
+    {
+      "path": "commercial/supabase/migrations/20261007213000_official_meet_document_catalog.sql",
+      "blobSha": "a6352fc28371a76e834e142f35aba9ea745b1c8b",
+      "bytes": 1646
+    },
+    {
+      "path": "commercial/supabase/migrations/20261008_discover_official_athlete_candidates.sql",
+      "blobSha": "dd4002751cddc7e943bfdac6541b92b89eda7ac0",
+      "bytes": 2866
+    },
+    {
+      "path": "commercial/supabase/migrations/20261009_auto_link_verified_identity.sql",
+      "blobSha": "025b0361d20bf55704d0df51c68ac24c970f69c7",
+      "bytes": 3499
+    },
+    {
+      "path": "commercial/supabase/migrations/20261009_request_all_registered_sources.sql",
+      "blobSha": "f8d709c8ceeb89a25f34023f213f4feea2f655ff",
+      "bytes": 2174
+    },
+    {
+      "path": "commercial/supabase/migrations/20261009_restore_legacy_fdap_archives.sql",
+      "blobSha": "51f534c9857fbe6ec08300265f605d9c0978e523",
+      "bytes": 1041
+    },
+    {
+      "path": "commercial/supabase/migrations/20261009_scheduled_scans_all_athletes.sql",
+      "blobSha": "324b56431aa83977c6859d786b8c50f616377fef",
+      "bytes": 3146
+    },
+    {
+      "path": "commercial/supabase/migrations/20261009_verified_historical_category.sql",
+      "blobSha": "b99387b44e15bab2e4d34e398a55b972cb8b2228",
+      "bytes": 2713
+    },
+    {
+      "path": "commercial/supabase/migrations/20261011142913_protect_result_timeline_and_official_deletion.sql",
+      "blobSha": "07e1189f559207fae7fae5269087d07452599c3e",
+      "bytes": 1041
+    },
+    {
+      "path": "commercial/supabase/migrations/20261011143101_deny_browser_mutation_of_official_source_caches.sql",
+      "blobSha": "84c8cb2904caa791f1401860ab386ef4a73b200c",
+      "bytes": 454
+    },
+    {
+      "path": "commercial/supabase/migrations/20261011145252_enable_rls_on_internal_official_evidence_caches.sql",
+      "blobSha": "1df3bf1625998f581f5ba8849042c7185c1291aa",
+      "bytes": 1000
+    },
+    {
+      "path": "commercial/supabase/migrations/20261011230114_legacy_cleanup_hold.sql",
+      "blobSha": "0de1b012ecf32d3264b42bf2ac80c412d10e47d3",
+      "bytes": 1699
+    },
+    {
+      "path": "commercial/supabase/migrations/20261011230510_legacy_cleanup_hold_record_contract.sql",
+      "blobSha": "a301ada1fc47cbce5a99637028b12ad681352523",
+      "bytes": 706
+    },
+    {
+      "path": "commercial/supabase/migrations/20261012023634_official_global_maintenance_fence.sql",
+      "blobSha": "e1b9eedc2664df5cf2ecbbe8faa61162078d4af8",
+      "bytes": 4512
+    },
+    {
+      "path": "commercial/supabase/proposals/manual-meet-entry.sql",
+      "blobSha": "6be094ce7e39519e0ec69d861f7933ef9f597fe8",
+      "bytes": 4008
+    },
+    {
+      "path": "commercial/supabase/proposals/official-batch-transaction.sql",
+      "blobSha": "f9a6caf430fafd6e59d5fefa4b4bffcf72db3695",
+      "bytes": 19508
+    },
+    {
+      "path": "commercial/supabase/proposals/official-catalog-automation.sql",
+      "blobSha": "8e3ec2239036f4590e3c8b3648b292d2d73d3e7a",
+      "bytes": 6829
+    },
+    {
+      "path": "commercial/supabase/proposals/official-catalog-discovery.sql",
+      "blobSha": "4eb53dcfc64ca1f3a0889bbc682a16ff5c03aba3",
+      "bytes": 9116
+    },
+    {
+      "path": "commercial/supabase/proposals/official-entry-read-model.sql",
+      "blobSha": "30aaac6489853efe521de703b1f12787042e436e",
+      "bytes": 2760
+    },
+    {
+      "path": "commercial/supabase/proposals/official-event-integrity.sql",
+      "blobSha": "238c55e23dc3454f7d4b706ea9745b59b9c1ca5f",
+      "bytes": 2968
+    },
+    {
+      "path": "commercial/supabase/proposals/official-finalization-trigger.sql",
+      "blobSha": "ae00e356189c89eb833223b8a58eb630372be0e8",
+      "bytes": 1845
+    },
+    {
+      "path": "commercial/supabase/proposals/official-global-cutover-fence.sql",
+      "blobSha": "e1b9eedc2664df5cf2ecbbe8faa61162078d4af8",
+      "bytes": 4512
+    },
+    {
+      "path": "commercial/supabase/proposals/official-legacy-writer-fence.sql",
+      "blobSha": "681e0d356ddb3e2de5fe62a0cd64d70db36e43aa",
+      "bytes": 6377
+    },
+    {
+      "path": "commercial/supabase/proposals/official-monitoring.sql",
+      "blobSha": "39e747ab11d814cc42fc6fbbc02a411ae06f6b6a",
+      "bytes": 4516
+    },
+    {
+      "path": "commercial/supabase/proposals/official-personal-best-concurrency.sql",
+      "blobSha": "61516c227aaf344954fa4531a70a02569aa9d926",
+      "bytes": 1402
+    },
+    {
+      "path": "commercial/supabase/proposals/official-progress-view.sql",
+      "blobSha": "b774729277ef7ee2b345d1c139c5766791f4670c",
+      "bytes": 1854
+    },
+    {
+      "path": "commercial/supabase/proposals/official-request-cancellation.sql",
+      "blobSha": "1866baf499c364ba67f943520a8f5fd9bfd31f18",
+      "bytes": 3028
+    },
+    {
+      "path": "commercial/supabase/proposals/official-result-timeline.sql",
+      "blobSha": "64466897c473f932b568a5e21ed975fe7ce2ab43",
+      "bytes": 1433
+    },
+    {
+      "path": "commercial/supabase/proposals/official-scheduler-activation.sql",
+      "blobSha": "6ad85f13a0347e082f78f3539b8060ed58e45ac4",
+      "bytes": 531
+    },
+    {
+      "path": "commercial/supabase/proposals/official-scheduler-auth.sql",
+      "blobSha": "1f07fbe3d971c66516d1dd43149431db87c6ea6e",
+      "bytes": 2031
+    },
+    {
+      "path": "commercial/supabase/proposals/official-source-configuration.sql",
+      "blobSha": "7610f58798dd1c387a32fa07884b523f3fd385d6",
+      "bytes": 4192
+    },
+    {
+      "path": "commercial/supabase/proposals/official-targeted-request.sql",
+      "blobSha": "41dc702a4af625545b86563f6fdc40d05a92c16b",
+      "bytes": 2775
+    },
+    {
+      "path": "commercial/supabase/proposals/official-worker-context.sql",
+      "blobSha": "1643c4c13a23f93b4d5e0dde3712b9124891a359",
+      "bytes": 3541
+    },
+    {
+      "path": "commercial/supabase/proposals/official-worker-leases.sql",
+      "blobSha": "b51483772dcde12655939af2fe01fb4c1deb1987",
+      "bytes": 5103
+    },
+    {
+      "path": "commercial/supabase/proposals/official-worker-outcomes.sql",
+      "blobSha": "5e0992dbc3028e70a994ac3aa5acc563f64588ea",
+      "bytes": 5178
+    },
+    {
+      "path": "docs/audit/2026-10-11/adversarial-review-5775834-evidence.json",
+      "blobSha": "0cd325f4cce2c92ec0f1df957d06d70de6391808",
+      "bytes": 31690
+    },
+    {
+      "path": "docs/audit/2026-10-11/adversarial-review-5775834.md",
+      "blobSha": "8009b4191f02896dc6b22375fe213ec8dce2fcba",
+      "bytes": 13410
+    },
+    {
+      "path": "docs/audit/2026-10-11/authorized-legacy-cleanup-evidence.json",
+      "blobSha": "1e2cf607c72d7510d12960a2b66bf9b9e9d2a818",
+      "bytes": 1225
+    },
+    {
+      "path": "docs/audit/2026-10-11/authorized-legacy-cleanup.md",
+      "blobSha": "517d2d6d25462560cad68483b9911e0d7cd3a42a",
+      "bytes": 2864
+    },
+    {
+      "path": "docs/audit/2026-10-11/codex-corrections-after-independent-review.md",
+      "blobSha": "39fa311434b52444c67b244a113be6b4ea167190",
+      "bytes": 16488
+    },
+    {
+      "path": "docs/audit/2026-10-11/corrections-after-ea19d91-evidence.json",
+      "blobSha": "025a3c2e5ca21c1db9f008fa9b07e923d6e8f162",
+      "bytes": 8619
+    },
+    {
+      "path": "docs/audit/2026-10-11/corrections-after-ea19d91.md",
+      "blobSha": "55c719ed329255595714e77bcad1db6d3f9b24ba",
+      "bytes": 11736
+    },
+    {
+      "path": "docs/audit/2026-10-11/expected-artifacts.json",
+      "blobSha": "d43da5e212adb51b05a57d98ba8dc245934935d9",
+      "bytes": 191
+    },
+    {
+      "path": "docs/audit/2026-10-11/gpt-handoff.md",
+      "blobSha": "9276e0c7332c956c58b1eef46a89b8ceb80c38ec",
+      "bytes": 3679
+    },
+    {
+      "path": "docs/audit/2026-10-11/gpt-review-prompt-after-corrections.md",
+      "blobSha": "88150fa2b5accbec944bed87fb96a02dddc3ef36",
+      "bytes": 6238
+    },
+    {
+      "path": "docs/audit/2026-10-11/gpt-review-prompt.md",
+      "blobSha": "f1e198bc76aa07bb9b8ddbd82b984043dffe0d4f",
+      "bytes": 3645
+    },
+    {
+      "path": "docs/audit/2026-10-11/independent-review-and-codex-actions.md",
+      "blobSha": "807bbe442233c0647a065d951d336bbda00b3d89",
+      "bytes": 9238
+    },
+    {
+      "path": "docs/audit/2026-10-11/independent-technical-assessment-01a5fb9.md",
+      "blobSha": "9e15a765b0011acca524d2ed779f984538540a0e",
+      "bytes": 2837
+    },
+    {
+      "path": "docs/audit/2026-10-11/post-review-evidence.json",
+      "blobSha": "c4e2e0bad66ab4b841e45ba8b63ca489e4d85a8a",
+      "bytes": 10288
+    },
+    {
+      "path": "docs/audit/2026-10-11/published-artifact-comparison.json",
+      "blobSha": "d2416ff633976f2cda95641aed3fb5874b185196",
+      "bytes": 545
+    },
+    {
+      "path": "docs/audit/2026-10-11/report.md",
+      "blobSha": "5eb0d80956580deed9d2d2fb5b42208f6ad26e87",
+      "bytes": 10529
+    },
+    {
+      "path": "docs/audit/2026-10-11/repros/authorized-legacy-cleanup.sql",
+      "blobSha": "69f6732f15010b8eb0c557170a015ea1bcdfc371",
+      "bytes": 4885
+    },
+    {
+      "path": "docs/audit/2026-10-11/repros/legacy-entry-upsert.sql",
+      "blobSha": "fab566f4a6e190e555e147ced4c4c2ecaeaf4f90",
+      "bytes": 866
+    },
+    {
+      "path": "docs/audit/2026-10-11/repros/transaction-error-propagation.test.mjs",
+      "blobSha": "8d6de4383f295ab623064bd4dd5fd758d73e3634",
+      "bytes": 857
+    },
+    {
+      "path": "docs/audit/2026-10-12/athlete-catalog-discovery-evidence.json",
+      "blobSha": "52cf4cc9417e46b6550b4ee15337742c1455a851",
+      "bytes": 13838
+    },
+    {
+      "path": "docs/audit/2026-10-12/athlete-catalog-discovery.md",
+      "blobSha": "409bbb6ce9fd9e590aca3a048068ccc75ad390c7",
+      "bytes": 8822
+    },
+    {
+      "path": "docs/audit/2026-10-12/codex-acknowledgment-of-incomplete-delivery.md",
+      "blobSha": "279153c705eb46bc7c7d135fa1cddbafe92ba9a7",
+      "bytes": 1908
+    },
+    {
+      "path": "docs/audit/2026-10-12/edge-browser-recovery-evidence/manifest.json",
+      "blobSha": "5d7096991160b882a65a80fe23a91dd8bbdb4515",
+      "bytes": 1663
+    },
+    {
+      "path": "docs/audit/2026-10-12/edge-browser-recovery-evidence/package-manifest.json",
+      "blobSha": "7c3f0b96d14e3f0197e507472c43a46d07f2d42a",
+      "bytes": 6956
+    },
+    {
+      "path": "docs/audit/2026-10-12/edge-browser-recovery-evidence/viniswim-native-proof.json",
+      "blobSha": "c9fdf89a3e1e38f0893c45ed90631ec2a718605a",
+      "bytes": 9118
+    },
+    {
+      "path": "docs/audit/2026-10-12/edge-runtime-browser-and-recovery.md",
+      "blobSha": "bc1d61f50c698ec0975126124182a562c0ceccdf",
+      "bytes": 8227
+    },
+    {
+      "path": "docs/audit/2026-10-12/global-maintenance-and-native-live-proof.md",
+      "blobSha": "85407c45652f75f2fba141fe3c8b8e809065036f",
+      "bytes": 8448
+    },
+    {
+      "path": "docs/audit/2026-10-12/gpt-review-prompt-edge-runtime.md",
+      "blobSha": "c78656a4a0641247341b8f885b8d9576588b0278",
+      "bytes": 1613
+    },
+    {
+      "path": "docs/audit/2026-10-12/gpt-review-prompt-native-live-proof.md",
+      "blobSha": "0982daa3c1bac1f6664dc8b1621f1e99a94a2572",
+      "bytes": 1917
+    },
+    {
+      "path": "docs/audit/2026-10-12/manual-planning-and-shared-meet-evidence.json",
+      "blobSha": "b65125103273b1d2eff8f5d20ac2013374973d2b",
+      "bytes": 7132
+    },
+    {
+      "path": "docs/audit/2026-10-12/manual-planning-and-shared-meet.md",
+      "blobSha": "6f96421faff7d659ffe1481de7f72e11524e8639",
+      "bytes": 7392
+    },
+    {
+      "path": "docs/audit/2026-10-12/native-live-evidence/0a6b9c87fefef250e06d3a665aec87db830e9da5888c8ed878fa8cbfa2b695da.pdf.gz.b64",
+      "blobSha": "3d16c7d8745315e8022277804d50f869b831221d",
+      "bytes": 63881
+    },
+    {
+      "path": "docs/audit/2026-10-12/native-live-evidence/1696e885cecd0856bc1db42903aa7b66d113c9a9bc01368fb1aacd8fb3442775.pdf.gz.b64",
+      "blobSha": "2db15775eedcd5dc39c8e52411c13fbf091bc8aa",
+      "bytes": 178957
+    },
+    {
+      "path": "docs/audit/2026-10-12/native-live-evidence/README.md",
+      "blobSha": "5b934ca087e131e290a26e49eba032c347b3c110",
+      "bytes": 873
+    },
+    {
+      "path": "docs/audit/2026-10-12/native-live-evidence/bdf24158245e509e82ba014875053ae38750cf1f088f94e065d62258415dec41.pdf.gz.b64",
+      "blobSha": "89a64af2647947e53978daa5c43539aad01a9ed8",
+      "bytes": 254305
+    },
+    {
+      "path": "docs/audit/2026-10-12/native-live-evidence/bf21a054397316983464ac7b6b0f6bc393a4b805270e82a2154415d387f4c510.pdf.gz.b64",
+      "blobSha": "51d2e2e8b09d7af8dc059f62ca494e3bf261ab59",
+      "bytes": 238545
+    },
+    {
+      "path": "docs/audit/2026-10-12/native-live-evidence/manifest.json",
+      "blobSha": "6e09489f2e3ff77f96a711408559bc57b329c59d",
+      "bytes": 1663
+    },
+    {
+      "path": "docs/audit/2026-10-12/native-live-evidence/viniswim-native-proof.json",
+      "blobSha": "bb49a21d5aa2b401c6f7b5882dc5c76b98468eef",
+      "bytes": 7105
+    },
+    {
+      "path": "refactor/AGENTS.md",
+      "blobSha": "282e198c521e393b834c11446384f70cfeae0d30",
+      "bytes": 1792
+    },
+    {
+      "path": "refactor/AGENT_EXECUTION.md",
+      "blobSha": "5c742c86ef29557b897cd7a19cc4b785e82c2f68",
+      "bytes": 1804
+    },
+    {
+      "path": "refactor/CANONICAL_DATA_CONTRACTS.md",
+      "blobSha": "5435b1161e290f03157edede72108d66be091f45",
+      "bytes": 2305
+    },
+    {
+      "path": "refactor/CANONICAL_IMPORT_ENGINE.md",
+      "blobSha": "088658c6baaa505a7c7f5772d58de7df5d8c082f",
+      "bytes": 2528
+    },
+    {
+      "path": "refactor/CANONICAL_TEST_GATES.md",
+      "blobSha": "a9e1af07ebc1ac2abc41cbedd3382140a391c19a",
+      "bytes": 2115
+    },
+    {
+      "path": "refactor/DECISIONS.md",
+      "blobSha": "29679f6e9e8dd0b35664d92cd45acfd182ae4e2a",
+      "bytes": 1544
+    },
+    {
+      "path": "refactor/README.md",
+      "blobSha": "677dacb3d481bdcafedd07521bfd4c1e8f0874bf",
+      "bytes": 1105
+    },
+    {
+      "path": "refactor/STATUS.md",
+      "blobSha": "64864e1afdeb6a6b342420af4160214a96e6b76e",
+      "bytes": 4322
+    },
+    {
+      "path": "refactor/evidence/2026-10-07-gate7-cutover.md",
+      "blobSha": "2ccb3baf7ba03b1b4a246470f1b6ef152b5ebda6",
+      "bytes": 2390
+    },
+    {
+      "path": "refactor/evidence/2026-10-07-gate7.md",
+      "blobSha": "90558a1c507b0a833c13a57efabd89c3e8a0650e",
+      "bytes": 8611
+    },
+    {
+      "path": "refactor/evidence/2026-10-07-gates-0-3.md",
+      "blobSha": "9dfdb724632a309228fd1b78c50f87690c313d5e",
+      "bytes": 1605
+    },
+    {
+      "path": "refactor/evidence/2026-10-07-pre-clear-checkpoint.md",
+      "blobSha": "d7f20108205ccfe4fcb21bf62a9bd45ccf624047",
+      "bytes": 2320
+    },
+    {
+      "path": "refactor/evidence/2026-10-07-source-investigator-gate2.md",
+      "blobSha": "60aa6119fcca89f4f9c3607ea47cf7a25427531a",
+      "bytes": 763
+    },
+    {
+      "path": "refactor/evidence/2026-10-07-test-auditor-run-1.md",
+      "blobSha": "888a02bbc499095c7c41cc0adb077bc657bfdb5d",
+      "bytes": 784
+    },
+    {
+      "path": "refactor/evidence/2026-10-07-test-auditor-run-2.md",
+      "blobSha": "a276410a7c30309699fa682075404cfc2c2e934c",
+      "bytes": 725
+    },
+    {
+      "path": "refactor/evidence/2026-10-07-test-auditor-run-3.md",
+      "blobSha": "53dbc3c78989df8c90db068ef09d5a30955291d5",
+      "bytes": 570
+    },
+    {
+      "path": "refactor/evidence/2026-10-08-ui-consolidation-gate-0.md",
+      "blobSha": "5186c6f3913901b8f53f3d29579715d99dda30e3",
+      "bytes": 5295
+    },
+    {
+      "path": "refactor/evidence/2026-10-08-ui-consolidation-gate-1.md",
+      "blobSha": "ce858b3e3a10af21c0dc0d13f5fe46e8fd39b39d",
+      "bytes": 6510
+    },
+    {
+      "path": "refactor/evidence/2026-10-08-ui-consolidation-gate-2-progress.md",
+      "blobSha": "18427585c8bb9642a0594f9d778de052c28cc685",
+      "bytes": 1880
+    },
+    {
+      "path": "refactor/evidence/2026-10-08-ui-gate2-official-link-audit.md",
+      "blobSha": "3624a8a8a2402ffa74b6202baf0857c18bedb0f5",
+      "bytes": 2299
+    },
+    {
+      "path": "refactor/evidence/2026-10-08-ui-gate2-release-package-audit.md",
+      "blobSha": "eff12994c77f207551674417a478bb4ef77ed9ac",
+      "bytes": 3344
+    },
+    {
+      "path": "scripts/audit-publication-routing.mjs",
+      "blobSha": "822820cb2c407467c39c89fb1dbb535b6fe3844f",
+      "bytes": 2202
+    },
+    {
+      "path": "scripts/build-official-migration-candidate.py",
+      "blobSha": "9459ab4e07177b55b31bda7f0e8cad8f9fab8a94",
+      "bytes": 2290
+    },
+    {
+      "path": "scripts/capture-official-catalog-readonly.mjs",
+      "blobSha": "725d617c43791c84b9a123a6b9f1c80f32cdf8ab",
+      "bytes": 997
+    },
+    {
+      "path": "scripts/capture-official-meets-readonly.mjs",
+      "blobSha": "23f4ef50a954624222f12ef0741d1be5d2ebac76",
+      "bytes": 3440
+    },
+    {
+      "path": "scripts/capture-production-evidence.mjs",
+      "blobSha": "0060b04f563e95e7ddafd3d8fb32d03c948f5cad",
+      "bytes": 2813
+    },
+    {
+      "path": "scripts/check-ui-consolidation-gate2.cjs",
+      "blobSha": "0d28f45e610954043e51c5a478588530f02bf8e7",
+      "bytes": 2746
+    },
+    {
+      "path": "scripts/package-official-edge.py",
+      "blobSha": "a534f5abeb13063c3ffe5163a6a2afdfcc851948",
+      "bytes": 1972
+    },
+    {
+      "path": "scripts/setup-native-api-fixture.py",
+      "blobSha": "dd3969d14e5134344e4304968427954b2868515e",
+      "bytes": 4420
+    },
+    {
+      "path": "scripts/test-deno-pdf-extractor.mjs",
+      "blobSha": "e9819d826ac3f2707d98b85239833fd350d1334f",
+      "bytes": 2010
+    },
+    {
+      "path": "scripts/test-isolated-concurrency.mjs",
+      "blobSha": "320af3d126b1a546e3a37361df01b2ea183429fc",
+      "bytes": 4724
+    },
+    {
+      "path": "scripts/test-js-pdf-extractor.mjs",
+      "blobSha": "4ff8b9c30fdb9c083ab518ac9bf75c185c502472",
+      "bytes": 2706
+    },
+    {
+      "path": "scripts/test-official-pipeline-isolated.mjs",
+      "blobSha": "928672846c9cee00ef15edc530c4c62adcd1478d",
+      "bytes": 11976
+    },
+    {
+      "path": "scripts/test-official-worker-replay.mjs",
+      "blobSha": "4fb2d33e5cf2eb46c0e61c67d0fa3261fa1b3f0e",
+      "bytes": 3210
+    },
+    {
+      "path": "scripts/unpack-official-fixture.py",
+      "blobSha": "4e22bdd9eba756570bac59e14823f291039fa2b8",
+      "bytes": 1201
+    },
+    {
+      "path": "scripts/verify-official-artifact.py",
+      "blobSha": "9850dd226db80653e892fae0cc9766f19b482531",
+      "bytes": 1682
+    }
+  ]
+}

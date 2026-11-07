@@ -1,0 +1,29 @@
+name: Official import audit candidate
+on:
+  push:
+    branches: ['fix/official-import-audit-20261011']
+    paths:
+      - 'scripts/capture-production-evidence.mjs'
+      - '.github/workflows/official-import-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Capture public HTML and loaded modules without importing data
+        run: node scripts/capture-production-evidence.mjs
+      - name: Preserve original bytes and capture hashes, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-import-live-readonly
+          path: audit-evidence/
+          if-no-files-found: error
+          retention-days: 14
