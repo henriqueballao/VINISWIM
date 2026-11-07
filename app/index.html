@@ -1,4 +1,27 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/><meta name="theme-color" content="#0e2530"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/><meta name="apple-mobile-web-app-title" content="VINISWIM"/><meta name="application-name" content="VINISWIM"/><title>VINISWIM Performance Tracker</title><link rel="manifest" href="./manifest.webmanifest"/><link rel="apple-touch-icon" href="../apple-touch-icon.png"/><link rel="icon" href="../apple-touch-icon.png"/>  <script type="module" crossorigin src="./assets/index-BjbdadaH.js?v=20261009-1"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-CyjoYp8Q.css">
-</head><body><div id="root"></div></body></html>
+<style>
+#vini-history-shell{position:fixed;inset:0;z-index:2000;background:#f5f7f9;display:flex;flex-direction:column}
+#vini-history-top{flex:none;background:#0e2530;color:#fff;padding:9px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font:13px system-ui,-apple-system,sans-serif}
+#vini-history-top strong{letter-spacing:.04em}
+#vini-history-top button{background:#fff;border:0;border-radius:8px;color:#0e2530;padding:9px 12px;cursor:pointer;font-weight:600}
+#vini-history-frame{border:0;width:100%;flex:1;min-height:0}
+#vini-history-shell[hidden]{display:none}
+@media(max-width:520px){#vini-history-top{padding:8px 10px}#vini-history-top span{display:none}}
+</style></head><body>
+<div id="vini-history-shell" aria-label="Histórico do Vini sem Supabase">
+ <div id="vini-history-top"><div><strong>VINISWIM</strong> <span>· Histórico recuperado (consulta sem banco)</span></div><button id="vini-open-app" type="button">Abrir acesso à conta</button></div>
+ <iframe id="vini-history-frame" title="Resultados do Vinícius de 2024 a novembro de 2026" src="../vini-preview/" loading="eager"></iframe>
+</div>
+<div id="root"></div>
+<script>
+(function(){
+ const shell=document.getElementById('vini-history-shell'),button=document.getElementById('vini-open-app');
+ const params=new URLSearchParams(location.search);
+ const showApp=params.get('app')==='1'||params.has('invite')||params.has('reset')||location.hash.includes('access_token')||location.hash.includes('type=recovery');
+ if(showApp){shell.hidden=true;return}
+ button.addEventListener('click',()=>{shell.hidden=true;history.replaceState(null,'',location.pathname+'?app=1')});
+})();
+</script>
+</body></html>
