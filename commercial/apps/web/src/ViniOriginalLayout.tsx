@@ -55,7 +55,7 @@ export default function ViniOriginalLayout(){
     </div>
    </>}
    {page==='results'&&<ResultsPage offline={true} filtered={filtered} allResults={results} events={events} filters={filters} setFilters={setFilters} meets={meets} meetOptions={meetOptions} resultFilter={resultFilter} setResultFilter={setResultFilter} sourceConfigs={[]} selectedSources={[]} setSelectedSources={()=>{}} onNew={()=>{}} onEdit={()=>{}} onDelete={removeResult} onRefresh={async()=>{}} onCancelRefresh={async()=>{}} refreshMsg={''} athlete={athlete} activeRequest={null} onLinked={async()=>{}}/>}
-   {page==='evolution'&&<><div className="notice">O gráfico original apresenta somente marcas com piscinas identificadas para comparações técnicas consistentes.</div><Evolution key={index} results={visible.filter(r=>r.course)} events={events}/></>}
+   {page==='evolution'&&<><div className="notice">O gráfico apresenta todos os tempos, incluindo novembro de 2026. Use o filtro de piscina para comparar apenas registros com piscina identificada.</div><Evolution key={index} results={visible} events={events}/></>}
   </div></main>
   <nav className="mobile-nav">{tabs.map(([id,label,Icon])=><button key={id} className={page===id?'active':''} onClick={()=>setPage(id)}><Icon size={20}/><span>{id==='dashboard'?'Início':label}</span></button>)}<button onClick={()=>setOpen(true)}><MoreHorizontal size={20}/><span>Mais</span></button></nav>
  </div>
