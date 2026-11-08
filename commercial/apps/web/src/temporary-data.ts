@@ -42,7 +42,7 @@ export function getTemporaryAccount(index:number){
   meets:meetMap.get(meetCode(r.meet,r.date)),entry_status:'confirmed'
  }))
  const byEvent=new Map<string,any>()
- for(const r of rows){if(!r.course)continue;const k=r.event_id+'|'+r.course;const prior=byEvent.get(k);if(!prior||r.time_ms<prior.time_ms)byEvent.set(k,r)}
+ for(const r of rows){if(!r.course)continue;const k=r.event_id+'|'+r.course;const prior=byEvent.get(k);if(!prior||(r.time_ms??Infinity)<(prior.time_ms??Infinity))byEvent.set(k,r)}
  const pbs=[...byEvent.values()].map(r=>({...r,pb_id:'temporary-pb-'+r.id}))
  return {athlete,meets,results:rows,entries,pbs,overview:{total_results:rows.length,manual_results:rows.length,official_results:0,occurrences:0},account:temporaryAccounts[index],membership:temporaryAccounts.map(a=>({account_id:a.id,role:'viewer',accounts:a}))}
 }
