@@ -591,6 +591,21 @@
           "source": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
           "status": "dns",
           "evidence": "official_final_results_pdf_p94_DNS_Petiz1"
+        },
+        {
+          "key": "2026-03-08-38-nc",
+          "meet": "Regional 1ª Região",
+          "date": "2026-03-08",
+          "event": "200 Livre",
+          "course": "SCM",
+          "time_ms": null,
+          "seed_ms": null,
+          "heat": 3,
+          "lane": 6,
+          "scheduled": null,
+          "source": "https://swimsystem.swimtimebrasil.com/40595/ResultList_38.pdf",
+          "status": "dns",
+          "evidence": "official_resultlist_NC_did_not_compete_no_time"
         }
       ]
     },
@@ -1182,6 +1197,21 @@
           "source": "https://sportstimingbrasil-swimsystem.supabase.co/storage/v1/object/public/reports/meet-documents/9b002997-591e-4f74-8492-ef595b4705c0/dc4225df-82a5-4001-bc78-63b133232246.pdf",
           "status": "dns",
           "evidence": "official_final_results_pdf_p94_DNS_Petiz1"
+        },
+        {
+          "key": "2026-03-08-38-nc",
+          "meet": "Regional 1ª Região",
+          "date": "2026-03-08",
+          "event": "200 Livre",
+          "course": "SCM",
+          "time_ms": null,
+          "seed_ms": null,
+          "heat": 3,
+          "lane": 6,
+          "scheduled": null,
+          "source": "https://swimsystem.swimtimebrasil.com/40595/ResultList_38.pdf",
+          "status": "dns",
+          "evidence": "official_resultlist_NC_did_not_compete_no_time"
         }
       ]
     }
