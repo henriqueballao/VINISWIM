@@ -30,9 +30,9 @@ export function getTemporaryAccount(index:number){
  }
  const meets=[...meetMap.values()]
  const removed=new Set(temporaryRemovedIds(account.athlete_id))
- const rows=account.results.filter(r=>r.time_ms!=null&&!temporaryHidden(account.athlete_id)&&!removed.has('temporary-result-'+r.key)).map((r,i)=>({
+ const rows=account.results.filter(r=>(r.time_ms!=null||r.status==='dns')&&!temporaryHidden(account.athlete_id)&&!removed.has('temporary-result-'+r.key)).map((r,i)=>({
   id:'temporary-result-'+r.key,athlete_id:account.athlete_id,meet_id:meetCode(r.meet,r.date),meet_name:r.meet,event_id:eventId(r.event),
-  result_date:dateFrom(r.date),course:r.course,time_ms:r.time_ms,status:'valid',origin:'temporary',is_official:false,chronological_number:i+1,
+  result_date:dateFrom(r.date),course:r.course,time_ms:r.time_ms,status:r.status==='dns'?'dns':'valid',origin:'temporary',is_official:false,chronological_number:i+1,
   category:'Petiz I',venue:null,city:null,notes:'Dado manual recuperado e removível; confirmar data e piscina quando ausentes',
   created_at:'2026-11-07T12:00:00Z',result_fingerprint:'temporary-'+r.key
  }))
@@ -44,5 +44,5 @@ export function getTemporaryAccount(index:number){
  const byEvent=new Map<string,any>()
  for(const r of rows){if(!r.course)continue;const k=r.event_id+'|'+r.course;const prior=byEvent.get(k);if(!prior||(r.time_ms??Infinity)<(prior.time_ms??Infinity))byEvent.set(k,r)}
  const pbs=[...byEvent.values()].map(r=>({...r,pb_id:'temporary-pb-'+r.id}))
- return {athlete,meets,results:rows,entries,pbs,overview:{total_results:rows.length,manual_results:rows.length,official_results:0,occurrences:0},account:temporaryAccounts[index],membership:temporaryAccounts.map(a=>({account_id:a.id,role:'viewer',accounts:a}))}
+ return {athlete,meets,results:rows,entries,pbs,overview:{total_results:rows.length,manual_results:rows.length,official_results:0,occurrences:rows.filter(r=>r.status!=='valid').length},account:temporaryAccounts[index],membership:temporaryAccounts.map(a=>({account_id:a.id,role:'viewer',accounts:a}))}
 }
