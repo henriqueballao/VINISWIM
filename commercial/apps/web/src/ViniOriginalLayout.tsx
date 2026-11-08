@@ -16,7 +16,7 @@ export default function ViniOriginalLayout(){
  const visible=resultFilter===null?results:results.filter(r=>resultFilter.includes(r.meet_id))
  const filtered=visible.filter(r=>
   (!filters.event.length||filters.event.includes(r.event_id))&&
-  (!filters.course.length||filters.course.includes(r.course))&&
+  (!filters.course.length||(r.course!==null&&filters.course.includes(r.course)))&&
   (!filters.category.length||filters.category.includes(r.category))&&
   (!filters.origin.length||filters.origin.includes('manual')))
  const bests=resultFilter===null?data.pbs:events.map(e=>visible.filter(r=>r.event_id===e.id&&r.course&&r.status==='valid'&&r.time_ms!==null).sort((a,b)=>(a.time_ms||0)-(b.time_ms||0))[0]).filter(Boolean)
