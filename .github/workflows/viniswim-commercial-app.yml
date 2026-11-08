@@ -59,6 +59,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add app docs/audit/viniswim-build-last.md
           if ! git diff --cached --quiet; then
+            git commit -m "Build VINISWIM commercial app with diagnostic"
             git pull --rebase
             git push || (git pull --rebase && git push)
           fi
