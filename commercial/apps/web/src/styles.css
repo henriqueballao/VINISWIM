@@ -445,3 +445,36 @@ button.kpi{appearance:none;text-align:left;color:inherit}
 .overview-content-grid>.section{min-width:0;margin-bottom:0}
 @media (max-width:1100px){.overview-content-grid{grid-template-columns:minmax(0,1fr)}.overview-content-grid>.section{margin-bottom:0}}
 @media (max-width:600px){.overview-content-grid{gap:12px}.overview-content-grid .section-head{flex-wrap:wrap}.overview-content-grid .section-head>div{flex-wrap:wrap}}
+
+
+/* Vini temporary dataset: uses original VINISWIM shell, no Supabase calls */
+.vini-temporary .brand-logo{width:35px;height:35px;object-fit:contain}
+.vini-temporary .sidebar{display:flex;flex-direction:column}
+.vini-temporary .sidebar nav{flex:none}
+.vini-sidebar-note{margin-top:auto;padding:12px;font-size:12px;color:#a8bcc7;line-height:1.5}
+.vini-original-link{display:flex;align-items:center;gap:8px;color:white;text-decoration:none;padding:11px;border:1px solid #567381;border-radius:10px;font-size:13px}
+.vini-temp-banner{background:#eaf3f6;border:1px solid #c4dce1;border-radius:12px;padding:13px 16px;margin:0 0 17px;color:#344d5c;line-height:1.5;font-size:13px}
+.vini-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.vini-kpis .kpi{display:block;text-align:left;cursor:default}
+.vini-kpis .kpi small{display:block;font-size:12px;color:var(--muted);margin-top:4px}
+.vini-races{display:grid;gap:0}
+.vini-race{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line);padding:13px 3px}
+.vini-race:last-child{border-bottom:0}
+.vini-race b{display:block;font-size:14px}
+.vini-race small{display:block;font-size:12px;color:var(--muted);padding-top:3px}
+.vini-race strong{font-size:20px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.vini-pending{font-size:14px!important;color:#916821}
+.vini-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 12px;background:#fff;border:1px solid #bfcdd4;border-radius:9px;color:var(--nav);font-size:13px}
+.vini-danger{color:#9e3b48;border-color:#dcb5ba}
+.vini-tablewrap{overflow-x:auto}
+.vini-table{width:100%;border-collapse:collapse;min-width:660px}
+.vini-table th,.vini-table td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+.vini-table th{color:var(--muted);font-size:11px;letter-spacing:.03em}
+.vini-table td small{display:block;font-size:11px;color:var(--muted);margin-top:4px}
+.vini-evolution{border-top:1px solid var(--line);margin-top:16px;padding-top:8px}
+.vini-evolution h4{margin:10px 0 5px}
+.vini-evolution .vini-race span{font-size:13px}
+.vini-control{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.vini-control p{margin-bottom:0}
+@media(max-width:1100px){.vini-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.vini-temporary .header-switchers{max-width:56%}.vini-temporary .athlete-switcher select{min-width:0;max-width:100%;font-size:12px}.vini-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.vini-control{flex-direction:column;align-items:stretch}.vini-control button{width:100%}.vini-temporary .section-head{align-items:flex-start}.vini-temp-banner{font-size:12px}.vini-race strong{font-size:17px}}
