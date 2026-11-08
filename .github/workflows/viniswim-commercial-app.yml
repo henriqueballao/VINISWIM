@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'commercial/**'
+      - '.github/workflows/viniswim-commercial-app.yml'
   workflow_dispatch:
 permissions:
   contents: write
@@ -17,26 +18,50 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install and build
+      - name: Install and build (capture diagnostics)
+        id: build
+        continue-on-error: true
         working-directory: commercial
+        shell: bash
         run: |
-          npm install --no-audit --no-fund
-          npm --workspace @viniswim/shared run build
-          npm --workspace @viniswim/web run build -- --base=./
+          set -o pipefail
+          {
+            npm install --no-audit --no-fund &&
+            npm --workspace @viniswim/shared run build &&
+            npm --workspace @viniswim/web run build -- --base=./
+          } 2>&1 | tee /tmp/viniswim-build.log
       - name: Publish isolated app path
+        if: steps.build.outcome == 'success'
         run: |
           rm -rf app
           mkdir app
           cp -a commercial/apps/web/dist/. app/
           touch app/.nojekyll
-      - name: Commit compiled app
+      - name: Record build outcome
+        if: always()
+        shell: bash
+        env:
+          RESULT: ${{ steps.build.outcome }}
+        run: |
+          mkdir -p docs/audit
+          {
+            echo "# VINISWIM — latest deployment build"
+            echo "Build: $RESULT"
+            echo "Source commit: ${{ github.sha }}"
+            echo '~~~'
+            tail -100 /tmp/viniswim-build.log 2>/dev/null || true
+            echo '~~~'
+          } > docs/audit/viniswim-build-last.md
+      - name: Commit compiled app and diagnostic
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app
-          if git diff --cached --quiet; then
-            echo "No build changes"
-          else
-            git commit -m "Build VINISWIM commercial app"
-            git push
+          git add app docs/audit/viniswim-build-last.md
+          if ! git diff --cached --quiet; then
+            git pull --rebase
+            git push || (git pull --rebase && git push)
           fi
+      - name: Fail if build failed
+        if: steps.build.outcome != 'success'
+        run: exit 1
