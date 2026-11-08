@@ -43,7 +43,7 @@ export default function ViniOriginalLayout(){
     <div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button className="btn" onClick={restoreBatch}><RotateCcw size={15}/> Restaurar</button><button className="btn danger" onClick={removeBatch}><Trash2 size={15}/> Excluir lote local</button></div>
    </section>
    {page==='dashboard'&&<>
-    <Dashboard overview={data.overview} pbs={bests} events={events} setPage={setPage}/>
+    <Dashboard overview={data.overview} pbs={bests} events={events} setPage={p=>{if(p!=='settings')setPage(p)}}/>
     <div className="overview-content-grid">
      <section className="section"><div className="section-head"><h3>Campeonatos e balizamentos</h3></div>
       <div className="notice">Resultados das provas de 06 e 07/11/2026 e inscrições de 08/11/2026. Tempos de inscrição não são tratados como resultados.</div>
